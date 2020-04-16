@@ -1,0 +1,157 @@
+@charset "utf-8";
+/* CSS Document */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+header {
+  background-color: #002060;
+  padding: 1px;
+  text-align: center;
+  font-size: 22px;
+  color: white;
+}
+	
+#nav {
+	text-align:center;
+}
+#nav ul {
+	display:inline-block;
+	list-style:none; 
+	margin:0 auto;
+}
+#nav li {
+	display:inline;
+}
+#nav a {
+	float:left;
+	text-decoration:none; 
+	padding:8px 20px;
+	color: black;
+}
+#nav a:hover {
+	background-color: #3C7DB9;
+	cursor: pointer;
+}
+	
+	
+/* Create two columns/boxes that floats next to each other */
+aside {
+  float: left;
+  width: 45%;
+  padding: 20px;
+}
+
+
+article {
+  float: left;
+  padding: 20px;
+  width: 55%;
+}
+
+/* Clear floats after the columns */
+section:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+footer {
+  background-color: #777;
+  padding: 10px;
+  text-align: center;
+  color: white;
+}
+
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+.btn {
+  background-color: #9DC3E6;
+  border: #000000;
+  padding: 5px;
+  text-align: center;
+	text-decoration: none;
+	color: black;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: #3C7DB9;
+}
+
+.active {
+  background-color: #3C7DB9;
+  border: none;
+  text-align: center;
+  cursor: pointer;
+}
+	
+.content {
+  max-width: 1000px;
+  margin: auto;
+  background: white;
+}
+
+	
+.link {
+ 	font-size: 23px;
+ 	color: black;
+}
+
+.blue {
+	background-color: #9DC3E6;
+	padding: 10px;
+}
+
+/* Create three unequal columns that floats next to each other */
+.column {
+  float: left;
+  padding: 5px;
+}
+
+.leftnews {
+	width: 10%;
+	height: 30%;
+	overflow : auto;
+}
+
+.middle {
+  width: 25%;
+}
+
+.right {
+  width: 65%;
+}
+
+.soloright {
+	width: 90%
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+@media (max-width: 680px) {
+  .left, .right, .middle, .soloright{
+    width: 100%;
+    height: auto;
+	}
+	.column {width:100%}
+  .navbar a {
+    float: none;
+    display: block;
+  }
+}
+
