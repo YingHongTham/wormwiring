@@ -7,6 +7,7 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
+	margin : 0px;
 }
 
 header {
@@ -38,20 +39,31 @@ header {
 	background-color: #3C7DB9;
 	cursor: pointer;
 }
-	
-	
-/* Create two columns/boxes that floats next to each other */
-aside {
-  float: left;
-  width: 45%;
-  padding: 20px;
+
+#menu
+{
+	margin : 5px;
 }
 
+div.menuitem
+{
+	padding : 2px;
+	overflow : auto;
+}
 
-article {
-  float: left;
-  padding: 20px;
-  width: 55%;
+div.menugroup
+{
+	margin-left : 15px;
+	margin-bottom: 12px;
+	margin-top: 8px;
+	font-size: 14px;
+}
+
+div.menutext
+{
+	padding : 2px;
+	margin-left : 3px;
+	float : left;
 }
 
 /* Clear floats after the columns */
@@ -75,17 +87,24 @@ table, th, td {
 
 .btn {
   background-color: #9DC3E6;
-  border: #000000;
-  padding: 5px;
+  padding: 4px;
   text-align: center;
 	text-decoration: none;
 	color: black;
   font-size: 16px;
   cursor: pointer;
+  box-shadow: 3px 3px;
+	border: none;
 }
 
 .btn:hover {
   background-color: #3C7DB9;
+}
+
+.btn:active {
+  background-color: #3C7DB9;
+  box-shadow: 1px 1px;
+  transform: translateX(2px) translateY(2px);
 }
 
 .active {
@@ -98,7 +117,6 @@ table, th, td {
 .content {
   max-width: 1000px;
   margin: auto;
-  background: white;
 }
 
 	
@@ -144,12 +162,12 @@ table, th, td {
 }
 
 @media (max-width: 680px) {
-  .left, .right, .middle, .soloright{
+  .leftnews, .right, .middle, .soloright{
     width: 100%;
     height: auto;
 	}
 	.column {width:100%}
-  .navbar a {
+  .nav a {
     float: none;
     display: block;
   }
