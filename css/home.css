@@ -54,32 +54,6 @@ header {
 	cursor: pointer;
 }
 
-#menu
-{
-	margin : 5px;
-}
-
-div.menuitem
-{
-	padding : 2px;
-	overflow : auto;
-}
-
-div.menugroup
-{
-	margin-left : 15px;
-	margin-bottom: 12px;
-	margin-top: 8px;
-	font-size: 14px;
-}
-
-div.menutext
-{
-	padding : 2px;
-	margin-left : 3px;
-	float : left;
-}
-
 /* Clear floats after the columns */
 section:after {
   content: "";
@@ -152,7 +126,6 @@ table, th, td {
 
 .leftnews {
 	width: 10%;
-	height: 30%;
 	overflow : auto;
 }
 
