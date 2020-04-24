@@ -12,12 +12,26 @@ body {
 
 header {
   background-color: #002060;
-  padding: 1px;
+	padding-bottom: 0px;
   text-align: center;
   font-size: 22px;
   color: white;
 }
 	
+.headerimage {
+  background-image: url("../art1/nerve ring clear.png");
+	width: 100%;
+	padding: 1px;
+  background-position: top right;
+  background-repeat: no-repeat;
+  position: relative;
+	background-color: #002060;
+  text-align: center;
+  font-size: 22px;
+  color: white;
+}
+
+
 #nav {
 	text-align:center;
 }
