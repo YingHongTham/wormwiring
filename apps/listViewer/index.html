@@ -12,6 +12,16 @@
 	<link rel="stylesheet" type="text/css" href="../css/cellselector.css">
 	<link rel="stylesheet" type="text/css" href="./css/partnerListViewer.css">
 	<link rel="stylesheet" type="text/css" href="../../css/home.css">
+	
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-165108389-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-165108389-2');
+</script>
 
 	<!-- Latest compiled and minified CSS -->
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
@@ -27,32 +37,33 @@
 	<script type="text/javascript" src="./include/importerapp.js"></script>
 	<script type="text/javascript" src="./include/build_listViewer.js"></script>
 
-	<title>WW: List viewer</title>
+	<title>WormWiring: List Viewer</title>
 
 </head>
 
 <body>
 
-<div class="headerimage">
-    <h1>WormWiring<span style="font-size: 30">&ensp;Nematode Connectomics</span></h1>
-</div>	
-	
-<div id="nav">
-	<ul><b>
-	<li><a href="../../index.html">HOME</a></li>
-	<li><a href="../../literature.html">LITERATURE</a></li>
-	<li><a href="https://github.com/Emmonslab/Elegance">CODE</a></li>
-	<li><a href="../../contact.html">CONTACT</a></li>
-	</b></ul>
-	<hr style="margin: 0">
+<div class="headerimage" style="font-size: 0px; height: 80px">
+	<a href="../../" style="color: white; text-decoration: none">
+    <h1 style="font-size: 37px"><b>WormWiring<small style="color:white"><b>&ensp;Nematode Connectomics</b></small></b></h1>
+	</a>
 </div>
+<div id="nav" style="font-size: 0px">
+	<ul style="font-size: 16px"><b>
+	<li><a href="../../">HOME</a></li>
+	<li><a href="../../pages/literature.html">LITERATURE</a></li>
+	<li><a href="../../pages/software.html">SOFTWARE</a></li>
+	<li><a href="../../pages/contact.html">CONTACT</a></li>
+	</b></ul>
+</div>
+	
   <div id="top"></div>
   <div id="left">
     <div id="menu"></div>
   </div>
   <div id="frame-container" width="0" height="0">
     <iframe id="frame-viewer">
-    </frame>
+    </iframe>
   </div>
 </body>
 

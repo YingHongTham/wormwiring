@@ -7,36 +7,44 @@
   <META name="KeyWords" content="Caenorhabditis, elegans, C. elegans, neuron, hermaphrodite, male, mating, worm, nematode, connectome, connectomics, neural, connectivity, synapse, synapses, wiring, graph">
 
   <meta http-equiv="content-type" content="text/html;charset=utf-8">
+	  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="stylesheet" type="text/css" href="./css/ww.css">
   <link rel="stylesheet" type="text/css" href="./css/home.css">
+	  
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-165108389-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
-  <script type="text/javascript" src="./include/redirection-mobile.js"></script>
-  <script type="text/javascript" src="./include/google-analytics.js"></script>
+  gtag('config', 'UA-165108389-2');
+</script>
+
   <script type="text/javascript" src="./include/importers.js"></script>
   <script type="text/javascript" src="./include/importWW.js"></script>
   <script type="text/javascript" src="./include/frame1.js"></script>
   <script type="text/javascript" src="./include/loadhtml.js"></script>
-
-  <script type="text/javascript" src="./include/redirection-mobile.js"></script>
-  <script type="text/javascript">
-    SA.redirection_mobile ({
-    mobile_url : "wormwiring.org/wormwiring.m.html",
-    tablet_redirection: "true",
-    tablet_host: "wormwiring.org/wormwiring.m.html"
-    });
-  </script>
 
 </head>
 
 <body>
 
 <div class="headerimage">
+	<a href="./" style="color: white; text-decoration: none">
     <h1>WormWiring<span style="font-size: 30">&ensp;Nematode Connectomics</span></h1>
+	</a>
 </div>
 
 <div id="nav">
-	<div data-include="navbar.html"></div>
+	<ul><b>
+	<li><a href="/" style="background-color: #3C7DB9">HOME</a></li>
+	<li><a href="./pages/literature.html">LITERATURE</a></li>
+	<li><a href="./pages/software.html">SOFTWARE</a></li>
+	<li><a href="./pages/contact.html">CONTACT</a></li>
+	</b></ul>
+	<hr style="margin: 0">
 </div>
 	
 <div class="content">
@@ -46,18 +54,23 @@
 	  <div data-include="news/news.html"></div>
   </div>
   <div class="column middle">
-    <img style= "width:100%" src="art1/connectome_small.PNG" alt="connectome"/>
+	<span title="Interactive Diagram [.pdf]">
+	<a href="papers/Interactive-Diagram.pdf">
+		<img style= "width:100%" src="art1/connectome_small.PNG" alt="connectome"/>
+	</a>
+	</span>
   </div>
   <div class="column right">
     <p>A website hosting nematode connectomics data and tools for its visualization and analysis.</p>
 		<h3><i>Caenorhabditis elegans</i></h3>
-		<p>&emsp;&emsp;&emsp;<button onclick="location.href='adjacency.html'" type="button" class="btn">Adjacency Matrices</button></p>
-  	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='apps/neuronMaps/'" type="button" class="btn">Properties of single neurons</button></p>
+		<p>&emsp;&emsp;&emsp;<button onclick="location.href='pages/interactive.html'" type="button" class="btn">Interactive Diagram</button></p>
+		<p>&emsp;&emsp;&emsp;<button onclick="location.href='pages/adjacency.html'" type="button" class="btn">Adjacency Matrices and Data Tables</button></p>
+  	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='apps/neuronMaps/'" type="button" class="btn">Skeleton Neuron Diagrams</button></p>
 	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='apps/neuronVolume/'" type="button" class="btn">Volumetric Viewer</button></p>
 	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='apps/listViewer/?listtype=partners'" type="button" class="btn">Partner List</button></p>
 	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='apps/listViewer/?listtype=synapse'" type="button" class="btn">Synapse List</button></p>
-	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='si/SI 10 Properties of reconstructions.xlsx'" type="button" class="btn">Properties of Reconstruction Series (.xlsx)</button></p>
-	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='network diagrams.html'" type="button" class="btn">Network Diagrams</button></p>
+	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='si/SI 10 Properties of reconstructions.xlsx'" type="button" class="btn">Properties of Reconstruction Series [.xlsx]</button></p>
+	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='pages/network diagrams.html'" type="button" class="btn">Network Diagrams</button></p>
   </div>
 </div>
 </div>

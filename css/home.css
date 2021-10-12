@@ -17,6 +17,10 @@ header {
   font-size: 22px;
   color: white;
 }
+
+h1 {
+	text-shadow: 3px 3px  2px black;
+}
 	
 .headerimage {
   background-image: url("../art1/nerve ring clear.png");
@@ -38,7 +42,8 @@ header {
 #nav ul {
 	display:inline-block;
 	list-style:none; 
-	margin:0 auto;
+	margin:0;
+	padding: 0;
 }
 #nav li {
 	display:inline;
@@ -150,15 +155,24 @@ table, th, td {
   clear: both;
 }
 
-@media (max-width: 680px) {
-  .leftnews, .right, .middle, .soloright{
+@media (max-width: 600px) {
+  .right, .soloright{
     width: 100%;
     height: auto;
 	}
-	.column {width:100%}
-  .nav a {
-    float: none;
+  .middle {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+	}
+  .leftnews {
+	width: 100%;
+	height: 120px;
+	overflow: auto;
+	}
+  #nav a {
     display: block;
+	padding:8px 10px;
   }
 }
-
