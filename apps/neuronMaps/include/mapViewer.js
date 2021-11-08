@@ -68,7 +68,8 @@ MapViewer.prototype.initGL = function()
 	antialias: true,
 	autoClear: true
     });
-    this.renderer.setClearColor(0x050505);
+    //this.renderer.setClearColor(0x050505);
+    this.renderer.setClearColor(0xffffff);
     
     this.scene = new THREE.Scene();
     

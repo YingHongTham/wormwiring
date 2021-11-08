@@ -118,7 +118,6 @@ ImporterApp.prototype.Init = function ()
     importerButtons.AddLogo ('Clear maps', function () {self.ClearMaps();});
 
     
-	
     this.dialog = new FloatingDialog ();
 
     window.addEventListener ('resize', this.Resize.bind (this), false);
