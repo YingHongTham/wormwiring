@@ -121,6 +121,7 @@ ImporterApp.prototype.Init = function ()
 	importerButtons.AddLogo('Select neuron',self.NeuronSelectorDialog);
 	importerButtons.AddLogo('Clear maps',self.ClearMaps);
 	
+	
 	this.dialog = new FloatingDialog ();
 	
 	window.addEventListener ('resize', this.Resize.bind (this), false);
@@ -140,31 +141,35 @@ ImporterApp.prototype.Init = function ()
 	
 	var resizeWindow = function(){
 	viewer.resizeDisplayGL();
-	};
+    };
     
-	var render = function(){
-	//TODO commenting for testing
-	//requestAnimationFrame(render);
-	//self.viewer.render();
-	};
+    var render = function(){
+	
+	requestAnimationFrame(render);
+	self.viewer.render();
+    };
 
-	window.addEventListener('resize',resizeWindow,false);
-	this.viewer.initGL();
-	this.viewer.resizeDisplayGL();
-	render();
+    window.addEventListener('resize',resizeWindow,false);
     
-	if (this.PreloadParamsLoaded()){
-		this.PreloadCells();
-	} else {
-		this.SetCellSelector();
-	};
+    this.viewer.initGL();
+    this.viewer.resizeDisplayGL();
+    render();
+    
+    if (this.PreloadParamsLoaded()){
+	this.PreloadCells();
+    } else {
+	this.SetCellSelector();
+    };
+	
 };
 
-ImporterApp.prototype.PreloadParamsLoaded = function() {
-	return "cell" in this.params
-		&& "db" in this.params
-		&& "sex" in this.params;
-	//if ("cell" in this.params && "db" in this.params && "sex" in this.params){ return true; } else { return false; };
+ImporterApp.prototype.PreloadParamsLoaded = function()
+{
+    if ("cell" in this.params && "db" in this.params && "sex" in this.params){
+	return true;
+    } else {
+	return false;
+    };
 };
 
 ImporterApp.prototype.PreloadCells = function()

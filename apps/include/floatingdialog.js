@@ -1,3 +1,5 @@
+//TODO add close button
+
 FloatingDialog = function ()
 {
 	this.dialogDiv = null;

@@ -14,3 +14,9 @@ in the apps/neuronMaps/include/build_neuronMaps.js
 -id for canvas element in apps/neuronMaps/index.html
 -apps/neuronMaps/include/importerapp.js finds this canvas element
 -unclear what changing background-color would do
+
+
+TODOs
+floating dialog when do cell selector
+-apps/include/floatingdialog.js
+-add close button

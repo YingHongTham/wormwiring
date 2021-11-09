@@ -62,15 +62,15 @@ ImporterList = function(parent,list)
 };
 
 
-ImporterButtons = function (parent)
+ImporterButtons = function (_parent)
 {
-	this.parent = parent;
+	this.parent = _parent;
 };
 
 ImporterButtons.prototype.AddLogo = function (title, onClick)
 {
 	var logoDiv = document.createElement ('div');
-	logoDiv.id = 'logo';
+	logoDiv.id = 'logo'; //seems like bad to have same id for many
 	logoDiv.innerHTML = title;
 	logoDiv.onclick = onClick;
 	this.parent.appendChild (logoDiv);
