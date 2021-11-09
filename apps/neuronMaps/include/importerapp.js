@@ -116,26 +116,28 @@ ImporterApp.prototype.Init = function ()
 	var self = this;
 	var top = document.getElementById ('top');
 	var importerButtons = new ImporterButtons (top);
-	//importerButtons.AddLogo('Help',function(){self.HelpDialog();});
-	importerButtons.AddLogo('Help',self.HelpDialog);
-	importerButtons.AddLogo('Select neuron',self.NeuronSelectorDialog);
-	importerButtons.AddLogo('Clear maps',self.ClearMaps);
+	//need to wrap self.HelpDialog in function
+	//because that's defined later.. probably..
+	//ideally: importerButtons.AddLogo('Help',self.HelpDialog);
+	importerButtons.AddLogo('Help',()=>{self.HelpDialog();});
+	importerButtons.AddLogo('Select neuron',()=>{self.NeuronSelectorDialog();});
+	importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
 	
-	this.dialog = new FloatingDialog ();
+	this.dialog = new FloatingDialog();
 	
 	window.addEventListener ('resize', this.Resize.bind (this), false);
 	this.Resize ();
 	
 	var canvas = document.getElementById('meshviewer');
 	
-	
 	this.GenerateMenu();
 	
-	var viewer = new MapViewer(canvas,
-			{menuObj:this.menuObj,
-			 menuGroup:this.menuGroup,
-			synClick: this.InfoDialog},
-			debug=false);
+	var viewer = new MapViewer(canvas, {
+			menuObj:this.menuObj,
+			menuGroup:this.menuGroup,
+			synClick: this.InfoDialog
+		},
+		debug=false);
 	this.viewer = viewer;
 	
 	var resizeWindow = function(){
@@ -214,7 +216,7 @@ ImporterApp.prototype.HelpDialog = function()
 		'<div class="container">',
 		'</div>',
 		].join ('');
-	this.dialog.Open ({
+	this.dialog.Open({
 		className: 'dialog',
 		title : 'Help',
 		text : dialogText,
@@ -305,15 +307,13 @@ ImporterApp.prototype.InfoDialog = function(url,title)
 
 ImporterApp.prototype.NeuronSelectorDialog = function()
 {
-    var self = this;
-
-
-    var dialogText = [
-	'<div class="selectordialog">',
-	//this.NeuronSelector (),
-	'</div>',
-    ].join ('');
-    this.dialog.Open ({
+	var self = this;
+	var dialogText = [
+		'<div class="selectordialog">',
+		//this.NeuronSelector (),
+		'</div>',
+	].join ('');
+	this.dialog.Open ({
 	className: 'cell-selector',
 	title : 'Cell Selector',
 	text : dialogText,
