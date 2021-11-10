@@ -22,3 +22,6 @@ TODOs
 floating dialog when do cell selector
 -apps/include/floatingdialog.js
 -add close button
+
+the synapse list viewer allows selecting multiple neurons,
+but it only displays one
