@@ -1,5 +1,6 @@
 window.onload = function(){
 	//get url query string
+	//can specify cell that you want
 	var parameters = location.search.substring(1).split("&");
 	var params = {}
 	for (var tmp in parameters){
@@ -8,8 +9,8 @@ window.onload = function(){
 	};
 	console.log(params);
 
-// banner and wwnavbar no longer used
-//    new ImporterWW("banner","wwnavbar");
+	// banner and wwnavbar no longer used
+	//    new ImporterWW("banner","wwnavbar");
 	var importerApp = new ImporterApp(params);
 	importerApp.Init();
 };

@@ -1,104 +1,103 @@
 ImporterApp = function (params)
 {
-	//params are obtained from the url
-	//(e.g. when clicking on neuron from the Interactive Diagram)
-	//https://wormwiring.org/apps/neuronMaps/?cell=RMDDR&sex=herm&db=N2U 
-	this.params = params;
-	this.db = 'JSH';
-	this.selectedCell = '';
-	this.validCells = []; //used by GetCellDisplay()
-	this.GetCellDisplay(); //what does this really do??
-	this.neuronGroup = null; //who uses this?
-	
-	this.series = {
-		herm : [
-			{value: 'N2U', text: 'Adult head (N2U)'},
-			{value: 'JSE', text: 'Adult tail (JSE)'},
-			{value: 'N2W', text: 'Pharynx (N2W)'},
-			{value: 'JSH', text: 'L4 head (JSH)'}
-		],
-		male : [
-			{value: 'n2y', text: 'Adult tail (N2Y)'},
-			{value: 'n930', text: 'Adult head (N930)'}
-		]
-	};
-	this.data = {};
-	this.menuGroup = {};
-	this.selectedNeurons = {};
+    this.params = params;
+    this.db = 'JSH';
+    this.selectedCell = '';
+    this.validCells = [];
+    this.GetCellDisplay();
+    this.neuronGroup = null;
 
-	this.helpParams =  [
-		{
-			title : 'Quick start',
-			text : 'Cell skeletons are intially displayed in blue. This can be altered in the maps menu. Cell bodies are displayed as thicker red segements. '
-				+ 'This color cannot be changed. Presynapses are pink, postsynapses are purple and gap junctions are blue spheres. '
-				+ 'For presyanpses, the cell is the presynaptic partner. For the postsynapses, the cell is the postsynaptic partners. '
-				+ 'The size of the sphere reflects the size of the synapse. Mousing over displays the synapse info in the menu. '
-				+ 'Clicking on the synapse takes the user to the electron micrographs where the synapse was scored. '
-				+ 'Left mouse button rotates the mapse. Mouse wheel zooms in/out of the maps. Right mouse button pans the maps.',
-			video: 'https://www.youtube.com/embed/hySW0Q57iL4',
-			name : 'help-display'
-		},
-		{
-			title : 'Cell selector',
-			text : 'First select the sex and data series from the dropdown menus on the left. Then click on the Select Neuron button.',
-			video: 'https://www.youtube.com/embed/l_oCC-3GdVQ',
-			name : 'help-series'
-		},
-		{
-			title : 'Synapse info',
-			text : 'Synapses are represented as spheres. Mousing over synapse to display info for that synapse in the left panel. '
-				+ 'There are three types of synapses: presynapses (pink), '
-				+ 'postsynapses (purple), and gap junctions (blue). For presynapses and postsynapses, the cel pre- and postsynaptic, respectively. '
-				+ 'The info dialog gives the the cell on which the synapse sphere is located (Cell), the synapse type, the presynaptic source, '
-				+ 'the postsynaptic target, the estimated volume of the synapse (# of EM sections), the sections over which the synapse occurs '
-				+ 'and numerical id of the synapse.',
-			video: 'https://www.youtube.com/embed/DDjFMjFSdO0',
-			name : 'help-synapse-info'
-		},
-		{
-			title : 'Synapse Viewer',
-			text : 'Click on synapse sphere to view the synapse in the associated electron micrograph (EM). The synapse viewer '
-				+ 'has both a high and low magnification. Use the dropdown to to select the a different EM section in which the '
-				+ 'synapse was scored.',
-			video: 'https://www.youtube.com/embed/Qiy6JO2YeDU',
-			name : 'help-synapse-viewer'
-		},
-		{
-			title : 'Synapse filter',
-			text : 'Display only the selected synapses. Check presynaptic (Pre.), postsynaptic (Post.) or gap junction (Gap.).'
-				+ 'Then enter the partner cells to keep. Mulitple cells should be separated by a comma (e.g. AVAL,ASHL).'
-				+ 'You can also select synapses by synapse id number. '
-				+ 'Filter button will hide all but the selected synapses. Restore button makes all synapses visible.',
-			video: 'https://www.youtube.com/embed/1vGvdg3cUlY',
-			name : 'help-filter'
-		},
-		{
-			title : 'Map translate',
-			text : 'Translate the map along the x, y and z axes. Some maps may not be centered when selected. This can be used to manually center the maps.',
-			video: 'https://www.youtube.com/embed/23dytw_7yRM',
-			name : 'help-translate'
-		},
-		{
-			title : 'Comments',
-			text : 'Toggle map comments on/off.',
-			video: 'https://www.youtube.com/embed/D25joOnz1XE',
-			name : 'help-comments'
-		},
-		{
-			title : 'Maps',
-			text : 'Displays info for each map. Visibility of each map can be toggled on/off with the eye icon. Clicking on the cell reveals map info. '
-				+ 'Map color can be changed. Map remarks toggled on/off. If a WormAtlas link exists it can be accessed. Synaptic partners and synapse partners '
-				+ 'can also be displayed.',
-			video: 'https://www.youtube.com/embed/9aVMiiGVwYA',
-			name : 'help-maps'
-		},
-		{
-			title : 'Clear maps',
-			text : 'Clears all maps. Maps can also be cleared with the browser refresh button.',
-			video: 'https://www.youtube.com/embed/LT3PTMcnFAo',
-			name : 'help-clear'
-		}
-	];
+    this.series = {
+	herm : [
+	    {value: 'N2U', text: 'Adult head (N2U)'},
+	    {value: 'JSE', text: 'Adult tail (JSE)'},
+	    {value: 'N2W', text: 'Pharynx (N2W)'},
+	    {value: 'JSH', text: 'L4 head (JSH)'}
+	],
+	male : [
+	    {value: 'n2y', text: 'Adult tail (N2Y)'},
+	    {value: 'n930', text: 'Adult head (N930)'}
+	]
+    };
+    this.data = {};
+    this.menuGroup = {};
+    this.selectedNeurons = {};
+
+    this.helpParams =  [
+	{
+	    title : 'Quick start',
+	    text : 'Cell skeletons are intially displayed in blue. This can be altered in the maps menu. Cell bodies are displayed as thicker red segements. ' + 
+		'This color cannot be changed. Presynapses are pink, postsynapses are purple and gap junctions are blue spheres. ' + 
+		'For presyanpses, the cell is the presynaptic partner. For the postsynapses, the cell is the postsynaptic partners. ' +
+		'The size of the sphere reflects the size of the synapse. Mousing over displays the synapse info in the menu. ' + 
+		'Clicking on the synapse takes the user to the electron micrographs where the synapse was scored. ' +
+		'Left mouse button rotates the mapse. Mouse wheel zooms in/out of the maps. Right mouse button pans the maps.',
+	    video: 'https://www.youtube.com/embed/hySW0Q57iL4',	    
+	    name : 'help-display'
+	},
+	{
+	    title : 'Cell selector',
+	    text : 'First select the sex and data series from the dropdown menus on the left. Then click on the Select Neuron button.',
+	    video: 'https://www.youtube.com/embed/l_oCC-3GdVQ',
+	    name : 'help-series'
+	},
+	{
+	    title : 'Synapse info',
+	    text : 'Synapses are represented as spheres. Mousing over synapse to display info for that synapse in the left panel. '+
+		'There are three types of synapses: presynapses (pink), ' +
+		'postsynapses (purple), and gap junctions (blue). For presynapses and postsynapses, the cel pre- and postsynaptic, respectively. ' +
+		'The info dialog gives the the cell on which the synapse sphere is located (Cell), the synapse type, the presynaptic source, ' +
+		'the postsynaptic target, the estimated volume of the synapse (# of EM sections), the sections over which the synapse occurs ' +
+		'and numerical id of the synapse.',
+	    video: 'https://www.youtube.com/embed/DDjFMjFSdO0',
+	    name : 'help-synapse-info'
+	},
+	{
+	    title : 'Synapse Viewer',
+	    text : 'Click on synapse sphere to view the synapse in the associated electron micrograph (EM). The synapse viewer '+
+		'has both a high and low magnification. Use the dropdown to to select the a different EM section in which the '+
+		'was scored.',
+	    video: 'https://www.youtube.com/embed/Qiy6JO2YeDU',
+	    name : 'help-synapse-viewer'
+	},
+	{
+	    title : 'Synapse filter',
+	    text : 'Display only the selected synapses. Check presynaptic (Pre.), postsynaptic (Post.) or gap junction (Gap.).'+
+		'Then enter the partner cells to keep. Mulitple cells should be separated by a comma (e.g. AVAL,ASHL).'+
+		'You can also select synapses by synapse id number. ' +
+	        'Filter button will hide all but the selected synapses. Restore button makes all synapses visible.',
+	    video: 'https://www.youtube.com/embed/1vGvdg3cUlY',
+	    name : 'help-filter'
+	},
+	{
+	    title : 'Map translate',
+	    text : 'Translate the map along the x, y and z axes. Some maps may not be centered when selected. This can be used to manually center the maps.',
+	    video: 'https://www.youtube.com/embed/23dytw_7yRM',
+	    name : 'help-translate'
+	},
+	{
+	    title : 'Comments',
+	    text : 'Toggle map comments on/off.',
+	    video: 'https://www.youtube.com/embed/D25joOnz1XE',
+	    name : 'help-comments'
+	},
+	{
+	    title : 'Maps',
+	    text : 'Displays info for each map. Visibility of each map can be toggled on/off with the eye icon. Clicking on the cell reveals map info. ' + 
+		'Map color can be changed. Map remarks toggled on/off. If a WormAtlas link exists it can be accessed. Synaptic partners and synapse partners ' +
+		'can also be displayed.',
+	    video: 'https://www.youtube.com/embed/9aVMiiGVwYA',
+	    name : 'help-maps'
+	},
+	{
+	    title : 'Clear maps',
+	    text : 'Clears all maps. Maps can also be cleared with the browser refresh button.',
+	    video: 'https://www.youtube.com/embed/LT3PTMcnFAo',
+	    name : 'help-clear'
+	}	
+    ];
+
+    
 };
 
 
@@ -117,58 +116,60 @@ ImporterApp.prototype.Init = function ()
 	var self = this;
 	var top = document.getElementById ('top');
 	var importerButtons = new ImporterButtons (top);
-	//need to wrap self.HelpDialog in function
-	//because that's defined later.. probably..
-	//ideally: importerButtons.AddLogo('Help',self.HelpDialog);
-	importerButtons.AddLogo('Help',()=>{self.HelpDialog();});
-	importerButtons.AddLogo('Select neuron',()=>{self.NeuronSelectorDialog();});
-	importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
+	//importerButtons.AddLogo('Help',function(){self.HelpDialog();});
+	importerButtons.AddLogo('Help',self.HelpDialog);
+	importerButtons.AddLogo('Select neuron',self.NeuronSelectorDialog);
+	importerButtons.AddLogo('Clear maps',self.ClearMaps);
 	
-	this.dialog = new FloatingDialog();
+	
+	this.dialog = new FloatingDialog ();
 	
 	window.addEventListener ('resize', this.Resize.bind (this), false);
 	this.Resize ();
 	
 	var canvas = document.getElementById('meshviewer');
 	
+	
 	this.GenerateMenu();
 	
-	var viewer = new MapViewer(canvas, {
-			menuObj:this.menuObj,
-			menuGroup:this.menuGroup,
-			synClick: this.InfoDialog
-		},
-		debug=false);
+	var viewer = new MapViewer(canvas,
+			{menuObj:this.menuObj,
+			 menuGroup:this.menuGroup,
+			synClick: this.InfoDialog},
+			debug=false);
 	this.viewer = viewer;
 	
 	var resizeWindow = function(){
 	viewer.resizeDisplayGL();
-	};
+    };
     
-	var render = function(){
-	//TODO commenting for testing
-	//requestAnimationFrame(render);
-	//self.viewer.render();
-	};
+    var render = function(){
+	
+	requestAnimationFrame(render);
+	self.viewer.render();
+    };
 
-	window.addEventListener('resize',resizeWindow,false);
-	this.viewer.initGL();
-	this.viewer.resizeDisplayGL();
-	render();
-  
-	//
-	if (this.PreloadParamsLoaded()){
-		this.PreloadCells();
-	} else {
-		this.SetCellSelector();
-	};
+    window.addEventListener('resize',resizeWindow,false);
+    
+    this.viewer.initGL();
+    this.viewer.resizeDisplayGL();
+    render();
+    
+    if (this.PreloadParamsLoaded()){
+	this.PreloadCells();
+    } else {
+	this.SetCellSelector();
+    };
+	
 };
 
-ImporterApp.prototype.PreloadParamsLoaded = function() {
-	return "cell" in this.params
-		&& "db" in this.params
-		&& "sex" in this.params;
-	//if ("cell" in this.params && "db" in this.params && "sex" in this.params){ return true; } else { return false; };
+ImporterApp.prototype.PreloadParamsLoaded = function()
+{
+    if ("cell" in this.params && "db" in this.params && "sex" in this.params){
+	return true;
+    } else {
+	return false;
+    };
 };
 
 ImporterApp.prototype.PreloadCells = function()
@@ -218,7 +219,7 @@ ImporterApp.prototype.HelpDialog = function()
 		'<div class="container">',
 		'</div>',
 		].join ('');
-	this.dialog.Open({
+	this.dialog.Open ({
 		className: 'dialog',
 		title : 'Help',
 		text : dialogText,
@@ -307,299 +308,292 @@ ImporterApp.prototype.InfoDialog = function(url,title)
     });
 }
 
-
-/*
- * loads, creates neuron selector dialog
- */
 ImporterApp.prototype.NeuronSelectorDialog = function()
 {
-	var self = this;
-	var dialogText = [
-		'<div class="selectordialog">',
-		//this.NeuronSelector (),
-		'</div>',
-	].join ('');
-	this.dialog.Open({
-		className: 'cell-selector',
-		title : 'Cell Selector',
-		text : dialogText,
-		buttons : [{
-			text : 'ok',
-			callback : function (dialog) {
-				var sex = document.getElementById('sex-selector').value;
-				var series = document.getElementById('series-selector').value;
-				for (var group in self.selectedNeurons){
-					for (var i in self.selectedNeurons[group]){
-						if (self.selectedNeurons[group][i].visible == 1 && self.selectedNeurons[group][i].plotted == 0){
-							self.LoadMap(series,i);
-							self.LoadMapMenu(i,self.selectedNeurons[group][i].walink);
-							self.selectedNeurons[group][i].plotted = 1;
-						}
-					}
-				}
-				dialog.Close();
-			}
-		}]
-	});
+    var self = this;
 
-	//this.SetCellSelector();
-	var selector = document.getElementsByClassName('selectordialog')[0];
-	for (var group in this.selectedNeurons){
-		this.AddSelectPanel(selector,group);
-	};  
+
+    var dialogText = [
+	'<div class="selectordialog">',
+	//this.NeuronSelector (),
+	'</div>',
+    ].join ('');
+    this.dialog.Open ({
+	className: 'cell-selector',
+	title : 'Cell Selector',
+	text : dialogText,
+	buttons : [
+    
+	    {
+		text : 'ok',
+		callback : function (dialog) {
+		    var sex = document.getElementById('sex-selector').value;
+		    var series = document.getElementById('series-selector').value;
+		    for (var group in self.selectedNeurons){
+			for (var i in self.selectedNeurons[group]){
+			    if (self.selectedNeurons[group][i].visible == 1 && self.selectedNeurons[group][i].plotted == 0){
+				self.LoadMap(series,i);
+				self.LoadMapMenu(i,self.selectedNeurons[group][i].walink);
+				self.selectedNeurons[group][i].plotted = 1;
+			    };
+			};
+		    };
+		    dialog.Close();
+		}
+	    }
+	]
+    });
+
+    //this.SetCellSelector();
+    var selector = document.getElementsByClassName('selectordialog')[0];
+    for (var group in this.selectedNeurons){
+	this.AddSelectPanel(selector,group);
+    };  
+
 }
 
 ImporterApp.prototype.ClearMaps = function(mapName)
 {
-	var menuGroup = this.menuGroup.maps;
-	while(menuGroup.lastChild){
-		menuGroup.removeChild(menuGroup.lastChild);
-	};
-	this.viewer.clearMaps();
+    var menuGroup = this.menuGroup.maps;
+    while(menuGroup.lastChild){
+	menuGroup.removeChild(menuGroup.lastChild);
+    };
+    this.viewer.clearMaps();
 
-	for (var group in this.selectedNeurons){
-		for (var i in this.selectedNeurons[group]){
-			if (this.selectedNeurons[group][i].visible==1){
-				this.selectedNeurons[group][i].visible=0;
-			}
-		};
-	}; 
+    for (var group in this.selectedNeurons){
+	for (var i in this.selectedNeurons[group]){
+	    if (this.selectedNeurons[group][i].visible==1){
+		this.selectedNeurons[group][i].visible=0;
+	    };
+	};
+    }; 
 }
 
-/*
- * calls php to ask mysql for synapses and stuff
- */
 ImporterApp.prototype.LoadMap = function(db,mapname)
 {
-	var self = this;
-	console.log(db + ', ' + mapname);
-	var url = '../php/retrieve_trace_coord.php?neuron='+mapname+'&db='+db;
-	console.log(url);
-	var xhttp = new XMLHttpRequest();    
-	xhttp.onreadystatechange = function(){
-		if (this.readyState == 4 && this.status == 200){
-			self.data[mapname] = JSON.parse(this.responseText);
-			self.viewer.loadMap(self.data[mapname]);
-		}
-	};
-	xhttp.open("GET",url,true);
-	xhttp.send();
+    var self = this;
+    console.log(db + ', ' + mapname);
+    var url = '../php/retrieve_trace_coord.php?neuron='+mapname+'&db='+db;
+    console.log(url);
+    var xhttp = new XMLHttpRequest();    
+    xhttp.onreadystatechange = function(){
+	if (this.readyState == 4 && this.status == 200){
+	    self.data[mapname] = JSON.parse(this.responseText);
+	    self.viewer.loadMap(self.data[mapname]);
+	}
+    };
+    xhttp.open("GET",url,true);
+    xhttp.send();
 }
 
 
 
 ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
 {
-	var self = this;
-	var menuObj = this.menuObj;
-	var menuGroup = this.menuGroup.maps;    
-	var colorparams = {
-		openCloseButton:{
-			visible : false,
-			open : 'images/opened.png',
-			close: 'images/closed.png',
-			title: 'Map color',
-			onOpen : function(content,mapName){
-				while(content.lastChild){
-					content.removeChild(content.lastChild);
+    var self = this;
+    var menuObj = this.menuObj;
+    var menuGroup = this.menuGroup.maps;    
+    var colorparams = 
+	{
+	    openCloseButton:{
+		visible : false,
+		open : 'images/opened.png',
+		close: 'images/closed.png',
+		title: 'Map color',
+		onOpen : function(content,mapName){
+		    while(content.lastChild){
+			content.removeChild(content.lastChild);
+		    };
+		    colorInput = document.createElement('input');
+		    colorInput.className = 'colorSelector';
+		    colorInput.setAttribute('type','text');
+		    var obj = self.viewer.maps[mapname].skeleton[0];
+		    var r = Math.round(255*obj.material.color.r);
+		    var b = Math.round(255*obj.material.color.b);
+		    var g = Math.round(255*obj.material.color.g);
+		    var rgb = b | (g << 8) | (r << 16);
+		    var hex = '#' + rgb.toString(16);
+		    colorInput.setAttribute('value',hex);
+		    content.appendChild(colorInput);
+		    $(".colorSelector").spectrum({
+			preferredFormat: "rgb",
+			showInput: true,
+			move: function(color){
+			    var rgb = color.toRgb();
+			    for (var i in self.viewer.maps[mapname].skeleton){
+				var obj = self.viewer.maps[mapname].skeleton[i];
+				if (!obj.cellBody){
+				    obj.material.color.r = rgb.r/255.;
+				    obj.material.color.g = rgb.g/255.;
+				    obj.material.color.b = rgb.b/255.;
 				};
-				colorInput = document.createElement('input');
-				colorInput.className = 'colorSelector';
-				colorInput.setAttribute('type','text');
-				var obj = self.viewer.maps[mapname].skeleton[0];
-				var r = Math.round(255*obj.material.color.r);
-				var b = Math.round(255*obj.material.color.b);
-				var g = Math.round(255*obj.material.color.g);
-				var rgb = b | (g << 8) | (r << 16);
-				var hex = '#' + rgb.toString(16);
-				colorInput.setAttribute('value',hex);
-				content.appendChild(colorInput);
-				$(".colorSelector").spectrum({
-					preferredFormat: "rgb",
-					showInput: true,
-					move: function(color){
-						var rgb = color.toRgb();
-						for (var i in self.viewer.maps[mapname].skeleton){
-							var obj = self.viewer.maps[mapname].skeleton[i];
-							if (!obj.cellBody){
-								obj.material.color.r = rgb.r/255.;
-								obj.material.color.g = rgb.g/255.;
-								obj.material.color.b = rgb.b/255.;
-							}
-						};
-					}
-				});
-			},
-			userDate : mapname
-		}
+			    };
+			}
+		    });
+		},
+		userDate : mapname
+	    }
 	};
     
-	var remarksparams = {
-		userButton:{
-			visible: false,
-			onCreate : function(image){
-				image.src = 'images/hidden.png';
-			},
-			onClick : function(image,modelName){
-				var visible = self.viewer.maps[mapname].params.remarks;
-				self.viewer._toggleRemarks(mapname);
-				image.src = visible ? 'images/hidden.png' : 'images/visible.png';
-				self.viewer.maps[mapname].params.remarks = !visible;
-			},
-			title : 'Show/Hide remarks',
-			userdata : mapname
-		}
+    var remarksparams = 
+	{
+	    userButton:{
+		visible: false,
+		onCreate : function(image){
+		    image.src = 'images/hidden.png';
+		},
+		onClick : function(image,modelName){
+		    var visible = self.viewer.maps[mapname].params.remarks;
+		    self.viewer._toggleRemarks(mapname);
+		    image.src = visible ? 'images/hidden.png' : 'images/visible.png';
+		    self.viewer.maps[mapname].params.remarks = !visible;
+		},
+		title : 'Show/Hide remarks',
+		userdata : mapname
+	    }
+	    
 	};
 
-	var infoparams = {
-		openCloseButton:{
-			visible : false,
-			open : 'images/info.png',
-			close: 'images/info.png',
-			title: 'WormAtlas',
-			onOpen : function(content,mapName){
-				var url = walink;
-				self.InfoDialog(url,'WormAtlas');
-			},
-			userDate : mapname
-		}
+    var infoparams = 
+	{
+	    openCloseButton:{
+		visible : false,
+		open : 'images/info.png',
+		close: 'images/info.png',
+		title: 'WormAtlas',
+		onOpen : function(content,mapName){
+		    var url = walink;
+		    self.InfoDialog(url,'WormAtlas');
+		},
+		userDate : mapname
+	    }
 	};  
 
-	var partnerListparams = {
-		openCloseButton:{
-			visible : false,
-			open : 'images/info.png',
-			close: 'images/info.png',
-			title: 'Synaptic partners',
-			onOpen : function(content,mapName){
-				var sexSelect = document.getElementById('sex-selector').value;
-				var seriesSelect = document.getElementById('series-selector').value;
-				var url = '../partnerList/?continName='+mapname+'&series='+seriesSelect;
-				console.log('url: ' + url); 
-				self.InfoDialog(url,'Synaptic partners');
-			},
-			userDate : mapname
-		}
+    var partnerListparams = 
+	{
+	    openCloseButton:{
+		visible : false,
+		open : 'images/info.png',
+		close: 'images/info.png',
+		title: 'Synaptic partners',
+		onOpen : function(content,mapName){
+		    var sexSelect = document.getElementById('sex-selector').value;
+		    var seriesSelect = document.getElementById('series-selector').value;
+		    var url = '../partnerList/?continName='+mapname+'&series='+seriesSelect;
+		    console.log('url: ' + url); 
+		    self.InfoDialog(url,'Synaptic partners');
+		},
+		userDate : mapname
+	    }
 	}; 
 
-	var synapseListparams = {
-		openCloseButton:{
-			visible : false,
-			open : 'images/info.png',
-			close: 'images/info.png',
-			title: 'Synapes',
-			onOpen : function(content,mapName){
-				var sexSelect = document.getElementById('sex-selector').value;
-				var seriesSelect = document.getElementById('series-selector').value;
-				var url = '../synapseList/?continName='+mapname+'&series='+seriesSelect;
-				self.InfoDialog(url,'Synapse list');
-			},
-			userDate : mapname
-		}
+    var synapseListparams = 
+	{
+	    openCloseButton:{
+		visible : false,
+		open : 'images/info.png',
+		close: 'images/info.png',
+		title: 'Synapes',
+		onOpen : function(content,mapName){
+		    var sexSelect = document.getElementById('sex-selector').value;
+		    var seriesSelect = document.getElementById('series-selector').value;
+		    var url = '../synapseList/?continName='+mapname+'&series='+seriesSelect;
+		    self.InfoDialog(url,'Synapse list');
+		},
+		userDate : mapname
+	    }
 	};
 
-	menuObj.AddSubItem(menuGroup,mapname,{
-		openCloseButton:{
-		visible : false,
-		open: 'images/info.png',
-		close: 'images/info.png',
-		onOpen : function(content,mapName){
-			while(content.lastChild){
-				content.removeChild(content.lastChild);
-			};
-			menuObj.AddSubItem(content,'Color',colorparams);
-			menuObj.AddSubItem(content,'Remarks',remarksparams);
-			if (walink != undefined){
-				menuObj.AddSubItem(content,'WormAtlas',infoparams);
-			}
-			menuObj.AddSubItem(content,'Synaptic partners',partnerListparams);
-			menuObj.AddSubItem(content,'Synapse list',synapseListparams);
-		},
-		title : 'Show/Hide Information',
-		userData : mapname
-		},
-		userButton : {
-			visible : true,
-			onCreate : function(image){
-				image.src = 'images/visible.png';
-			},
-			onClick: function(image,modelName){
-				var visible = self.viewer.maps[modelName].visible
-				image.src = visible ? 'images/hidden.png' : 'images/visible.png';
-				self.viewer.maps[modelName].visible = !visible;
-				self.viewer.toggleMaps(modelName);
-				self.viewer._toggleAllSynapses(modelName,!visible);
-				self.viewer._toggleRemarks(modelName,bool=false);
-			},
-			title : 'Show/Hide map',
-			userData : mapname
-		}
-	});
+    menuObj.AddSubItem(menuGroup,mapname,
+		       {
+			   openCloseButton:{
+			       visible : false,
+			       open: 'images/info.png',
+			       close: 'images/info.png',
+			       onOpen : function(content,mapName){
+				   while(content.lastChild){
+				       content.removeChild(content.lastChild);
+				   };
+				   menuObj.AddSubItem(content,'Color',colorparams);
+				   menuObj.AddSubItem(content,'Remarks',remarksparams);
+				   if (walink != undefined){menuObj.AddSubItem(content,'WormAtlas',infoparams);}
+				   menuObj.AddSubItem(content,'Synaptic partners',partnerListparams);
+				   menuObj.AddSubItem(content,'Synapse list',synapseListparams);
+			       },
+			       title : 'Show/Hide Information',
+			       userData : mapname
+			   },
+			   userButton : {
+			       visible : true,
+			       onCreate : function(image){
+				   image.src = 'images/visible.png';
+			       },
+			       onClick: function(image,modelName){
+				   var visible = self.viewer.maps[modelName].visible
+				   image.src = visible ? 'images/hidden.png' : 'images/visible.png';
+				   self.viewer.maps[modelName].visible = !visible;
+				   self.viewer.toggleMaps(modelName);
+				   self.viewer._toggleAllSynapses(modelName,!visible);
+				   self.viewer._toggleRemarks(modelName,bool=false);
+			       },
+			       title : 'Show/Hide map',
+			       userData : mapname
+			   }
+		       });			    
+
 }
 
 ImporterApp.prototype.SetCellSelector = function()
 {
-	/*
-	 * js <-> php is structured as a callback
-	 * we send the request by xhttp.send()
-	 * but configure the request (via .open("GET",url))
-	 * xhttp.onready...nge waits until php is done
-	 * returning the value in the xhttp object as its
-	 * responseText attribute
-	 * then performs the callback fn we assign,
-	 * in this case simply parsing and saving the data
-	 * in self.selectedNeurons
-	 */
-	var self = this;
-	var sex = document.getElementById('sex-selector').value
-	var db = document.getElementById('series-selector').value;  
-	var xhttp = new XMLHttpRequest();    
-	var url = '../php/selectorCells.php?sex='+sex+'&db='+db;
-	xhttp.onreadystatechange = function(){
-		if (this.readyState == 4 && this.status == 200){
-			self.selectedNeurons = JSON.parse(this.responseText);
-		};
+    var self = this;
+    var sex = document.getElementById('sex-selector').value
+    var db = document.getElementById('series-selector').value;  
+    var xhttp = new XMLHttpRequest();    
+    var url = '../php/selectorCells.php?sex='+sex+'&db='+db;
+    xhttp.onreadystatechange = function(){
+	if (this.readyState == 4 && this.status == 200){
+	    self.selectedNeurons = JSON.parse(this.responseText);
 	};
-	xhttp.open("GET",url,true);
-	xhttp.send();  
+    };
+
+    xhttp.open("GET",url,true);
+    xhttp.send();  
 };
 
-/*
- * adds the Neuron and Muscles panels
- */
 ImporterApp.prototype.AddSelectPanel = function(parent,name)
 {
-	var self = this;
-	var header = document.createElement('button');
-	header.className = 'panel-header';
-	header.setAttribute('type','button');
-	header.setAttribute('data-toggle','collapse');
-	header.setAttribute('data-target','#'+name);
-	header.innerHTML = name
-	var panel = document.createElement('div');
-	panel.id = name;
-	panel.className = 'collapse';
-	for (var i in this.selectedNeurons[name]){
-		var div = document.createElement('div');
-		div.className = 'selectCell';//for entries in selector dialog
-		div.id = i;
-		div.innerHTML = i;
-		panel.appendChild(div);
-	};
-	parent.appendChild(header);
-	parent.appendChild(panel);
+    var self = this;
+    var header = document.createElement('button');
+    header.className = 'panel-header';
+    header.setAttribute('type','button');
+    header.setAttribute('data-toggle','collapse');
+    header.setAttribute('data-target','#'+name);
+    header.innerHTML = name
+    var panel = document.createElement('div');
+    panel.id = name;
+    panel.className = 'collapse';
+    for (var i in this.selectedNeurons[name]){
+	var div = document.createElement('div');
+	div.className = 'selectCell';
+	div.id = i;
+	div.innerHTML = i;
+	panel.appendChild(div);
+    };
+    parent.appendChild(header);
+    parent.appendChild(panel);
     
-	$("div#"+name+" > .selectCell").click(function () {
-		self.selectedNeurons[name][this.id].visible = 
-			(self.selectedNeurons[name][this.id].visible==1)?0:1;
-		$(this).toggleClass("select");
-	});
+    $("div#"+name+" > .selectCell").click(function () {
+	self.selectedNeurons[name][this.id].visible = 
+	    (self.selectedNeurons[name][this.id].visible==1)?0:1;
+	$(this).toggleClass("select");
+    });
 
-	for (var i in this.selectedNeurons[name]){
-		if (this.selectedNeurons[name][i].visible==1){
-			$("div#"+i).toggleClass("select");  
-		}
-	}
+    for (var i in this.selectedNeurons[name]){
+	if (this.selectedNeurons[name][i].visible==1){
+	    $("div#"+i).toggleClass("select");  
+	};
+    };
+    
 };
 
 ImporterApp.prototype.SetDB = function(_db)
@@ -627,39 +621,34 @@ ImporterApp.prototype.HelpButton = function()
 }
 
 
-/*
- * no one seems to call this
- */
 ImporterApp.prototype.NeuronSelector = function()
 {
-	var VolSelectorText = [
-		'<div class="cellclass-heading',
-		'<a class="cellclass" data-toggle="neurons" href="#neurons">Neurons</a>',
-	].join(''); // no </div>?
+    var VolSelectorText = [
+	'<div class="cellclass-heading',
+	'<a class="cellclass" data-toggle="neurons" href="#neurons">Neurons</a>',
+	
+    ].join('');
     
-	return VolSelectorText;
+    return VolSelectorText;
 };
 
-/*
- * what does this do??
- * asks for some cells, then push to validCells,
- * but no one else uses validCells??
- */
+
 ImporterApp.prototype.GetCellDisplay = function()
 {
-	var self = this;
-	var oReq = new XMLHttpRequest();
-	oReq.addEventListener("load",function(){
-		var list = this.responseText.split('\n');
-		for (l of list){
-			var tmp = l.split(',');
-			for (_tmp of tmp){
-				self.validCells.push(_tmp);
-			}
-		}
-	});
-	//oReq.open("GET","./models/volcells.txt");
-	//oReq.send();
+    var self = this;
+    var oReq = new XMLHttpRequest();
+    oReq.addEventListener("load",function(){
+	var list = this.responseText.split('\n');
+	for (l of list){
+	    var tmp = l.split(',');
+	    for (_tmp of tmp){
+		self.validCells.push(_tmp);
+	    };
+	};
+				  
+    });
+    //oReq.open("GET","./models/volcells.txt");
+    //oReq.send();
 }
 
 
@@ -729,7 +718,6 @@ ImporterApp.prototype.GenerateMenu = function()
 				self.SetCellSelector();
 			},
 			id : 'sex-selector'
-			//again this looks sketchy as there may be many with this id
 		});
 	};
 

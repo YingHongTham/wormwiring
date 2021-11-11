@@ -1,7 +1,15 @@
 <?php
+
+/*
+ * gets the list of cells
+ * receives request via url, two parameters: sex, db
+ * (extract by $_GET["sex"], $_GET["db"]
+ * php returns the value requested by echo-ing
+ */
 include('dbaux.php');
 include('common.php');
 
+//0 if don't debug
 $debug = 0;
 
 if ( $debug == 1){

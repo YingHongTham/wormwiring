@@ -155,84 +155,92 @@ MapViewer.prototype.clearMaps = function()
     this.maps = {};
 }
 
+/*
+ * loads neuron
+ */
 MapViewer.prototype.loadMap = function(map)
 {
-    console.log(map);
-    var self = this;
-    var params = {neuron:map.name,
-		  db:map.series,
-		  xmid:0.5*(parseInt(map.plotParam.xScaleMin) + parseInt(map.plotParam.xScaleMax)),
-		  xmin:Math.min(this.minX,map.plotParam.xScaleMin),
-		  ymid:0.5*(parseInt(map.plotParam.yScaleMin) + parseInt(map.plotParam.yScaleMax)),
-		  ymax:Math.max(this.maxY,parseInt(map.plotParam.yScaleMax)),
-		  zmid:0.5*(parseInt(map.plotParam.zScaleMin) + parseInt(map.plotParam.zScaleMax)),
-		  zmin:parseInt(map.plotParam.zScaleMin),
-		 default:'---',
-		  remarks:false
-		 };
-    var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor });
-    this.maps[map.name] = {visible:true,
-			   skeleton:[],
-			   skelMaterial:skelMaterial,
-			   synapses:{},
-			   synObjs:[],
-			   remarks:[],
-			   params:params};
-
-    for (var key in map){
-	if (this.non_series_keys.indexOf(key) == -1){
-	    this.addSkeleton(map.name,map[key],params);	    
+	console.log(map);
+	var self = this;
+	var params = {neuron:map.name,
+		db : map.series,
+		xmid : 0.5*(parseInt(map.plotParam.xScaleMin) + parseInt(map.plotParam.xScaleMax)),
+		xmin : Math.min(this.minX,map.plotParam.xScaleMin),
+		ymid : 0.5*(parseInt(map.plotParam.yScaleMin) + parseInt(map.plotParam.yScaleMax)),
+		ymax : Math.max(this.maxY,parseInt(map.plotParam.yScaleMax)),
+		zmid : 0.5*(parseInt(map.plotParam.zScaleMin) + parseInt(map.plotParam.zScaleMax)),
+		zmin : parseInt(map.plotParam.zScaleMin),
+		default : '---',
+		remarks : false
 	};
-    };
+	var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor });
+	this.maps[map.name] = {
+		visible : true,
+		skeleton : [],
+		skelMaterial : skelMaterial,
+		synapses : {},
+		synObjs : [],
+		remarks : [],
+		params : params
+	};
+
+	for (var key in map){
+		if (this.non_series_keys.indexOf(key) == -1){
+			this.addSkeleton(map.name,map[key],params);	    
+		}
+	}
     
-    this.addSynapse(map.name,map['preSynapse'],this.preMaterial,'Presynaptic',params);
-    this.addSynapse(map.name,map['postSynapse'],this.postMaterial,'Postsynaptic',params);
-    this.addSynapse(map.name,map['gapJunction'],this.gapMaterial,'Gap junction',params);
+	this.addSynapse(map.name,map['preSynapse'],this.preMaterial,'Presynaptic',params);
+	this.addSynapse(map.name,map['postSynapse'],this.postMaterial,'Postsynaptic',params);
+	this.addSynapse(map.name,map['gapJunction'],this.gapMaterial,'Gap junction',params);
 
-    for (var i in map.remarks){
-	var x = parseInt(map.remarks[i][0] - params.xmid)*this.XYScale - 10;
-	var y = (params.ymax - parseInt(map.remarks[i][1]) - params.ymid)*this.XYScale-30 + this.translate.y;
-	var z = parseInt(map.remarks[i][2]) - params.zmin;
-	
-	var params2 = {x:x,y:y,z:z,
-		       color:"rgba(255,255,255,0.95)",
-		       font:"10px Arial",
-		       visible:false
-		      };
-	this.addText(map.remarks[i][4],params2,this.maps[map.name].remarks);
-    };
+	for (var i in map.remarks){
+		var x = parseInt(map.remarks[i][0] - params.xmid)*this.XYScale - 10;
+		var y = (params.ymax - parseInt(map.remarks[i][1]) - params.ymid)*this.XYScale-30 + this.translate.y;
+		var z = parseInt(map.remarks[i][2]) - params.zmin;
+		var params2 = {x:x,y:y,z:z,
+			color : "rgba(255,255,255,0.95)",
+			font : "10px Arial",
+			visible : false
+		};
+		this.addText(map.remarks[i][4],params2,this.maps[map.name].remarks);
+	}
     
+	var m = new THREE.Matrix4();
+	m.makeTranslation(-this.position.x,-this.position.y,-this.position.z)
+	this.translateSkeleton(this.maps[map.name].skeleton,m);
+};
 
-    var m = new THREE.Matrix4();
-    m.makeTranslation(-this.position.x,-this.position.y,-this.position.z)
-    this.translateSkeleton(this.maps[map.name].skeleton,m);
-}
-
+/*
+ * add the neuron skeleton to THREE scene
+ * pass skeleton as ..?
+ * called by loadMap
+ */
 MapViewer.prototype.addSkeleton = function(name,skeleton,params)
-{    
-    for (var i=0; i < skeleton.x.length; i++){
-	var lineGeometry = new THREE.Geometry();
-	var vertArray = lineGeometry.vertices;
-	var x1 = (params.xmin - parseInt(skeleton.x[i][0]) - params.xmid)*this.XYScale + this.translate.x;
-	var x2 = (params.xmin - parseInt(skeleton.x[i][1]) - params.xmid)*this.XYScale + this.translate.x;
-	var y1 = (params.ymax - parseInt(skeleton.y[i][0]) - params.ymid)*this.XYScale + this.translate.y;
-	var y2 = (params.ymax - parseInt(skeleton.y[i][1]) - params.ymid)*this.XYScale + this.translate.y;
-	var z1 = (parseInt(skeleton.z[i][0]) - params.zmin);
-	var z2 = (parseInt(skeleton.z[i][1]) - params.zmin);
-	vertArray.push( new THREE.Vector3(x1,y1,z1),
+{ 
+	for (var i=0; i < skeleton.x.length; i++){
+		var lineGeometry = new THREE.Geometry();
+		var vertArray = lineGeometry.vertices;
+		var x1 = (params.xmin - parseInt(skeleton.x[i][0]) - params.xmid)*this.XYScale + this.translate.x;
+		var x2 = (params.xmin - parseInt(skeleton.x[i][1]) - params.xmid)*this.XYScale + this.translate.x;
+		var y1 = (params.ymax - parseInt(skeleton.y[i][0]) - params.ymid)*this.XYScale + this.translate.y;
+		var y2 = (params.ymax - parseInt(skeleton.y[i][1]) - params.ymid)*this.XYScale + this.translate.y;
+		var z1 = (parseInt(skeleton.z[i][0]) - params.zmin);
+		var z2 = (parseInt(skeleton.z[i][1]) - params.zmin);
+		vertArray.push(
+			new THREE.Vector3(x1,y1,z1),
 			new THREE.Vector3(x2,y2,z2)
-		      );
-	if (skeleton.cb != undefined && parseInt(skeleton.cb[i])==1){
-	    var line = new THREE.Line(lineGeometry,this.cbMaterial);
-	    line.cellBody = true;
-	} else {
-	    var line = new THREE.Line(lineGeometry,this.maps[name].skelMaterial);
-	    line.cellBody = false;
-	};
-	this.maps[name].skeleton.push(line);
-	this.scene.add(line);
-    };   
-
+		);
+		if (skeleton.cb != undefined && parseInt(skeleton.cb[i])==1){
+			var line = new THREE.Line(lineGeometry,this.cbMaterial);
+			line.cellBody = true;
+		} else {
+			var line = new THREE.Line(lineGeometry,this.maps[name].skelMaterial);
+			line.cellBody = false;
+		}
+		this.maps[name].skeleton.push(line);
+		this.scene.add(line);
+	}
 };
 
 MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,params,clickFunc)

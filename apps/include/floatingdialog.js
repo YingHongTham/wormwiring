@@ -1,3 +1,5 @@
+//TODO add close button
+
 FloatingDialog = function ()
 {
 	this.dialogDiv = null;
@@ -6,6 +8,7 @@ FloatingDialog = function ()
 
 FloatingDialog.prototype.Open = function (parameters)
 {
+	//weird, why define function in here if only used once..
 	function AddButton (dialog, parent, button)
 	{
 		var buttonDiv = document.createElement ('div');

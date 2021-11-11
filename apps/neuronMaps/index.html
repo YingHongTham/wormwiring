@@ -46,6 +46,7 @@
 	<script type="text/javascript" src="./include/mapViewer.js"></script>
 	<script type="text/javascript" src="./include/importerapp.js"></script>
 	<script type="text/javascript" src="./include/build_neuronMaps.js"></script>
+	<!--build_neuronMaps loads all the stuff like the viewer-->
 
 	<title>WormWiring: Neuron Maps</title>
 
@@ -67,10 +68,13 @@
 	</b></ul>
 </div>
 
-  <div id="top"></div>
+	<!--holds the Help, Select Neurons, Clear-->
+	<div id="top"></div>
+	<!--holds the stuff on the left -->
   <div id="left">
     <div id="menu"></div>
   </div>
+	<!-- holds the neuron viewer -->
   <canvas id="meshviewer" width="0" height="0"></canvas>
 </body>
 

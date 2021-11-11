@@ -2,6 +2,8 @@ Notes to self
 all paths are relative to the home folder of the website
 (i.e. where the main index.html is)
 
+the 'prototype' is just a way to add methods to a class
+
 -the code for the Skeleton Neuron Diagrams is in
 	apps/neuronMaps/include/mapViewer.js
 -background color: in MapViewer.prototype.initGL,
@@ -14,3 +16,12 @@ in the apps/neuronMaps/include/build_neuronMaps.js
 -id for canvas element in apps/neuronMaps/index.html
 -apps/neuronMaps/include/importerapp.js finds this canvas element
 -unclear what changing background-color would do
+
+
+TODOs
+floating dialog when do cell selector
+-apps/include/floatingdialog.js
+-add close button
+
+the synapse list viewer allows selecting multiple neurons,
+but it only displays one
