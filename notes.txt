@@ -25,3 +25,5 @@ floating dialog when do cell selector
 
 the synapse list viewer allows selecting multiple neurons,
 but it only displays one
+
+use jQuery for all those dialogs
