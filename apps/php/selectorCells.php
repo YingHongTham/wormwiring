@@ -20,7 +20,8 @@ if ( $debug == 1){
   $db = $_GET["db"];
 };
 
-$wafile = '/var/www/wormwiring/cell_files/wa_link.txt';
+//$wafile = '/var/www/wormwiring/cell_files/wa_link.txt';
+$wafile = '../../cell_files/wa_link.txt';
 
 if ($db == 'N2W'){
    $neuron_list = '../../cell_files/pharynx_neurons.txt';
