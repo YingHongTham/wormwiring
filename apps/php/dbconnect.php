@@ -1,51 +1,53 @@
 <?php
-//$ini = '../../../private/config.ini';
-$ini = '/var/www/private/config.ini';
+
+//this is useless, e.g. in __construct (scope issue)
 class DB {
-      var $con;      
-      var $result;      
+	var $con;      
+	var $result;      
+
+	//Initialize the .ini file that configures mysql stuff
+	function __construct(){
+		//TODO changed here to absolute path
+		//and removed search up the tree
+		//$ini = "../private/config.ini";
+		//while (!file_exists($ini)){
+		//	$ini = "../".$ini;
+		//}
+		$ini = '/var/www/private/config.ini';
+		$this->ini = $ini;    
+	}
+
+	function set_ini($new_ini){
+		$this->ini = $new_ini;
+	}
       
-      function __construct(){
-      	       $ini = "../private/config.ini";
-	       while (!file_exists($ini)){
-	       	     $ini = "../".$ini;	       	     
-	       }
-	       $this->ini = $ini;    
-      }
+	function get_init(){
+		return $this->ini;
+	}
 
-      function set_ini($new_ini){
-      	       $this->ini = $new_ini;
-      }
-      
-      function get_init(){
-      	       return $this->ini;
-      }
-
-      function connect($db){
-      	       $this->db = $db;
-      	       static $connection;
-	       if (!isset($con)){
-	       	  $config = parse_ini_file($this->ini);
-		  if (array_key_exists('port',$config)){
-		     $this->con = new mysqli($config['servername'],
-                     		             $config['username'],
-                                             $config['password'],
-					     $db,
-					     $config['port']);
-
-		  } else {
-		     $this->con = new mysqli($config['servername'],
-		     		             $config['username'],
-					     $config['password'],
-					     $db);
-                  }			  
-		  if($this->con === false){
-			error_log ("the database is" . $db);
-
-		     die('Connect Error: ' . $this->con->connect_error());
-		  }
-       	       }
-      }
+	function connect($db){
+		$this->db = $db;
+		static $connection;
+		if (!isset($con)){
+			$config = parse_ini_file($this->ini);
+			if (array_key_exists('port',$config)){
+				$this->con = new mysqli($config['servername'],
+					$config['username'],
+					$config['password'],
+					$db,
+					$config['port']);
+			} else {
+				$this->con = new mysqli($config['servername'],
+					$config['username'],
+					$config['password'],
+					$db);
+			}
+			if($this->con === false){
+				error_log ("the database is" . $db);
+				die('Connect Error: ' . $this->con->connect_error());
+			}
+		}
+	}
 
 
       function select_db($_db){

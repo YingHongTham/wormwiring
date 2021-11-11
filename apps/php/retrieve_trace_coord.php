@@ -6,11 +6,11 @@ $TEST = False;
 $DISPLAY = 2;
 
 if ($TEST) {
-   $db = 'N2U';
-   $cell = 'ASHL';
+	$db = 'N2U';
+	$cell = 'ASHL';
 } else {
-  $db = $_GET["db"];
-  $cell = $_GET["neuron"];
+	$db = $_GET["db"];
+	$cell = $_GET["neuron"];
 }
 
 
@@ -19,9 +19,9 @@ $_db->connect($db);
 $nt = new NeuronTrace($_db,$cell);
 foreach ($nt->series as $s => $_v){
 	if ($DISPLAY == 2){   
-	  $sql = $nt->display2_sql($s);
+		$sql = $nt->display2_sql($s);
 	} elseif ($DISPLAY == 3){
-	  $sql = $nt->display3_sql($s);
+		$sql = $nt->display3_sql($s);
 	}
 	$val = $_db->_return_query_rows_assoc($sql);
 	foreach ($val as $v){
@@ -49,60 +49,72 @@ foreach ($nt->series as $s => $_v){
 
 $data = $_db->get_gap_junction_synapses($nt->continName);
 foreach($data as $d){
-	      $label = $d[1];
-	      if ($nt->continName == $d[1]){
-	      	 $label = $d[0];
-	      }
-	      $c = $d[3];
-	      $dict = $_db->get_synapse_cell_object_dict($c);
-	      if (!array_key_exists($nt->continName,$dict)){continue;}
-		  //$xyz = $_db->get_object_xyz($dict[$nt->continName]);
-	      $xyz = $nt->get_object_xyz($dict[$nt->continName]);
-	      if ($xyz == -1) { continue;}
-		  $zrange = $_db->get_synapse_section_range($c);
-	      if (!is_null($xyz['x']) and !is_null($xyz['y']) and !is_null($xyz['z'])){
-	      	 $nt->gapJunction->add_synapse($xyz['x'],$xyz['y'],$xyz['z'],
-						$d[2],$label,$zrange['sectionNum1'],
-						$zrange['sectionNum2'],$c,$d[0],$d[1]);
-	      }
+	$label = $d[1];
+	if ($nt->continName == $d[1]){
+		$label = $d[0];
+	}
+	$c = $d[3];
+	$dict = $_db->get_synapse_cell_object_dict($c);
+	if (!array_key_exists($nt->continName,$dict)){
+		continue;
+	}
+	//$xyz = $_db->get_object_xyz($dict[$nt->continName]);
+	$xyz = $nt->get_object_xyz($dict[$nt->continName]);
+	if ($xyz == -1) {
+		continue;
+	}
+	$zrange = $_db->get_synapse_section_range($c);
+	if (!is_null($xyz['x']) and !is_null($xyz['y']) and !is_null($xyz['z'])){
+		$nt->gapJunction->add_synapse($xyz['x'],$xyz['y'],$xyz['z'],
+			$d[2],$label,$zrange['sectionNum1'],
+			$zrange['sectionNum2'],$c,$d[0],$d[1]);
+	}
 }
 
 $data = $_db->get_pre_chemical_synapses($nt->continName);
 foreach($data as $d){
-	      $c = $d[3];
-	      $dict = $_db->get_synapse_cell_object_dict($c);
-	      if (!array_key_exists($nt->continName,$dict)){continue;}
-	      //$xyz = $_db->get_object_xyz($dict[$nt->continName]);
-	      $xyz = $nt->get_object_xyz($dict[$nt->continName]);
-	      if ($xyz == -1) { continue;}
-	      $zrange = $_db->get_synapse_section_range($c);
-	      if (!is_null($xyz['x']) and !is_null($xyz['y']) and !is_null($xyz['z'])){
-	      	 $nt->preSynapse->add_synapse($xyz['x'],$xyz['y'],$xyz['z'],
-						$d[2],$d[1],$zrange['sectionNum1'],
-					   	$zrange['sectionNum2'],$c,$d[0],$d[1]);
-	      }
+	$c = $d[3];
+	$dict = $_db->get_synapse_cell_object_dict($c);
+	if (!array_key_exists($nt->continName,$dict)){
+		continue;
+	}
+	//$xyz = $_db->get_object_xyz($dict[$nt->continName]);
+	$xyz = $nt->get_object_xyz($dict[$nt->continName]);
+	if ($xyz == -1) {
+		continue;
+	}
+	$zrange = $_db->get_synapse_section_range($c);
+	if (!is_null($xyz['x']) and !is_null($xyz['y']) and !is_null($xyz['z'])){
+		$nt->preSynapse->add_synapse($xyz['x'],$xyz['y'],$xyz['z'],
+			$d[2],$d[1],$zrange['sectionNum1'],
+			$zrange['sectionNum2'],$c,$d[0],$d[1]);
+	}
 }
 
 $data = $_db->get_post_chemical_synapses($nt->continName);
 foreach($data as $d){
-	      $c = $d[3];
-	      $dict = $_db->get_synapse_cell_object_dict($c);
-	      if (!array_key_exists($nt->continName,$dict)){continue;}
-	      //$xyz = $_db->get_object_xyz($dict[$nt->continName]);
-	      $xyz = $nt->get_object_xyz($dict[$nt->continName]);
-	      if ($xyz == -1) { continue;}
-	      $zrange = $_db->get_synapse_section_range($c);
-	      if (!is_null($xyz['x']) and !is_null($xyz['y']) and !is_null($xyz['z'])){
-	      	 $nt->postSynapse->add_synapse($xyz['x'],$xyz['y'],$xyz['z'],
-						$d[2],$d[0],$zrange['sectionNum1'],
-					   	$zrange['sectionNum2'],$c,$d[0],$d[1]);
-	      }
+	$c = $d[3];
+	$dict = $_db->get_synapse_cell_object_dict($c);
+	if (!array_key_exists($nt->continName,$dict)){
+		continue;
+	}
+	//$xyz = $_db->get_object_xyz($dict[$nt->continName]);
+	$xyz = $nt->get_object_xyz($dict[$nt->continName]);
+	if ($xyz == -1) {
+		continue;
+	}
+	$zrange = $_db->get_synapse_section_range($c);
+	if (!is_null($xyz['x']) and !is_null($xyz['y']) and !is_null($xyz['z'])){
+		$nt->postSynapse->add_synapse($xyz['x'],$xyz['y'],$xyz['z'],
+			$d[2],$d[0],$zrange['sectionNum1'],
+			$zrange['sectionNum2'],$c,$d[0],$d[1]);
+	}
 }
 
 if ($DISPLAY == 2){   
-  $nt->load_map2_params($_db);   
+	$nt->load_map2_params($_db);   
 } elseif ($DISPLAY == 3){
-  $nt->load_map3_params($_db);  
+	$nt->load_map3_params($_db);  
 }
 
 $data = $nt->compile_data();

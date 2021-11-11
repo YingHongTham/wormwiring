@@ -27,3 +27,16 @@ the synapse list viewer allows selecting multiple neurons,
 but it only displays one
 
 use jQuery for all those dialogs
+
+deselecting cell in the Selector dialog doesn't clear the neuron,
+would be nice to be able to clear individual neurons
+
+in apps/php/dbaux, the database names are inconsistently capitalized
+maybe because the databses are indeed as such
+not very good
+
+created a folder private and file config.ini in /var/www
+meant to mimic the worms server.
+it's the only thing that's not in the wormwiring-dev folder
+should delete it as it has some password in plain text
+
