@@ -77,13 +77,11 @@ function pharynx_dbs($cell){
 }
 
 function get_contin_names($db){
-	 $_db = new DB();
-	 $_db->connect($db);
-	 $contins = $_db->get_contin_names();
-	 return $contins;
+	$_db = new DB();
+	$_db->connect($db);
+	$contins = $_db->get_contin_names();
+	return $contins;
 }
-
-	
 
 function get_partner_lists($db,$cell,$ptype)
 {

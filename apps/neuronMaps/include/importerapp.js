@@ -146,9 +146,9 @@ ImporterApp.prototype.Init = function ()
 	};
     
 	var render = function(){
-	//TODO commenting for testing
-	//requestAnimationFrame(render);
-	//self.viewer.render();
+		//TODO commenting for testing
+		requestAnimationFrame(render);
+		self.viewer.render();
 	};
 
 	window.addEventListener('resize',resizeWindow,false);
@@ -309,11 +309,12 @@ ImporterApp.prototype.InfoDialog = function(url,title)
 
 
 /*
- * loads, creates neuron selector dialog
+ * loads, creates neuron selector dialog when click 'Select neuron'
  */
 ImporterApp.prototype.NeuronSelectorDialog = function()
 {
 	var self = this;
+	console.log("this shold only be called when selector");
 	var dialogText = [
 		'<div class="selectordialog">',
 		//this.NeuronSelector (),
@@ -342,6 +343,7 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 		}]
 	});
 
+	console.log(this.selectedNeurons);
 	//this.SetCellSelector();
 	var selector = document.getElementsByClassName('selectordialog')[0];
 	for (var group in this.selectedNeurons){
@@ -559,6 +561,7 @@ ImporterApp.prototype.SetCellSelector = function()
 		if (this.readyState == 4 && this.status == 200){
 			self.selectedNeurons = JSON.parse(this.responseText);
 		};
+		console.log(this.readyState, this.status);
 	};
 	xhttp.open("GET",url,true);
 	xhttp.send();  
