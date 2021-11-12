@@ -173,36 +173,36 @@ ImporterApp.prototype.PreloadParamsLoaded = function() {
 
 ImporterApp.prototype.PreloadCells = function()
 {
-    var self = this;
-    this.LoadMap(this.params.db,this.params.cell);
-    document.getElementById('sex-selector').value = this.params.sex
-    var sex = document.getElementById('sex-selector').value;
-    var series = document.getElementById('series-selector')
-    while(series.length > 0){
-	series.remove(series.length-1);
-    };
-    for (var i=0;i<self.series[sex].length;i++){
-	var opt = document.createElement('option');
-	opt.value = self.series[sex][i].value;
-	opt.innerHTML = self.series[sex][i].text;
-	series.appendChild(opt);
-    };
-    document.getElementById('series-selector').value = this.params.db
-    var xhttp = new XMLHttpRequest();    
-    var url = '../php/selectorCells.php?sex='+this.params.sex+'&db='+this.params.db;
-    xhttp.onreadystatechange = function(){
-	if (this.readyState == 4 && this.status == 200){
-	    self.selectedNeurons = JSON.parse(this.responseText);
-	    for (var group in self.selectedNeurons){
-		if (self.params.cell in self.selectedNeurons[group]){
-		    self.selectedNeurons[group][self.params.cell].visible = 1;
-		    self.selectedNeurons[group][self.params.cell].plotted = 1;
-		    self.LoadMapMenu(self.params.cell,
-				     self.selectedNeurons[group][self.params.cell].walink);
-		};
-	    };
+	var self = this;
+	this.LoadMap(this.params.db,this.params.cell);
+	document.getElementById('sex-selector').value = this.params.sex
+	var sex = document.getElementById('sex-selector').value;
+	var series = document.getElementById('series-selector')
+	while(series.length > 0){
+		series.remove(series.length-1);
 	};
-    };
+	for (var i=0;i<self.series[sex].length;i++){
+		var opt = document.createElement('option');
+		opt.value = self.series[sex][i].value;
+		opt.innerHTML = self.series[sex][i].text;
+		series.appendChild(opt);
+	};
+	document.getElementById('series-selector').value = this.params.db
+	var xhttp = new XMLHttpRequest();    
+	var url = '../php/selectorCells.php?sex='+this.params.sex+'&db='+this.params.db;
+	xhttp.onreadystatechange = function(){
+		if (this.readyState == 4 && this.status == 200){
+			self.selectedNeurons = JSON.parse(this.responseText);
+			for (var group in self.selectedNeurons){
+				if (self.params.cell in self.selectedNeurons[group]){
+					self.selectedNeurons[group][self.params.cell].visible = 1;
+					self.selectedNeurons[group][self.params.cell].plotted = 1;
+					self.LoadMapMenu(self.params.cell,
+						self.selectedNeurons[group][self.params.cell].walink);
+				}
+			}
+		}
+	};
     
     xhttp.open("GET",url,true);
     xhttp.send(); 
@@ -343,8 +343,8 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 		}]
 	});
 
-	console.log(this.selectedNeurons);
 	//this.SetCellSelector();
+	//adds cells from selected database to the selector dialog
 	var selector = document.getElementsByClassName('selectordialog')[0];
 	for (var group in this.selectedNeurons){
 		this.AddSelectPanel(selector,group);
@@ -376,7 +376,7 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
 	var self = this;
 	console.log(db + ', ' + mapname);
 	var url = '../php/retrieve_trace_coord.php?neuron='+mapname+'&db='+db;
-	console.log(url);
+	console.log('retrieving skeleton map via '+url);
 	var xhttp = new XMLHttpRequest();    
 	xhttp.onreadystatechange = function(){
 		if (this.readyState == 4 && this.status == 200){

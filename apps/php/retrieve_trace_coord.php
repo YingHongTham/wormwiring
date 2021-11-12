@@ -120,4 +120,7 @@ if ($DISPLAY == 2){
 $data = $nt->compile_data();
 echo json_encode($data);
 
+//$time = microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"];
+//echo "Did stuff in $time seconds\n";
+//about 5.34 seconds for ADAL, N2U
 ?>
