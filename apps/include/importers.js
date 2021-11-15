@@ -157,35 +157,39 @@ InfoTable.prototype.AddColorRow = function (name, color)
 	this.table.appendChild (tableRow);
 };
 
+
+//ImporterMenu constructor
+//the js behind the left menu
+//constructor clears parent node (expected id='menu')
 ImporterMenu = function (parent)
 {
-    this.parent = parent;
-    while (this.parent.lastChild) {
-	this.parent.removeChild (this.parent.lastChild);
-    }
+	this.parent = parent;
+	while (this.parent.lastChild) {
+		this.parent.removeChild (this.parent.lastChild);
+	}
 };
 
 ImporterMenu.prototype.AddSelector = function(parent,name,parameters)
 {
-    var selectorItem = document.createElement ('div');
-    selectorItem.className = 'submenuitem';
-    selectorItem.innerHTML = name + ": ";
-    if (parameters.options != undefined && parameters.options != null){
-	var selector = document.createElement('select');
-	selector.id = parameters.id;
-	for (var i = 0; i < parameters.options.length; i++){
-	    var opt = document.createElement('option');
-	    opt.value = parameters.options[i].value;
-	    opt.innerHTML = parameters.options[i].text;
-	    selector.appendChild(opt)
+	var selectorItem = document.createElement ('div');
+	selectorItem.className = 'submenuitem';
+	selectorItem.innerHTML = name + ": ";
+	if (parameters.options != undefined && parameters.options != null){
+		var selector = document.createElement('select');
+		selector.id = parameters.id;
+		for (var i = 0; i < parameters.options.length; i++){
+			var opt = document.createElement('option');
+			opt.value = parameters.options[i].value;
+			opt.innerHTML = parameters.options[i].text;
+			selector.appendChild(opt)
+		};
+		if (parameters.onChange != undefined && parameters.onChange != null){
+			selector.onchange = parameters.onChange;
+		};
+		selectorItem.appendChild(selector);
 	};
-	if (parameters.onChange != undefined && parameters.onChange != null){
-	    selector.onchange = parameters.onChange;
-	};
-	selectorItem.appendChild(selector);
-    };
-     parent.appendChild(selectorItem);
-}
+	parent.appendChild(selectorItem);
+};
 
 
 

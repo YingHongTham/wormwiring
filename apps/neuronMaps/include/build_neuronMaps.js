@@ -13,4 +13,6 @@ window.onload = function(){
 	//    new ImporterWW("banner","wwnavbar");
 	var importerApp = new ImporterApp(params);
 	importerApp.Init();
+
+	window.aa = importerApp;
 };

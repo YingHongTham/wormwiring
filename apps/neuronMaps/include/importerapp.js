@@ -24,6 +24,13 @@ ImporterApp = function (params)
 	};
 	this.data = {};
 	this.menuGroup = {};
+	
+	//selectedNeurons are the cells that have been selected
+	//to be loaded (visibility can later be toggled)
+	//they should appear in the left menu
+	//often run through loop: selectedNeurons[group][i]
+	//	group = 'Neurons' or 'Muscles'
+	//	i = the cell name e.g. 'ADAL'
 	this.selectedNeurons = {};
 
 	this.helpParams =  [
@@ -113,7 +120,8 @@ ImporterApp.prototype.Init = function ()
 		//alert(warning);
 		alert('WebGL failed to load, viewer may not work');
 	};
-   
+
+	//set up the Help, selector, clear menu
 	var self = this;
 	var top = document.getElementById ('top');
 	var importerButtons = new ImporterButtons (top);
@@ -123,7 +131,9 @@ ImporterApp.prototype.Init = function ()
 	importerButtons.AddLogo('Help',()=>{self.HelpDialog();});
 	importerButtons.AddLogo('Select neuron',()=>{self.NeuronSelectorDialog();});
 	importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
-	
+
+	//the small window in which help/selector is shown
+	//
 	this.dialog = new FloatingDialog();
 	
 	window.addEventListener ('resize', this.Resize.bind (this), false);
@@ -204,10 +214,9 @@ ImporterApp.prototype.PreloadCells = function()
 		}
 	};
     
-    xhttp.open("GET",url,true);
-    xhttp.send(); 
-    
-}
+	xhttp.open("GET",url,true);
+	xhttp.send(); 
+};
 
 
 
@@ -226,10 +235,9 @@ ImporterApp.prototype.HelpDialog = function()
 			{
 				text : 'close',
 				callback : function (dialog) {
-				dialog.Close();
+					dialog.Close();
 				}
-			}
-		]
+			}		]
 	});
     
 	var container = document.getElementsByClassName('container')[0];
@@ -299,8 +307,7 @@ ImporterApp.prototype.InfoDialog = function(url,title)
 	    {
 		text : 'close',
 		callback : function (dialog) {
-		    dialog.Close();
-		    
+			dialog.Close();
 		}
 	    }
 	]
@@ -314,7 +321,6 @@ ImporterApp.prototype.InfoDialog = function(url,title)
 ImporterApp.prototype.NeuronSelectorDialog = function()
 {
 	var self = this;
-	console.log("this shold only be called when selector");
 	var dialogText = [
 		'<div class="selectordialog">',
 		//this.NeuronSelector (),
@@ -340,7 +346,13 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 				}
 				dialog.Close();
 			}
-		}]
+		}, {
+			text : 'close',
+			callback : function (dialog) {
+				dialog.Close();
+			}
+		}
+		]
 	});
 
 	//this.SetCellSelector();
@@ -348,7 +360,8 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 	var selector = document.getElementsByClassName('selectordialog')[0];
 	for (var group in this.selectedNeurons){
 		this.AddSelectPanel(selector,group);
-	};  
+	};
+	console.log(self.selectedNeurons);
 }
 
 ImporterApp.prototype.ClearMaps = function(mapName)
@@ -370,6 +383,9 @@ ImporterApp.prototype.ClearMaps = function(mapName)
 
 /*
  * calls php to ask mysql for synapses and stuff
+ * and loads it to viewer
+ * mapname: neuron that we want
+ * db: database from which to select
  */
 ImporterApp.prototype.LoadMap = function(db,mapname)
 {
@@ -681,6 +697,7 @@ ImporterApp.prototype.Resize = function ()
 	}
 
 	var top = document.getElementById ('top');
+	//why left and not just do the menu
 	var left = document.getElementById ('left');
 	var canvas = document.getElementById ('meshviewer');
 	var height = document.body.clientHeight - top.offsetHeight;
@@ -913,22 +930,21 @@ ImporterApp.prototype.GenerateMenu = function()
 	    this.innerHTML=(this.innerHTML==onText)?offText:onText;
 	    callback();
 	};
-	parent.appendChild(remarkBtn);	
+	parent.appendChild(remarkBtn);
+};
 
-	
-    };
-
-    var menu = document.getElementById('menu');
-    this.menuObj = new ImporterMenu(menu);
+	//add menu on the left
+	//in apps/include/importers.js
+	var menu = document.getElementById('menu');
+	this.menuObj = new ImporterMenu(menu);
     
-    this.menuGroup['maps'] = AddDefaultGroup(this.menuObj,'Maps',visible=true);	
-    this.menuGroup['series-selector'] =
-	AddDefaultGroup(this.menuObj,'Series selector',visible=true);
-    this.menuGroup['synapse-info'] = AddDefaultGroup(this.menuObj,'Synapse info',visible=true);
-    this.menuGroup['synapse-filter'] = AddDefaultGroup(this.menuObj,'Synapse filter',visible=true);
-    this.menuGroup['map-translate'] = AddDefaultGroup(this.menuObj,'Map translate',visible=true);
-    this.menuGroup['comments'] = AddDefaultGroup(this.menuObj,'Comments',visible=true);
-    //this.menuGroup['maps'] = AddDefaultGroup(this.menuObj,'Maps',visible=true);
+	this.menuGroup['maps'] = AddDefaultGroup(this.menuObj,'Maps',visible=true);
+	this.menuGroup['series-selector'] =
+		AddDefaultGroup(this.menuObj,'Series selector',visible=true);
+	this.menuGroup['synapse-info'] = AddDefaultGroup(this.menuObj,'Synapse info',visible=true);
+	this.menuGroup['synapse-filter'] = AddDefaultGroup(this.menuObj,'Synapse filter',visible=true);
+	this.menuGroup['map-translate'] = AddDefaultGroup(this.menuObj,'Map translate',visible=true);
+	this.menuGroup['comments'] = AddDefaultGroup(this.menuObj,'Comments',visible=true);
     
     //Series selector
     AddSexSelector(this.menuObj,this.menuGroup['series-selector'],'Sex');
