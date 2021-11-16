@@ -38,6 +38,11 @@ selectedNeurons is expected to be an object of the form:
 	}
 }
 
+Nov 16
+currently testing out new library, temporarily have
+the entire latest three.js in apps/include/three-latest
+not git tracking it because it's huge
+
 TODOs
 floating dialog when do cell selector
 -apps/include/floatingdialog.js

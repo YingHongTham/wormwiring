@@ -173,7 +173,7 @@ MapViewer.prototype.loadMap = function(map)
 	var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor });
 	this.maps[map.name] = {
 		visible : true,
-		skeleton : [],
+		skeleton : [], //array of line segments, each is one THREE object!!
 		skelMaterial : skelMaterial,
 		synapses : {},
 		synObjs : [],
@@ -181,6 +181,8 @@ MapViewer.prototype.loadMap = function(map)
 		params : params
 	};
 
+	//key is VC, NR etc, and value map[key]
+	//comes from TraceLocation from dbaux.php
 	for (var key in map){
 		if (this.non_series_keys.indexOf(key) == -1){
 			this.addSkeleton(map.name,map[key],params);	    

@@ -22,6 +22,8 @@ ImporterApp = function (params)
 			{value: 'n930', text: 'Adult head (N930)'}
 		]
 	};
+	//holds the data passed back from retrieve_trace_coord.php
+	//the skeleton, synapse locations etc.
 	this.data = {};
 	this.menuGroup = {};
 	
