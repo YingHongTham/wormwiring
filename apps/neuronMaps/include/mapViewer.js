@@ -1,8 +1,6 @@
 
 MapViewer = function(_canvas,_menu,_debug=false)
 {
-
-
     //Parameters
     this.XYScale = 0.05;
     this.SynScale = 0.4;
@@ -160,7 +158,6 @@ MapViewer.prototype.clearMaps = function()
  */
 MapViewer.prototype.loadMap = function(map)
 {
-	console.log(map);
 	var self = this;
 	var params = {neuron:map.name,
 		db : map.series,
@@ -245,70 +242,69 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 
 MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,params,clickFunc)
 {
-    var self = this;
-    for (var i=0; i < synapses.length; i++){
-	(function (){
-	    var x = (params.xmin - parseInt(synapses[i][0]) - params.xmid)*self.XYScale + self.translate.x;
-	    var y = (params.ymax - parseInt(synapses[i][1]) - params.ymid)*self.XYScale + self.translate.y;
-	    var z = parseInt(synapses[i][2]) - params.zmin;
-	    var _radius = synapses[i][3];
-	    var radius = Math.min(self.SynMax,parseInt(synapses[i][3])*self.SynScale);
-	    var partner = synapses[i][4];
-	    var sect1 = synapses[i][5];
-	    var sect2 = synapses[i][6];
-	    var contin = synapses[i][7];
-	    var source = synapses[i][8];
-	    var target = synapses[i][9];
-	    var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
-	    var sphere = new THREE.Mesh(geometry,sphereMaterial);
-	    sphere.name = contin;
-	    sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
-	    sphere.material.transparent = true;
-	    self.maps[name].synObjs.push(sphere);
-	    //var url = '/maps/getImages.php?neuron=' +
-	    //params.neuron + '&db=' + params.db +'&continNum='+contin;
-	    var url = '../synapseViewer/?neuron=' + 
+	var self = this;
+	for (var i=0; i < synapses.length; i++){
+		//WTF why wrap this in a function?
+		(function (){
+		var x = (params.xmin - parseInt(synapses[i][0]) - params.xmid)*self.XYScale + self.translate.x;
+		var y = (params.ymax - parseInt(synapses[i][1]) - params.ymid)*self.XYScale + self.translate.y;
+		var z = parseInt(synapses[i][2]) - params.zmin;
+		var _radius = synapses[i][3];
+		var radius = Math.min(self.SynMax,parseInt(synapses[i][3])*self.SynScale);
+		var partner = synapses[i][4];
+		var sect1 = synapses[i][5];
+		var sect2 = synapses[i][6];
+		var contin = synapses[i][7];
+		var source = synapses[i][8];
+		var target = synapses[i][9];
+		var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
+		var sphere = new THREE.Mesh(geometry,sphereMaterial);
+		sphere.name = contin;
+		sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
+		sphere.material.transparent = true;
+		self.maps[name].synObjs.push(sphere);
+		//var url = '/maps/getImages.php?neuron=' +
+		//params.neuron + '&db=' + params.db +'&continNum='+contin;
+		var url = '../synapseViewer/?neuron=' + 
 		params.neuron + '&db=' + params.db +'&continNum='+contin;
-	    //THREEx.Linkify(self.domEvents,sphere,url);	    
-	    
-	    var _partner = partner.split(',');
-	    for (var j in _partner){
-		if (!(_partner[j] in self.maps[name].synapses)){
-		    self.maps[name].synapses[_partner[j]] = 
-			{'Presynaptic':[],'Postsynaptic':[],'Gap junction':[]};
+		//THREEx.Linkify(self.domEvents,sphere,url);	    
+    
+		var _partner = partner.split(',');
+		for (var j in _partner){
+			if (!(_partner[j] in self.maps[name].synapses)){
+				self.maps[name].synapses[_partner[j]] = 
+					{'Presynaptic':[],'Postsynaptic':[],'Gap junction':[]};
+			};
+			self.maps[name].synapses[_partner[j]][synType].push(sphere);
 		};
-	    
-		self.maps[name].synapses[_partner[j]][synType].push(sphere);
 
-	    };
-	
-	    self.domEvents.addEventListener(sphere,'mouseover',function(event){
-		document.getElementById('cellname').innerHTML = name;
-		document.getElementById('syntype').innerHTML = synType;
-		document.getElementById('synsource').innerHTML = source;
-		document.getElementById('syntarget').innerHTML = target;
-		document.getElementById('synweight').innerHTML = _radius;
-		document.getElementById('synsection').innerHTML = '('+sect1+','+sect2+')';
-		document.getElementById('syncontin').innerHTML = sphere.name;
-		return self.renderer.render(self.scene,self.camera);
-	    });
-	    self.domEvents.addEventListener(sphere,'mouseout',function(event){
-		document.getElementById('cellname').innerHTML = params.default;
-		document.getElementById('syntype').innerHTML = params.default;
-		document.getElementById('synsource').innerHTML = params.default;
-		document.getElementById('syntarget').innerHTML = params.default;
-		document.getElementById('synweight').innerHTML = params.default;
-		document.getElementById('synsection').innerHTML = params.default;
-		document.getElementById('syncontin').innerHTML = params.default;	    
-		return self.renderer.render(self.scene,self.camera);
-	    });	
-	    
-	    self.domEvents.addEventListener(sphere,'click',function(event){
-		self.menu.synClick(url,'Synapse viewer');
-	    });	
-	    self.scene.add(sphere);
-	}());
-    };	 
+		self.domEvents.addEventListener(sphere,'mouseover',function(event){
+			document.getElementById('cellname').innerHTML = name;
+			document.getElementById('syntype').innerHTML = synType;
+			document.getElementById('synsource').innerHTML = source;
+			document.getElementById('syntarget').innerHTML = target;
+			document.getElementById('synweight').innerHTML = _radius;
+			document.getElementById('synsection').innerHTML = '('+sect1+','+sect2+')';
+			document.getElementById('syncontin').innerHTML = sphere.name;
+			return self.renderer.render(self.scene,self.camera);
+		});
+		self.domEvents.addEventListener(sphere,'mouseout',function(event){
+			document.getElementById('cellname').innerHTML = params.default;
+			document.getElementById('syntype').innerHTML = params.default;
+			document.getElementById('synsource').innerHTML = params.default;
+			document.getElementById('syntarget').innerHTML = params.default;
+			document.getElementById('synweight').innerHTML = params.default;
+			document.getElementById('synsection').innerHTML = params.default;
+			document.getElementById('syncontin').innerHTML = params.default;
+			return self.renderer.render(self.scene,self.camera);
+		});
+
+		self.domEvents.addEventListener(sphere,'click',function(event){
+			self.menu.synClick(url,'Synapse viewer');
+		});
+		self.scene.add(sphere);
+		}());
+	};
 };
 
 

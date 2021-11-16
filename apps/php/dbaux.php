@@ -338,9 +338,15 @@ class NeuronTrace {
 	//that's how it's invoked in retrieve...php..
 	function __construct($_db,$continName){
 		$this->db = $_db->db; //just the name of db, not the object
+		$this->db_obj = $_db; //gonna try to store the whole object too
 		$this->continName = $continName;
+		
 		//cell is recorded in several contins; get those contin numbers
 		$this->continNums = $_db->get_contin_numbers($continName);
+
+		//cell also goes through several parts of worm e.g. NR, VC etc
+		//store the neuron trace for each part separately
+		//  $this->series['NR'] = trace data for part of neuron in NR
 		$this->series = array();
 		foreach ($this->continNums as $c){
 			$series = $_db->get_display2_series($c);
@@ -519,7 +525,14 @@ class NeuronTrace {
 }     
 
 
-
+/*
+ * meant to store the neuron traces
+ * x,y,z: array of pairs
+ * so that you should draw a line segment
+ * from (x[n][0],y[n][0],z[n][0])
+ * to (x[n][1],y[n][1],z[n][1])
+ * not sure what cb does, should stand for cell body
+ */
 class TraceLocation {
 	function __construct(){
 		$this->x = array();

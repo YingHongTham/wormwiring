@@ -390,36 +390,48 @@ class DB {
 		return array_filter($row, function($value) { return $value !== ''; });
 	}
 
-     function remove_bracket($str){
-     	      return str_replace(array('[',']'),'',$str);
-     }
-	
-     function add2dict($array,$row,$l1,$l2){
-	      if ($row[$l1] != ''){
-                  $tmp = $this->remove_bracket($row[$l1]);
-	      	  $array[$tmp] = $row[$l2];
-	      }
- 	      return $array;	      	       
-     }
-	      
-     
-     function get_synapse_cell_object_dict($continNum){
-	      $sql = "select pre,post1,post2,post3,post4,
-	      	     	     preobj,postobj1,postobj2,postobj3,postobj4
-		      from synapsecombined
-		      where continNum = $continNum";
-	      $row = array();
-	      if ($this->result = $this->con->query($sql)){
-	      	 $row = $this->result->fetch_array(MYSQLI_ASSOC);
-	      }
-	      $dict = array();
-	      $dict = $this->add2dict($dict,$row,'pre','preobj');
-	      $dict = $this->add2dict($dict,$row,'post1','postobj1');
-	      $dict = $this->add2dict($dict,$row,'post2','postobj2');
-	      $dict = $this->add2dict($dict,$row,'post3','postobj3');
-	      $dict = $this->add2dict($dict,$row,'post4','postobj4');
-	      return $dict;
-     }
+	function remove_bracket($str){
+		return str_replace(array('[',']'),'',$str);
+	}
+
+	//returns assoc array with added key,val = row[l1],row[l2]
+	//(but with some clearning on row[l1])
+	function add2dict($array,$row,$l1,$l2){
+		if ($row[$l1] != ''){
+			$tmp = $this->remove_bracket($row[$l1]);
+			$array[$tmp] = $row[$l2];
+		}
+		return $array;
+	}
+
+	//updates $dict in place
+	//updates assoc array with added key,val = row[l1],row[l2]
+	//(but with some clearning on row[l1])
+	function add2dict_ref(&$dict,$row,$l1,$l2){
+		if ($row[$l1] != ''){
+			$tmp = $this->remove_bracket($row[$l1]);
+			$dict[$tmp] = $row[$l2];
+		}
+	}
+
+	//cell object = the contin number?
+	function get_synapse_cell_object_dict($continNum){
+		$sql = "select pre,post1,post2,post3,post4,
+			preobj,postobj1,postobj2,postobj3,postobj4
+			from synapsecombined
+			where continNum = $continNum";
+		$row = array(); //expect query return only one row..
+		if ($this->result = $this->con->query($sql)){
+			 $row = $this->result->fetch_array(MYSQLI_ASSOC);
+		}
+		$dict = array();
+		$dict = $this->add2dict($dict,$row,'pre','preobj');
+		$dict = $this->add2dict($dict,$row,'post1','postobj1');
+		$dict = $this->add2dict($dict,$row,'post2','postobj2');
+		$dict = $this->add2dict($dict,$row,'post3','postobj3');
+		$dict = $this->add2dict($dict,$row,'post4','postobj4');
+		return $dict;
+	}
 
      function get_synapse_section_range($continNum){
      	      $sql = "select sectionNum1,sectionNum2 
@@ -532,9 +544,8 @@ class DB {
 		return $rows;
 	}
 
-	//copying above because WTF
+	//copying above because WTF display2 should call display2 not 3
 	//returns array of series that contains given contin
-	//shouldn't there be only one series?
 	function get_display2_series($continNum){
 		$sql = "select distinct(series1) 
 			from display2

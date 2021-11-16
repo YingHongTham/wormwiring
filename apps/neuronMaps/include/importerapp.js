@@ -386,6 +386,11 @@ ImporterApp.prototype.ClearMaps = function(mapName)
  * and loads it to viewer
  * mapname: neuron that we want
  * db: database from which to select
+ *
+ * I don't like how neurons, and all it's traces, positions etc
+ * are stored twice, once in ImporterApp,
+ * and another time in mapViewer.
+ * Store it once!
  */
 ImporterApp.prototype.LoadMap = function(db,mapname)
 {
@@ -398,6 +403,7 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
 		if (this.readyState == 4 && this.status == 200){
 			self.data[mapname] = JSON.parse(this.responseText);
 			self.viewer.loadMap(self.data[mapname]);
+			console.log(self.data[mapname]);
 		}
 	};
 	xhttp.open("GET",url,true);

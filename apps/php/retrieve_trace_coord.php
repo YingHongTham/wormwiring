@@ -97,8 +97,6 @@ foreach($data as $d){
 }
  */
 
-// 0 = pre, 1 = post, 2 = sections,
-// 3 = continNum, 4 = IMG_SectionNumber
 $data = $_db->get_gap_junction_synapses_assoc($nt->continName);
 foreach($data as $d){
 	$label = $d['post'];
