@@ -49,3 +49,5 @@ const line = new THREE.Line( geometry, material );
 scene.add( line );
 renderer.render( scene, camera );
 
+
+//TODO get rid of the latest threejs from git, it's too big!
