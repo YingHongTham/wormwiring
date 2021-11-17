@@ -16,6 +16,7 @@ MapViewer = function(_canvas,_menu,_debug=false)
 		      y:0,
 		      z:0};
 
+	//position of origin??
     this.position = new THREE.Vector3(0,0,0);
     
     this.non_series_keys = ["plotParam","cellBody",
@@ -77,7 +78,8 @@ MapViewer.prototype.initGL = function()
 	this.cameraDefaults.near,
 	this.cameraDefaults.far);
     this.resetCamera();
-    this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement);
+    this.controls = new THREE.OrbitControls(this.camera,this.renderer.domElement);
+    //this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement);
     this.domEvents = new THREEx.DomEvents(this.camera,this.renderer.domElement);
     
     var ambientLight = new THREE.AmbientLight(0x404040);
@@ -242,6 +244,88 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 	}
 };
 
+//add just one synapse
+MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType,params)
+{
+	var self = this;
+		//WTF why wrap this in a function?
+		(function (){
+		var x = (params.xmin - parseInt(synapse[0]) - params.xmid)*self.XYScale + self.translate.x;
+		var y = (params.ymax - parseInt(synapse[1]) - params.ymid)*self.XYScale + self.translate.y;
+		var z = parseInt(synapse[2]) - params.zmin;
+		var _radius = synapse[3];
+		var radius = Math.min(self.SynMax,parseInt(synapse[3])*self.SynScale);
+		var partner = synapse[4];
+		var sect1 = synapse[5];
+		var sect2 = synapse[6];
+		var contin = synapse[7];
+		var source = synapse[8];
+		var target = synapse[9];
+		var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
+		var sphere = new THREE.Mesh(geometry,sphereMaterial);
+		sphere.name = contin;
+		sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
+		sphere.material.transparent = true;
+		self.maps[name].synObjs.push(sphere);
+		//var url = '/maps/getImages.php?neuron=' +
+		//params.neuron + '&db=' + params.db +'&continNum='+contin;
+		var url = '../synapseViewer/?neuron=' + 
+		params.neuron + '&db=' + params.db +'&continNum='+contin;
+		//THREEx.Linkify(self.domEvents,sphere,url);	    
+    
+		var _partner = partner.split(',');
+		for (var j in _partner){
+			if (!(_partner[j] in self.maps[name].synapses)){
+				self.maps[name].synapses[_partner[j]] = 
+					{'Presynaptic':[],'Postsynaptic':[],'Gap junction':[]};
+			};
+			self.maps[name].synapses[_partner[j]][synType].push(sphere);
+		};
+
+		self.domEvents.addEventListener(sphere,'mouseover',function(event){
+			document.getElementById('cellname').innerHTML = name;
+			document.getElementById('syntype').innerHTML = synType;
+			document.getElementById('synsource').innerHTML = source;
+			document.getElementById('syntarget').innerHTML = target;
+			document.getElementById('synweight').innerHTML = _radius;
+			document.getElementById('synsection').innerHTML = '('+sect1+','+sect2+')';
+			document.getElementById('syncontin').innerHTML = sphere.name;
+			return self.renderer.render(self.scene,self.camera);
+		});
+		self.domEvents.addEventListener(sphere,'mouseout',function(event){
+			document.getElementById('cellname').innerHTML = params.default;
+			document.getElementById('syntype').innerHTML = params.default;
+			document.getElementById('synsource').innerHTML = params.default;
+			document.getElementById('syntarget').innerHTML = params.default;
+			document.getElementById('synweight').innerHTML = params.default;
+			document.getElementById('synsection').innerHTML = params.default;
+			document.getElementById('syncontin').innerHTML = params.default;
+			return self.renderer.render(self.scene,self.camera);
+		});
+
+		self.domEvents.addEventListener(sphere,'click',function(event){
+			self.menu.synClick(url,'Synapse viewer');
+		});
+		self.scene.add(sphere);
+		}());
+	};
+};
+
+
+//should be called addSynapses!
+MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,params) {
+	for (var synapse of synapses) {
+		this.addOneSynapse(name,synapse,sphereMaterial,synType,params);
+	}
+};
+
+
+
+
+//hmm clickFunc is not used?
+//I thought the point of having this class is to avoid
+//having to pass variables like sphereMaterial...
+/*
 MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,params,clickFunc)
 {
 	var self = this;
@@ -308,6 +392,7 @@ MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,p
 		}());
 	};
 };
+*/
 
 
 MapViewer.prototype.translateMaps = function(x,y,z)
@@ -434,10 +519,11 @@ MapViewer.prototype.toggleAxes = function()
     };
 };
 MapViewer.prototype.resizeDisplayGL = function(){
-    this.controls.handleResize();
-    this.recalcAspectRatio();
-    this.renderer.setSize(this.canvas.offsetWidth,this.canvas.offsetHeight,false);
-    this.updateCamera();
+	//OrbitControls doesn't have resize
+	//this.controls.handleResize();
+	this.recalcAspectRatio();
+	this.renderer.setSize(this.canvas.offsetWidth,this.canvas.offsetHeight,false);
+	this.updateCamera();
 };
 
 MapViewer.prototype.recalcAspectRatio = function(){

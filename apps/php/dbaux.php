@@ -369,8 +369,8 @@ class NeuronTrace {
 
 	//stuff copied from retrieve_trace_coord.php
 	$DISPLAY = 2;
-	foreach ($this->series as $s => $_v){
-		if ($DISPLAY == 2){   
+	foreach ($this->series as $s => $_v){ //_v is discarded
+		if ($DISPLAY == 2){
 			$sql = $this->display2_sql($s);
 		} elseif ($DISPLAY == 3){
 			$sql = $this->display3_sql($s);
