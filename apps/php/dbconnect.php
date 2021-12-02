@@ -236,6 +236,11 @@ class DB {
 	//returns rows of assoc arrays, easier to reference
 	//each row is array with keys repn one chem synapse
 	// 'pre', 'post', 'sections', 'continNum', 'IMG_SectionNumber'
+	// IMG_SectionNumber is used as z coord
+	// synapsecombined.mid is the object that is more or less
+	// in the middle of the synapse
+	// (we seem to be assuming one synapse belongs to one contin)
+	//it is assumed that one synapse has exactly one contin
 	function get_pre_chemical_synapses_assoc($continName){
 		$sql = "select pre,post,sections,continNum,
 			image.IMG_SectionNumber from synapsecombined 
@@ -349,6 +354,10 @@ class DB {
 		return $row;
 	}
 
+	//get an object's position
+	//tables: object, image
+	//object.OBJ_X,Y for x,y coord,
+	//image.IMG_SectionNumber for z coord
 	function get_object_xyz($objName){
 		$sql = "select OBJ_X as x,
 			OBJ_Y as y,

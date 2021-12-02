@@ -27,16 +27,21 @@ Neuron = function(database, neuron_name)
 	};
 }
 
+const node_address = 'localhost:2000';
+
 //get skeleton trace from php (later maybe from node on server)
 Neuron.prototype.retrieveSkeleton = function() {
 	//need to hold 'this', because 'this' is used in xhttp
 	const neuron_this = this;
-	var url = `retrieve_neuron_skeleton.php?neuron=${this.name}&db=${this.db}`;
-	console.log('retrieving skeleton map via '+url);
+	//var url = `retrieve_neuron_skeleton.php?neuron=${this.name}&db=${this.db}`;
+	var url = `${node_address}/retrieve_neuron_skeleton?db=${this.db}&cell=${this.name}`;
+	console.log(`retrieving skeleton map via ${url}`);
 	var xhttp = new XMLHttpRequest();    
 	xhttp.onreadystatechange = function(){
+		console.log(this.readyState, this.status);
 		if (this.readyState == 4 && this.status == 200){
 			neuron_this.skeleton = JSON.parse(this.responseText);
+			console.log('neuron: ');
 			console.log(neuron_this.skeleton);
 		}
 	};

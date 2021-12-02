@@ -43,6 +43,12 @@ currently testing out new library, temporarily have
 the entire latest three.js in apps/include/three-latest
 not git tracking it because it's huge
 
+apps/neuronVolume/include/models is a symlink to
+/usr/local/data/image_data/models
+gets me thinking: why not also just create some static files
+to store the skeleton maps??
+store as json files..
+
 TODOs
 floating dialog when do cell selector
 -apps/include/floatingdialog.js

@@ -319,6 +319,9 @@ ImporterApp.prototype.InfoDialog = function(url,title)
 
 /*
  * loads, creates neuron selector dialog when click 'Select neuron'
+ * for neurons that are selected, calls LoadMaps,
+ * which sends request to php for the neuron data,
+ * skeleton, synapses etc
  */
 ImporterApp.prototype.NeuronSelectorDialog = function()
 {
