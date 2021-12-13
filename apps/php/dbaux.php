@@ -210,7 +210,6 @@ function get_syncell($db,$continNum,$synObject){
 		$data[$k] = new CellSyn($contin);
 		$data[$k]->add_name($conName);
 		$objs = $_db->get_section_contin_object($secNum,$contin);
-		//print_r($objs);
 		$minDist = 10000000;
 		foreach($objs as $o){
 		      $loc = $_db->get_object_xy($o);
@@ -413,7 +412,19 @@ class NeuronTrace {
 		);
 	}
       
-      
+	
+	//expect object number..
+	//neuron made of many objects
+	//xyz is added by add_object,
+	//and is obtained from display2
+	//this differs from the values from object table;
+	//e.g. see the object 43881,
+	//in display2, by
+	// select * from display2 where objName1 = 43881;
+	//get x1 = 1191, y1 = 709, z1 = 74
+	//but in object, by
+	// select * from object where OBJ_Name = 43881;
+	//get OBJ_X = 4165, OBJ_Y = 2292
 	function get_object_xyz($obj){
 		if (array_key_exists($obj,$this->objects)){
 			return $this->objects[$obj];

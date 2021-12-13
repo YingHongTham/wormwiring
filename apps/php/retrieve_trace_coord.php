@@ -124,7 +124,6 @@ foreach($data as $d){
 // get synapses on cell (=continName)
 // 'pre', 'post', 'sections', 'continNum', 'IMG_SectionNumber'
 $data = $_db->get_pre_chemical_synapses_assoc($nt->continName);
-//print_r($data);
 //$data = $_db->get_pre_chemical_synapses($nt->continName);
 foreach($data as $d){
 	$c = $d['continNum'];

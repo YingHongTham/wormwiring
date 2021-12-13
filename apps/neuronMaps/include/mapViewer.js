@@ -13,8 +13,8 @@ MapViewer = function(_canvas,_menu,_debug=false)
 	this.CBWidth = 5;
 	
 	this.translate = {x:200,
-		jy:0,
-		jz:0};
+		y:100,
+		z:0};
 	
 		//position of origin??
 	this.position = new THREE.Vector3(0,0,0);
