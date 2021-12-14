@@ -2,6 +2,32 @@
 //(the "Connectomics" and Home, Literature etc links)
 //(not to be confused with the head)
 
+//end part of url to name of page
+const urlToName = {
+	'index.html' : 'HOME',
+	'literature.html' : 'LIT',
+	'software.html' : 'SOFT',
+	'contact.html' : 'CONT'
+};
+//the string we should put in the html so that that tab is blue
+//put empty string if that page is not displayed
+const pageBlueAttr = {
+	'HOME' : '',
+	'LIT' : '',
+	'SOFT' : '',
+	'CONT' : ''
+};
+
+//string to add to html tag to make it blue
+const blueString = " style='background-color: #3C7DB9'";
+
+//get the url of the page, and which one of those pages we're on
+const ind = window.location.href.lastIndexOf('/') + 1;
+const url = window.location.href.substring(ind);
+
+pageBlueAttr[urlToName[url]] = blueString;
+
+
 //html for header
 //useful to keep the html structure in tact for readability
 var headerhtml =
@@ -19,10 +45,10 @@ var headerhtml =
 "<div id='nav' style='font-size: 0px'>"+
 "  <ul style='font-size: 16px'><b>"+
 //"  <li><a href='/index.html' style='background-color: #3C7DB9'>HOME</a></li>"+
-"  <li><a href='/index.html'>HOME</a></li>"+
-"  <li><a href='/pages/literature.html'>LITERATURE</a></li>"+
-"  <li><a href='/pages/software.html'>SOFTWARE</a></li>"+
-"  <li><a href='/pages/contact.html'>CONTACT</a></li>"+
+"  <li><a href='/index.html'"+pageBlueAttr['HOME']+">HOME</a></li>"+
+"  <li><a href='/pages/literature.html'"+pageBlueAttr['LIT']+">LITERATURE</a></li>"+
+"  <li><a href='/pages/software.html'"+pageBlueAttr['SOFT']+">SOFTWARE</a></li>"+
+"  <li><a href='/pages/contact.html'"+pageBlueAttr['CONT']+">CONTACT</a></li>"+
 "  </b></ul>"+
 "</div>"
 ;
