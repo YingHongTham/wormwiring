@@ -33,7 +33,7 @@ pageBlueAttr[urlToName[url]] = blueString;
 var headerhtml =
 "<div class='headerimage' style='font-size: 0px; height: 80px'>"+
 "  <a href='/index.html' style='color: white; text-decoration: none'>"+
-"    <h1 style='font-size: 37px; color:white'><b>"+
+"    <h1 style='font-size: 37px; color:white; position:relative; top:-9px'><b>"+
 "      WormWiring"+
 "      <span style='font-size: 25px; color:white'>"+
 "        Nematode Connectomics"+
