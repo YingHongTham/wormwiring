@@ -1,64 +1,63 @@
 
 MapViewer = function(_canvas,_menu,_debug=false)
 {
-
-
-    //Parameters
-    this.XYScale = 0.05;
-    this.SynScale = 0.4;
-    this.SynMax = 20;
-    this.SkelColor = 0x4683b2;
-    this.PreColor = 0xfa5882;
-    this.PostColor = 0xbf00ff;
-    this.GapColor = 0x00ffff;
-    this.CBColor = 0xff0000;
-    this.CBWidth = 5;
-
-    this.translate = {x:200,
-		      y:0,
-		      z:0};
-
-    this.position = new THREE.Vector3(0,0,0);
-    
-    this.non_series_keys = ["plotParam","cellBody",
-			    "preSynapse","postSynapse",
-			    "gapJunction","remarks","nmj",
-			   "name","series"];
-
-    this.skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor });
-    this.cbMaterial = new THREE.LineBasicMaterial({color:this.CBColor,linewidth:this.CBWidth});
-    this.preMaterial = new THREE.MeshLambertMaterial({color:this.PreColor});
-    this.postMaterial = new THREE.MeshLambertMaterial({color:this.PostColor});
-    this.gapMaterial = new THREE.MeshLambertMaterial({color:this.GapColor});
-
-    this.maxY = 0;
-    this.minX = 0;
-    this.aspectRation = 1;
-    this.sphereWidthSegments = 5;
-    this.sphereHeightSegments = 5;
-    
-    this.debug = _debug;
-    this.menu = _menu;
-    this.canvas = _canvas;
-    
-
-    this.recalcAspectRatio();
-    
-    this.scene = null;
-    this.cameraDefaults = {
-	posCamera: new THREE.Vector3( -250.0, 225.0, 1000.0),
-	posCameraTarget: new THREE.Vector3( 0, 0, 0),
-	near: 0.1,
-	far: 10000,
-	fov: 45
-    };
-    this.camera = null;
-    this.cameraTarget = this.cameraDefaults.posCameraTarget;
-    this.controls = null;
-
-    this.textLabels = [];
-    this.axesText = [];
-    this.maps = {}
+	//Parameters
+	this.XYScale = 0.05;
+	this.SynScale = 0.4;
+	this.SynMax = 20;
+	this.SkelColor = 0x4683b2;
+	this.PreColor = 0xfa5882;
+	this.PostColor = 0xbf00ff;
+	this.GapColor = 0x00ffff;
+	this.CBColor = 0xff0000;
+	this.CBWidth = 5;
+	
+	this.translate = {x:200,
+		y:100,
+		z:0};
+	
+		//position of origin??
+	this.position = new THREE.Vector3(0,0,0);
+	    
+	this.non_series_keys = ["plotParam","cellBody",
+	"preSynapse","postSynapse",
+	"gapJunction","remarks","nmj",
+	"name","series"];
+	
+	this.skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor });
+	this.cbMaterial = new THREE.LineBasicMaterial({color:this.CBColor,linewidth:this.CBWidth});
+	this.preMaterial = new THREE.MeshLambertMaterial({color:this.PreColor});
+	this.postMaterial = new THREE.MeshLambertMaterial({color:this.PostColor});
+	this.gapMaterial = new THREE.MeshLambertMaterial({color:this.GapColor});
+	
+	this.maxY = 0;
+	this.minX = 0;
+	this.aspectRation = 1;
+	this.sphereWidthSegments = 5;
+	this.sphereHeightSegments = 5;
+	
+	this.debug = _debug;
+	this.menu = _menu;
+	this.canvas = _canvas;
+	
+	
+	this.recalcAspectRatio();
+	
+	this.scene = null;
+	this.cameraDefaults = {
+		posCamera: new THREE.Vector3( -250.0, 225.0, 1000.0),
+		posCameraTarget: new THREE.Vector3( 0, 0, 0),
+		near: 0.1,
+		far: 10000,
+		fov: 45
+	};
+	this.camera = null;
+	this.cameraTarget = this.cameraDefaults.posCameraTarget;
+	this.controls = null;
+	
+	this.textLabels = [];
+	this.axesText = [];
+	this.maps = {};
 }
 
 MapViewer.prototype.initGL = function()
@@ -79,7 +78,8 @@ MapViewer.prototype.initGL = function()
 	this.cameraDefaults.near,
 	this.cameraDefaults.far);
     this.resetCamera();
-    this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement);
+    this.controls = new THREE.OrbitControls(this.camera,this.renderer.domElement);
+    //this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement);
     this.domEvents = new THREEx.DomEvents(this.camera,this.renderer.domElement);
     
     var ambientLight = new THREE.AmbientLight(0x404040);
@@ -101,6 +101,7 @@ MapViewer.prototype.initGL = function()
     this.addText('Ventral',{x:100,y:0,z:200,_x:-Math.PI/2},this.axesText);
 };
 
+//for adding the direction names
 MapViewer.prototype.addText = function(text,params,container)
 {
     var canvas = document.createElement('canvas');
@@ -160,7 +161,6 @@ MapViewer.prototype.clearMaps = function()
  */
 MapViewer.prototype.loadMap = function(map)
 {
-	console.log(map);
 	var self = this;
 	var params = {neuron:map.name,
 		db : map.series,
@@ -176,7 +176,7 @@ MapViewer.prototype.loadMap = function(map)
 	var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor });
 	this.maps[map.name] = {
 		visible : true,
-		skeleton : [],
+		skeleton : [], //array of line segments, each is one THREE object!!
 		skelMaterial : skelMaterial,
 		synapses : {},
 		synObjs : [],
@@ -184,12 +184,15 @@ MapViewer.prototype.loadMap = function(map)
 		params : params
 	};
 
+	//key is VC, NR etc, and value map[key]
+	//comes from TraceLocation from dbaux.php
 	for (var key in map){
 		if (this.non_series_keys.indexOf(key) == -1){
 			this.addSkeleton(map.name,map[key],params);	    
 		}
 	}
     
+	//map['..'] here are arrays of 
 	this.addSynapse(map.name,map['preSynapse'],this.preMaterial,'Presynaptic',params);
 	this.addSynapse(map.name,map['postSynapse'],this.postMaterial,'Postsynaptic',params);
 	this.addSynapse(map.name,map['gapJunction'],this.gapMaterial,'Gap junction',params);
@@ -227,10 +230,12 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 		var y2 = (params.ymax - parseInt(skeleton.y[i][1]) - params.ymid)*this.XYScale + this.translate.y;
 		var z1 = (parseInt(skeleton.z[i][0]) - params.zmin);
 		var z2 = (parseInt(skeleton.z[i][1]) - params.zmin);
+		//set end points of lineGeometry
 		vertArray.push(
 			new THREE.Vector3(x1,y1,z1),
 			new THREE.Vector3(x2,y2,z2)
 		);
+		//console.log(vertArray);
 		if (skeleton.cb != undefined && parseInt(skeleton.cb[i])==1){
 			var line = new THREE.Line(lineGeometry,this.cbMaterial);
 			line.cellBody = true;
@@ -243,73 +248,158 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 	}
 };
 
+//add just one synapse
+MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType,params)
+{
+	var self = this;
+	console.log('addOneSynapse');
+	//WTF why wrap this in a function?
+	//(function (){
+		console.log(synapse[0],synapse[1],synapse[2],synapse[7]);
+		var x = (params.xmin - parseInt(synapse[0]) - params.xmid)*self.XYScale + self.translate.x;
+		var y = (params.ymax - parseInt(synapse[1]) - params.ymid)*self.XYScale + self.translate.y;
+		var z = parseInt(synapse[2]) - params.zmin;
+		var _radius = synapse[3];
+		var radius = Math.min(self.SynMax,parseInt(synapse[3])*self.SynScale);
+		var partner = synapse[4];
+		var sect1 = synapse[5];
+		var sect2 = synapse[6];
+		var contin = synapse[7];
+		var source = synapse[8];
+		var target = synapse[9];
+		var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
+		var sphere = new THREE.Mesh(geometry,sphereMaterial);
+		sphere.name = contin;
+		sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
+		sphere.material.transparent = true;
+		self.maps[name].synObjs.push(sphere);
+		//var url = '/maps/getImages.php?neuron=' +
+		//params.neuron + '&db=' + params.db +'&continNum='+contin;
+		var url = '../synapseViewer/?neuron=' + 
+		params.neuron + '&db=' + params.db +'&continNum='+contin;
+		//THREEx.Linkify(self.domEvents,sphere,url);	    
+    
+		var _partner = partner.split(',');
+		for (var j in _partner){
+			if (!(_partner[j] in self.maps[name].synapses)){
+				self.maps[name].synapses[_partner[j]] = 
+					{'Presynaptic':[],'Postsynaptic':[],'Gap junction':[]};
+			};
+			self.maps[name].synapses[_partner[j]][synType].push(sphere);
+		};
+
+		self.domEvents.addEventListener(sphere,'mouseover',function(event){
+			document.getElementById('cellname').innerHTML = name;
+			document.getElementById('syntype').innerHTML = synType;
+			document.getElementById('synsource').innerHTML = source;
+			document.getElementById('syntarget').innerHTML = target;
+			document.getElementById('synweight').innerHTML = _radius;
+			document.getElementById('synsection').innerHTML = '('+sect1+','+sect2+')';
+			document.getElementById('syncontin').innerHTML = sphere.name;
+			return self.renderer.render(self.scene,self.camera);
+		});
+		self.domEvents.addEventListener(sphere,'mouseout',function(event){
+			document.getElementById('cellname').innerHTML = params.default;
+			document.getElementById('syntype').innerHTML = params.default;
+			document.getElementById('synsource').innerHTML = params.default;
+			document.getElementById('syntarget').innerHTML = params.default;
+			document.getElementById('synweight').innerHTML = params.default;
+			document.getElementById('synsection').innerHTML = params.default;
+			document.getElementById('syncontin').innerHTML = params.default;
+			return self.renderer.render(self.scene,self.camera);
+		});
+
+		self.domEvents.addEventListener(sphere,'click',function(event){
+			self.menu.synClick(url,'Synapse viewer');
+		});
+		self.scene.add(sphere);
+	//});
+};
+
+
+//should be called addSynapses!
+MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,params) {
+	for (var synapse of synapses) {
+		this.addOneSynapse(name,synapse,sphereMaterial,synType,params);
+	}
+};
+
+//TODO!! skeleton diagram no longer displays synapses!
+
+
+
+
+//hmm clickFunc is not used?
+//I thought the point of having this class is to avoid
+//having to pass variables like sphereMaterial...
+/*
 MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,params,clickFunc)
 {
-    var self = this;
-    for (var i=0; i < synapses.length; i++){
-	(function (){
-	    var x = (params.xmin - parseInt(synapses[i][0]) - params.xmid)*self.XYScale + self.translate.x;
-	    var y = (params.ymax - parseInt(synapses[i][1]) - params.ymid)*self.XYScale + self.translate.y;
-	    var z = parseInt(synapses[i][2]) - params.zmin;
-	    var _radius = synapses[i][3];
-	    var radius = Math.min(self.SynMax,parseInt(synapses[i][3])*self.SynScale);
-	    var partner = synapses[i][4];
-	    var sect1 = synapses[i][5];
-	    var sect2 = synapses[i][6];
-	    var contin = synapses[i][7];
-	    var source = synapses[i][8];
-	    var target = synapses[i][9];
-	    var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
-	    var sphere = new THREE.Mesh(geometry,sphereMaterial);
-	    sphere.name = contin;
-	    sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
-	    sphere.material.transparent = true;
-	    self.maps[name].synObjs.push(sphere);
-	    //var url = '/maps/getImages.php?neuron=' +
-	    //params.neuron + '&db=' + params.db +'&continNum='+contin;
-	    var url = '../synapseViewer/?neuron=' + 
+	var self = this;
+	for (var i=0; i < synapses.length; i++){
+		//WTF why wrap this in a function?
+		(function (){
+		var x = (params.xmin - parseInt(synapses[i][0]) - params.xmid)*self.XYScale + self.translate.x;
+		var y = (params.ymax - parseInt(synapses[i][1]) - params.ymid)*self.XYScale + self.translate.y;
+		var z = parseInt(synapses[i][2]) - params.zmin;
+		var _radius = synapses[i][3];
+		var radius = Math.min(self.SynMax,parseInt(synapses[i][3])*self.SynScale);
+		var partner = synapses[i][4];
+		var sect1 = synapses[i][5];
+		var sect2 = synapses[i][6];
+		var contin = synapses[i][7];
+		var source = synapses[i][8];
+		var target = synapses[i][9];
+		var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
+		var sphere = new THREE.Mesh(geometry,sphereMaterial);
+		sphere.name = contin;
+		sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
+		sphere.material.transparent = true;
+		self.maps[name].synObjs.push(sphere);
+		//var url = '/maps/getImages.php?neuron=' +
+		//params.neuron + '&db=' + params.db +'&continNum='+contin;
+		var url = '../synapseViewer/?neuron=' + 
 		params.neuron + '&db=' + params.db +'&continNum='+contin;
-	    //THREEx.Linkify(self.domEvents,sphere,url);	    
-	    
-	    var _partner = partner.split(',');
-	    for (var j in _partner){
-		if (!(_partner[j] in self.maps[name].synapses)){
-		    self.maps[name].synapses[_partner[j]] = 
-			{'Presynaptic':[],'Postsynaptic':[],'Gap junction':[]};
+		//THREEx.Linkify(self.domEvents,sphere,url);	    
+    
+		var _partner = partner.split(',');
+		for (var j in _partner){
+			if (!(_partner[j] in self.maps[name].synapses)){
+				self.maps[name].synapses[_partner[j]] = 
+					{'Presynaptic':[],'Postsynaptic':[],'Gap junction':[]};
+			};
+			self.maps[name].synapses[_partner[j]][synType].push(sphere);
 		};
-	    
-		self.maps[name].synapses[_partner[j]][synType].push(sphere);
 
-	    };
-	
-	    self.domEvents.addEventListener(sphere,'mouseover',function(event){
-		document.getElementById('cellname').innerHTML = name;
-		document.getElementById('syntype').innerHTML = synType;
-		document.getElementById('synsource').innerHTML = source;
-		document.getElementById('syntarget').innerHTML = target;
-		document.getElementById('synweight').innerHTML = _radius;
-		document.getElementById('synsection').innerHTML = '('+sect1+','+sect2+')';
-		document.getElementById('syncontin').innerHTML = sphere.name;
-		return self.renderer.render(self.scene,self.camera);
-	    });
-	    self.domEvents.addEventListener(sphere,'mouseout',function(event){
-		document.getElementById('cellname').innerHTML = params.default;
-		document.getElementById('syntype').innerHTML = params.default;
-		document.getElementById('synsource').innerHTML = params.default;
-		document.getElementById('syntarget').innerHTML = params.default;
-		document.getElementById('synweight').innerHTML = params.default;
-		document.getElementById('synsection').innerHTML = params.default;
-		document.getElementById('syncontin').innerHTML = params.default;	    
-		return self.renderer.render(self.scene,self.camera);
-	    });	
-	    
-	    self.domEvents.addEventListener(sphere,'click',function(event){
-		self.menu.synClick(url,'Synapse viewer');
-	    });	
-	    self.scene.add(sphere);
-	}());
-    };	 
+		self.domEvents.addEventListener(sphere,'mouseover',function(event){
+			document.getElementById('cellname').innerHTML = name;
+			document.getElementById('syntype').innerHTML = synType;
+			document.getElementById('synsource').innerHTML = source;
+			document.getElementById('syntarget').innerHTML = target;
+			document.getElementById('synweight').innerHTML = _radius;
+			document.getElementById('synsection').innerHTML = '('+sect1+','+sect2+')';
+			document.getElementById('syncontin').innerHTML = sphere.name;
+			return self.renderer.render(self.scene,self.camera);
+		});
+		self.domEvents.addEventListener(sphere,'mouseout',function(event){
+			document.getElementById('cellname').innerHTML = params.default;
+			document.getElementById('syntype').innerHTML = params.default;
+			document.getElementById('synsource').innerHTML = params.default;
+			document.getElementById('syntarget').innerHTML = params.default;
+			document.getElementById('synweight').innerHTML = params.default;
+			document.getElementById('synsection').innerHTML = params.default;
+			document.getElementById('syncontin').innerHTML = params.default;
+			return self.renderer.render(self.scene,self.camera);
+		});
+
+		self.domEvents.addEventListener(sphere,'click',function(event){
+			self.menu.synClick(url,'Synapse viewer');
+		});
+		self.scene.add(sphere);
+		}());
+	};
 };
+*/
 
 
 MapViewer.prototype.translateMaps = function(x,y,z)
@@ -436,10 +526,11 @@ MapViewer.prototype.toggleAxes = function()
     };
 };
 MapViewer.prototype.resizeDisplayGL = function(){
-    this.controls.handleResize();
-    this.recalcAspectRatio();
-    this.renderer.setSize(this.canvas.offsetWidth,this.canvas.offsetHeight,false);
-    this.updateCamera();
+	//OrbitControls doesn't have resize
+	//this.controls.handleResize();
+	this.recalcAspectRatio();
+	this.renderer.setSize(this.canvas.offsetWidth,this.canvas.offsetHeight,false);
+	this.updateCamera();
 };
 
 MapViewer.prototype.recalcAspectRatio = function(){

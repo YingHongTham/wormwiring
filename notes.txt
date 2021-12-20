@@ -18,6 +18,37 @@ in the apps/neuronMaps/include/build_neuronMaps.js
 -unclear what changing background-color would do
 
 
+from ImporterApps:
+selectedNeurons is expected to be an object of the form:
+{
+	Neurons : {
+		ADAL : {
+			value : "ADAL"
+			visible : 0/1,
+			plotted : 0/1,
+			...
+		},
+		ADAR : {
+			...
+		},
+		...
+	}
+	Muscles : {
+		...
+	}
+}
+
+Nov 16
+currently testing out new library, temporarily have
+the entire latest three.js in apps/include/three-latest
+not git tracking it because it's huge
+
+apps/neuronVolume/include/models is a symlink to
+/usr/local/data/image_data/models
+gets me thinking: why not also just create some static files
+to store the skeleton maps??
+store as json files..
+
 TODOs
 floating dialog when do cell selector
 -apps/include/floatingdialog.js
@@ -40,3 +71,4 @@ meant to mimic the worms server.
 it's the only thing that's not in the wormwiring-dev folder
 should delete it as it has some password in plain text
 
+add a save function

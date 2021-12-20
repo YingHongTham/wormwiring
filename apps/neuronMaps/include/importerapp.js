@@ -22,8 +22,17 @@ ImporterApp = function (params)
 			{value: 'n930', text: 'Adult head (N930)'}
 		]
 	};
+	//holds the data passed back from retrieve_trace_coord.php
+	//the skeleton, synapse locations etc.
 	this.data = {};
 	this.menuGroup = {};
+	
+	//selectedNeurons are the cells that have been selected
+	//to be loaded (visibility can later be toggled)
+	//they should appear in the left menu
+	//often run through loop: selectedNeurons[group][i]
+	//	group = 'Neurons' or 'Muscles'
+	//	i = the cell name e.g. 'ADAL'
 	this.selectedNeurons = {};
 
 	this.helpParams =  [
@@ -113,7 +122,8 @@ ImporterApp.prototype.Init = function ()
 		//alert(warning);
 		alert('WebGL failed to load, viewer may not work');
 	};
-   
+
+	//set up the Help, selector, clear menu
 	var self = this;
 	var top = document.getElementById ('top');
 	var importerButtons = new ImporterButtons (top);
@@ -123,7 +133,9 @@ ImporterApp.prototype.Init = function ()
 	importerButtons.AddLogo('Help',()=>{self.HelpDialog();});
 	importerButtons.AddLogo('Select neuron',()=>{self.NeuronSelectorDialog();});
 	importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
-	
+
+	//the small window in which help/selector is shown
+	//
 	this.dialog = new FloatingDialog();
 	
 	window.addEventListener ('resize', this.Resize.bind (this), false);
@@ -173,41 +185,40 @@ ImporterApp.prototype.PreloadParamsLoaded = function() {
 
 ImporterApp.prototype.PreloadCells = function()
 {
-    var self = this;
-    this.LoadMap(this.params.db,this.params.cell);
-    document.getElementById('sex-selector').value = this.params.sex
-    var sex = document.getElementById('sex-selector').value;
-    var series = document.getElementById('series-selector')
-    while(series.length > 0){
-	series.remove(series.length-1);
-    };
-    for (var i=0;i<self.series[sex].length;i++){
-	var opt = document.createElement('option');
-	opt.value = self.series[sex][i].value;
-	opt.innerHTML = self.series[sex][i].text;
-	series.appendChild(opt);
-    };
-    document.getElementById('series-selector').value = this.params.db
-    var xhttp = new XMLHttpRequest();    
-    var url = '../php/selectorCells.php?sex='+this.params.sex+'&db='+this.params.db;
-    xhttp.onreadystatechange = function(){
-	if (this.readyState == 4 && this.status == 200){
-	    self.selectedNeurons = JSON.parse(this.responseText);
-	    for (var group in self.selectedNeurons){
-		if (self.params.cell in self.selectedNeurons[group]){
-		    self.selectedNeurons[group][self.params.cell].visible = 1;
-		    self.selectedNeurons[group][self.params.cell].plotted = 1;
-		    self.LoadMapMenu(self.params.cell,
-				     self.selectedNeurons[group][self.params.cell].walink);
-		};
-	    };
+	var self = this;
+	this.LoadMap(this.params.db,this.params.cell);
+	document.getElementById('sex-selector').value = this.params.sex
+	var sex = document.getElementById('sex-selector').value;
+	var series = document.getElementById('series-selector')
+	while(series.length > 0){
+		series.remove(series.length-1);
 	};
-    };
+	for (var i=0;i<self.series[sex].length;i++){
+		var opt = document.createElement('option');
+		opt.value = self.series[sex][i].value;
+		opt.innerHTML = self.series[sex][i].text;
+		series.appendChild(opt);
+	};
+	document.getElementById('series-selector').value = this.params.db
+	var xhttp = new XMLHttpRequest();    
+	var url = '../php/selectorCells.php?sex='+this.params.sex+'&db='+this.params.db;
+	xhttp.onreadystatechange = function(){
+		if (this.readyState == 4 && this.status == 200){
+			self.selectedNeurons = JSON.parse(this.responseText);
+			for (var group in self.selectedNeurons){
+				if (self.params.cell in self.selectedNeurons[group]){
+					self.selectedNeurons[group][self.params.cell].visible = 1;
+					self.selectedNeurons[group][self.params.cell].plotted = 1;
+					self.LoadMapMenu(self.params.cell,
+						self.selectedNeurons[group][self.params.cell].walink);
+				}
+			}
+		}
+	};
     
-    xhttp.open("GET",url,true);
-    xhttp.send(); 
-    
-}
+	xhttp.open("GET",url,true);
+	xhttp.send(); 
+};
 
 
 
@@ -226,10 +237,9 @@ ImporterApp.prototype.HelpDialog = function()
 			{
 				text : 'close',
 				callback : function (dialog) {
-				dialog.Close();
+					dialog.Close();
 				}
-			}
-		]
+			}		]
 	});
     
 	var container = document.getElementsByClassName('container')[0];
@@ -299,8 +309,7 @@ ImporterApp.prototype.InfoDialog = function(url,title)
 	    {
 		text : 'close',
 		callback : function (dialog) {
-		    dialog.Close();
-		    
+			dialog.Close();
 		}
 	    }
 	]
@@ -310,11 +319,13 @@ ImporterApp.prototype.InfoDialog = function(url,title)
 
 /*
  * loads, creates neuron selector dialog when click 'Select neuron'
+ * for neurons that are selected, calls LoadMaps,
+ * which sends request to php for the neuron data,
+ * skeleton, synapses etc
  */
 ImporterApp.prototype.NeuronSelectorDialog = function()
 {
 	var self = this;
-	console.log("this shold only be called when selector");
 	var dialogText = [
 		'<div class="selectordialog">',
 		//this.NeuronSelector (),
@@ -340,15 +351,22 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 				}
 				dialog.Close();
 			}
-		}]
+		}, {
+			text : 'close',
+			callback : function (dialog) {
+				dialog.Close();
+			}
+		}
+		]
 	});
 
-	console.log(this.selectedNeurons);
 	//this.SetCellSelector();
+	//adds cells from selected database to the selector dialog
 	var selector = document.getElementsByClassName('selectordialog')[0];
 	for (var group in this.selectedNeurons){
 		this.AddSelectPanel(selector,group);
-	};  
+	};
+	console.log(self.selectedNeurons);
 }
 
 ImporterApp.prototype.ClearMaps = function(mapName)
@@ -370,18 +388,27 @@ ImporterApp.prototype.ClearMaps = function(mapName)
 
 /*
  * calls php to ask mysql for synapses and stuff
+ * and loads it to viewer
+ * mapname: neuron that we want
+ * db: database from which to select
+ *
+ * I don't like how neurons, and all it's traces, positions etc
+ * are stored twice, once in ImporterApp,
+ * and another time in mapViewer.
+ * Store it once!
  */
 ImporterApp.prototype.LoadMap = function(db,mapname)
 {
 	var self = this;
 	console.log(db + ', ' + mapname);
 	var url = '../php/retrieve_trace_coord.php?neuron='+mapname+'&db='+db;
-	console.log(url);
+	console.log('retrieving skeleton map via '+url);
 	var xhttp = new XMLHttpRequest();    
 	xhttp.onreadystatechange = function(){
 		if (this.readyState == 4 && this.status == 200){
 			self.data[mapname] = JSON.parse(this.responseText);
 			self.viewer.loadMap(self.data[mapname]);
+			console.log(self.data[mapname]);
 		}
 	};
 	xhttp.open("GET",url,true);
@@ -681,6 +708,7 @@ ImporterApp.prototype.Resize = function ()
 	}
 
 	var top = document.getElementById ('top');
+	//why left and not just do the menu
 	var left = document.getElementById ('left');
 	var canvas = document.getElementById ('meshviewer');
 	var height = document.body.clientHeight - top.offsetHeight;
@@ -913,22 +941,21 @@ ImporterApp.prototype.GenerateMenu = function()
 	    this.innerHTML=(this.innerHTML==onText)?offText:onText;
 	    callback();
 	};
-	parent.appendChild(remarkBtn);	
+	parent.appendChild(remarkBtn);
+};
 
-	
-    };
-
-    var menu = document.getElementById('menu');
-    this.menuObj = new ImporterMenu(menu);
+	//add menu on the left
+	//in apps/include/importers.js
+	var menu = document.getElementById('menu');
+	this.menuObj = new ImporterMenu(menu);
     
-    this.menuGroup['maps'] = AddDefaultGroup(this.menuObj,'Maps',visible=true);	
-    this.menuGroup['series-selector'] =
-	AddDefaultGroup(this.menuObj,'Series selector',visible=true);
-    this.menuGroup['synapse-info'] = AddDefaultGroup(this.menuObj,'Synapse info',visible=true);
-    this.menuGroup['synapse-filter'] = AddDefaultGroup(this.menuObj,'Synapse filter',visible=true);
-    this.menuGroup['map-translate'] = AddDefaultGroup(this.menuObj,'Map translate',visible=true);
-    this.menuGroup['comments'] = AddDefaultGroup(this.menuObj,'Comments',visible=true);
-    //this.menuGroup['maps'] = AddDefaultGroup(this.menuObj,'Maps',visible=true);
+	this.menuGroup['maps'] = AddDefaultGroup(this.menuObj,'Maps',visible=true);
+	this.menuGroup['series-selector'] =
+		AddDefaultGroup(this.menuObj,'Series selector',visible=true);
+	this.menuGroup['synapse-info'] = AddDefaultGroup(this.menuObj,'Synapse info',visible=true);
+	this.menuGroup['synapse-filter'] = AddDefaultGroup(this.menuObj,'Synapse filter',visible=true);
+	this.menuGroup['map-translate'] = AddDefaultGroup(this.menuObj,'Map translate',visible=true);
+	this.menuGroup['comments'] = AddDefaultGroup(this.menuObj,'Comments',visible=true);
     
     //Series selector
     AddSexSelector(this.menuObj,this.menuGroup['series-selector'],'Sex');

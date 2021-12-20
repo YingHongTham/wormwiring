@@ -4,91 +4,142 @@
 
   <title>WormWiring</title>
   <META name="Description" content="The C. elegans Wiring Project.  A database for C. elegans neuronal connectivity data.">
-  <META name="KeyWords" content="Caenorhabditis, elegans, C. elegans, neuron, hermaphrodite, male, mating, worm, nematode, connectome, connectomics, neural, connectivity, synapse, synapses, wiring, graph">
-
+  <META name="KeyWords" content="connectome, connectomics, neural, connectivity, Caenorhabditis, elegans, C. elegans, neuron, hermaphrodite, male, mating, worm, nematode, synapse, synapses, wiring, graph">
   <meta http-equiv="content-type" content="text/html;charset=utf-8">
-	  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="stylesheet" type="text/css" href="./css/ww.css">
   <link rel="stylesheet" type="text/css" href="./css/home.css">
-	  
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-165108389-2"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-165108389-2');
-</script>
-
-  <script type="text/javascript" src="./include/importers.js"></script>
-  <script type="text/javascript" src="./include/importWW.js"></script>
-  <script type="text/javascript" src="./include/frame1.js"></script>
+    
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-165108389-2"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+  
+    gtag('config', 'UA-165108389-2');
+  </script>
+  
+  <!--needed for loading news column-->
   <script type="text/javascript" src="./include/loadhtml.js"></script>
-
+  <!--
+    not sure if still in use
+    <script type="text/javascript" src="./include/importers.js"></script>
+    <script type="text/javascript" src="./include/importWW.js"></script>
+    <script type="text/javascript" src="./include/frame1.js"></script>
+  -->
 </head>
 
+
+
 <body>
+  <script type='text/javascript' src='./header.js'></script>
+  <script type='text/javascript'>
+    //for adding buttons/links
+    function createButton(url,text) {
+      document.write("<p>&emsp;&emsp;&emsp;<button onclick='location.href=\""+url+"\"' type='button' class='btn'>"+text+"</button></p>");
+    };
+  </script>
 
-<div class="headerimage">
-	<a href="./" style="color: white; text-decoration: none">
-    <h1>WormWiring<span style="font-size: 30">&ensp;Nematode Connectomics</span></h1>
-	</a>
-</div>
+  <div class="content"><div class="row">
 
-<div id="nav">
-	<ul><b>
-	<li><a href="/" style="background-color: #3C7DB9">HOME</a></li>
-	<li><a href="./pages/literature.html">LITERATURE</a></li>
-	<li><a href="./pages/software.html">SOFTWARE</a></li>
-	<li><a href="./pages/contact.html">CONTACT</a></li>
-	</b></ul>
-	<hr style="margin: 0">
-</div>
-	
-<div class="content">
-<div class="row">
   <div class="column leftnews" style="background-color:#ccc">
-	<h3>Updates and News</h3>
-	  <div data-include="news/news.html"></div>
+    <h3>Updates and News</h3>
+    <div data-include="news/news.html"></div>
   </div>
-  <div class="column middle">
-	<!--<span title="Interactive Diagram [.pdf]">
-	<a href="papers/Interactive-Diagram.pdf">-->
-		<img style= "width:100%" src="art1/connectome_small.PNG" alt="connectome"/>
-	<!--</a>
-	</span>-->
-		<p>&emsp;&emsp;&emsp;<button onclick="location.href='pages/interactive.html'" type="button" class="btn">Interactive Diagram</button></p>
-  </div>
-  <div class="column right">
-    <p>A website hosting nematode connectomics data and tools for its visualization and analysis.</p>
-		<h3><i>Caenorhabditis elegans</i></h3>
-		<p>&emsp;&emsp;&emsp;<button onclick="location.href='pages/adjacency.html'" type="button" class="btn">Adjacency Matrices and Data Tables</button></p>
-  	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='apps/neuronMaps/'" type="button" class="btn">Skeleton Neuron Diagrams</button></p>
-	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='apps/neuronVolume/'" type="button" class="btn">Volumetric Viewer</button></p>
-	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='apps/listViewer/?listtype=partners'" type="button" class="btn">Partner List</button></p>
-	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='apps/listViewer/?listtype=synapse'" type="button" class="btn">Synapse List</button></p>
-	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='si/SI 10 Properties of reconstructions.xlsx'" type="button" class="btn">Properties of Reconstruction Series [.xlsx]</button></p>
-	  	<p>&emsp;&emsp;&emsp;<button onclick="location.href='pages/network diagrams.html'" type="button" class="btn">Network Diagrams</button></p>
-  </div>
-</div>
-</div>
-	
 
+  <div class="column middle" style="padding:5px 20px;">
+    <img style= "width:100%" src="art1/connectome_small.PNG" alt="connectome"/>
+    <script type='text/javascript'>
+      createButton('pages/interactive.html','Interactive Diagram');
+    </script>
+  </div>
+
+	<div class="column right">
+    <p>A website hosting nematode connectomics data and tools for its visualization and analysis</p>
+    <h3><i>Caenorhabditis elegans</i></h3>
+		<ul>
+			<li>
+				Adult hermaphrodite, Data of White et al., 1986,
+				<i>The Structure of the Nervous System of the Nematode Caenorhabditis
+					elegans (The Mind of a Worm) Phil. Trans. R. Soc. Lond. B, 314,
+					1-340.</i></br>
+				Available through WormAtlas.org:
+				<a href='https://wormatlas.org/MoW_built0.92/MoW.html'>https://wormatlas.org/MoW_built0.92/MoW.html</a></br>
+				<div style='font-size:13px'>Skeleton and some volumetric maps of all neuron classes and most
+				individual neurons;
+				Connections of ventral neuron motor neurons by class;
+				Drawings of cell body positions and neuron tracts;
+				Chemical and gap junction synapses;
+				Number of synapses given by class.
+				</div>
+			</li>
+			<li>
+				Adult hermaphrodite, Data of Chen, Hall, and Chklovskii, 2006,
+				<i>Wiring optimization can relate neuronal structure and function, PNAS
+				103: 4723-4728 (<a href='http://dx.doi.org/10.1073/pnas.0506806103'>doi:10.1073/pnas.0506806103</a>)</i> and
+				<i>Varshney, Chen, Paniaqua, Hall and Chklovskii, 2011, Structural
+				properties of the C. elegans neuronal network, PLoS Comput. Biol.
+				3:7:e1001066 (<a
+			 href='http://dx.doi.org/doi:10.1371/journal.pcbi.1001066'>doi:10.1371/journal.pcbi.1001066)</a>.</i></br>
+				Connectivity table available through WormAtlas.org:
+				<a href='https://www.wormatlas.org/images/NeuronConnect.xls'>
+					Connectivity Data-download [.xls]
+				</a>
+				<div style='font-size:13px'>
+				A reannotation of the electron micrographs of White et al., 1986.
+				Number of chemical and gap junction (electrical) synapses for all
+				neurons and motor neurons.
+				Number of NMJ’s for all ventral cord motor neurons.
+				</div>
+			<li><a href='pages/emmonslab.html'>Adult hermaphrodite and adult male</a>
+				Data of Cook et al., 2019, Jarrell et al., 2012, and updates. Emmons laboratory data.
+				<div style='font-size:13px'>
+				Complete chemical and gap junction connectivity between all neurons,
+				between neurons and end organs (muscles, gonad, gut, hypodermis),
+				and gap junctions between the muscle cells.
+				Connection weights from number of synapses and synapse sizes.
+				Skeleton diagrams and synapse lists for all neurons and muscles directly reconstructed from electron micrographs.
+				Monadic or polyadic structure of each synapse is given.
+				From a reanalysis of the electron micrographs of White et al., 1986 (adult hermaphrodite),
+				Sulston et al., 1980 (male tail),
+				and new electron micrographs (male head).
+				</div>
+</li>
+		</ul>
+    <h3><i>Pristionchus pacificus</i></h3>
+		<ul>
+			<li>Adult hermaphrodite pharynx, Data of Bumbarger and Sommer, 2013,
+				<i>System-wide rewiring underlies behavioral differences in predatory
+					and bacterial-feeding nematodes, Cell 152, 109–119.</i>
+				<a href='https://doi.org/10.1016/j.cell.2012.12.013'>DOI:https://doi.org/10.1016/j.cell.2012.12.013</a></br>
+				Data (also from <a href='https://www.cell.com/cell/fulltext/S0092-8674(12)01500-0?_returnURL=https%3A%2F%2Flinkinghub.elsevier.com%2Fretrieve%2Fpii%2FS0092867412015000%3Fshowall%3Dtrue#supplementaryMaterial'>Cell</a>:)
+				<ul>
+					<li><a href='/si_other/bumbarger-sommer-S1-synapse-connectivity.xlsx'>Synapse Connectivity [.xlsx]</a></li>
+					<li><a href='/si_other/bumbarger-sommer-S2-consensus-network.xlsx'>Consensus Netowrk [.xlsx]</a></li>
+				</ul>
+			</li>
+
+			<li>Adult hermaphrodite chemosensory (amphidial) nervous system. Data of Hong et al., 2019,
+				<i>Evolution of neuronal anatomy and circuitry in two highly divergent
+					nematode species, eLife 2019;8:e47155.</i>
+				<a href='https://doi.org/10.7554/eLife.47155'>DOI:
+					https://doi.org/10.7554/eLife.47155</a></br>
+				Data:
+				<ul>
+					<li><a href='/si_other/elife-47155-fig9-data2-v1.csv'>Connectivity
+					table</a></li>
+				</ul>
+			</li>
+		</ul>
+  </div>
+
+  </div></div>
 <br>
 
-	  
-<div style="text-align: center;"> 
-	<a href="https://einstein.yu.edu"><img alt="Einstein Logo" src="art1/einstein-logo.png"/>
-	</a>
-</div>
-<p align="center">Emmons Lab Copyright (c) 2020<br>
-	1300 Morris Park Ave, Room 703 Ullmann</p>
-<p align="center">Bronx, NY 10461 <br/>
-</p>
-<p align="center">718-430-2249<br/>
-</p>
+<script type='text/javascript' src='/footer.js'></script>
+    
 </body>
 
 </html>
