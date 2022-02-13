@@ -6,6 +6,11 @@
  * (extract by $_GET["sex"], $_GET["db"]
  * php returns the value requested by echo-ing
  *
+ * lmao the wa in wa_link stands for WormAtlas
+ * the wa file helps to get a wormatlas page from a cellname
+ * essentially it truncates the cellname, but there's not one obvious rule
+ * multiple rules, shouldn't be hard to find the rules
+ *
  * TODO database name capitalize issue (url makes it caps)
  */
 include('dbaux.php');
