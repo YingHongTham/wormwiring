@@ -893,56 +893,55 @@ ImporterApp.prototype.GenerateMenu = function()
 		parent.appendChild(filterBtn);
 		parent.appendChild(restoreBtn);	
 
-  	  };
-
-    function AddMapTranslate(parent,slider,callback){
-	var params = {className:'map-translate',
-		      min: -2000,
-		      max: 2000,
-		      value: 0,
-		     callback:callback};
-	var text = {x:'<-Left / Right->',
-		    y:'<-Ventral / Dorsal->',
-		    z:'<-Anterior / Posterior->'};
-	for (var i in text){
-	    var p = document.createElement('p')
-	    p.innerHTML = text[i] + ': '
-	    parent.appendChild(p);
-	    slider(parent,i,params);
-	}
-
-    };
-
-    function AddSlider(parent,name,params){
-	var self = this;
-	var slider = document.createElement('input');
-	slider.id = name + '-slider';
-	slider.className = params.className;
-	slider.type ='range';
-	slider.min = params.min;
-	slider.max = params.max;
-	slider.value = params.value;
-	slider.onchange = function(){
-	    var x = document.getElementById('x-slider').value;
-	    var y = document.getElementById('y-slider').value;
-	    var z = document.getElementById('z-slider').value;
-	    params.callback(-x,-y,-z);
 	};
-	parent.appendChild(slider);
-    };
 
-    function AddToggleButton(parent,onText,offText,callback){
-	var remarkBtn = document.createElement('button');
-	remarkBtn.innerHTML = onText;
-	remarkBtn.value = true;
-	remarkBtn.className = 'filterbutton';
-	//remarkBtn.id = 'remarkBtn';
-	remarkBtn.onclick = function(){
-	    this.innerHTML=(this.innerHTML==onText)?offText:onText;
-	    callback();
+	function AddMapTranslate(parent,slider,callback){
+		var params = {className:'map-translate',
+			      min: -2000,
+			      max: 2000,
+			      value: 0,
+			     callback:callback};
+		var text = {x:'<-Left / Right->',
+			    y:'<-Ventral / Dorsal->',
+			    z:'<-Anterior / Posterior->'};
+		for (var i in text){
+		    var p = document.createElement('p')
+		    p.innerHTML = text[i] + ': '
+		    parent.appendChild(p);
+		    slider(parent,i,params);
+		}
 	};
-	parent.appendChild(remarkBtn);
-};
+
+	function AddSlider(parent,name,params){
+		var self = this;
+		var slider = document.createElement('input');
+		slider.id = name + '-slider';
+		slider.className = params.className;
+		slider.type ='range';
+		slider.min = params.min;
+		slider.max = params.max;
+		slider.value = params.value;
+		slider.onchange = function(){
+		    var x = document.getElementById('x-slider').value;
+		    var y = document.getElementById('y-slider').value;
+		    var z = document.getElementById('z-slider').value;
+		    params.callback(-x,-y,-z);
+		};
+		parent.appendChild(slider);
+	};
+
+	function AddToggleButton(parent,onText,offText,callback){
+		var remarkBtn = document.createElement('button');
+		remarkBtn.innerHTML = onText;
+		remarkBtn.value = true;
+		remarkBtn.className = 'filterbutton';
+		//remarkBtn.id = 'remarkBtn';
+		remarkBtn.onclick = function(){
+				this.innerHTML=(this.innerHTML==onText)?offText:onText;
+				callback();
+		};
+		parent.appendChild(remarkBtn);
+	};
 
 	//add menu on the left
 	//in apps/include/importers.js
