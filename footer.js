@@ -1,4 +1,5 @@
 //writes footer, the Einstein logo and stuff at the bottom
+// a different line of comment, to differentiate from node branch
 
 var footerhtml =
 "<div style='text-align: center;'>"+
