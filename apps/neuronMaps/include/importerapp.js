@@ -769,8 +769,8 @@ ImporterApp.prototype.GenerateMenu = function()
 	function AddSeriesSelector(menu,menuGrp,name){
 		menu.AddSelector(menuGrp,name,{
 			options:self.series.herm,
-			onChange:self.SetCellSelector,
-			//onChange:function(){ self.SetCellSelector(); },
+			//onChange:self.SetCellSelector, // doesn't work!
+      onChange: () => self.SetCellSelector(),
 			id : 'series-selector'
 		});
 	};
