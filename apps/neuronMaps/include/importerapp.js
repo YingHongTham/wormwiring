@@ -135,7 +135,7 @@ ImporterApp.prototype.Init = function ()
 	importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
 
 	//the small window in which help/selector is shown
-	//
+	//and also when you click synapse (synClick)
 	this.dialog = new FloatingDialog();
 	
 	window.addEventListener ('resize', this.Resize.bind (this), false);
@@ -202,6 +202,7 @@ ImporterApp.prototype.PreloadCells = function()
 	document.getElementById('series-selector').value = this.params.db
 	var xhttp = new XMLHttpRequest();    
 	var url = '../php/selectorCells.php?sex='+this.params.sex+'&db='+this.params.db;
+  console.log(`PreloadCell sgetting selectorCells from url ${url}`);
 	xhttp.onreadystatechange = function(){
 		if (this.readyState == 4 && this.status == 200){
 			self.selectedNeurons = JSON.parse(this.responseText);
@@ -584,11 +585,12 @@ ImporterApp.prototype.SetCellSelector = function()
 	var db = document.getElementById('series-selector').value;  
 	var xhttp = new XMLHttpRequest();    
 	var url = '../php/selectorCells.php?sex='+sex+'&db='+db;
+  console.log(`SetCellSelector getting selectorCells from url ${url}`);
 	xhttp.onreadystatechange = function(){
 		if (this.readyState == 4 && this.status == 200){
 			self.selectedNeurons = JSON.parse(this.responseText);
+      console.log(self.selectedNeurons);
 		};
-		console.log(this.readyState, this.status);
 	};
 	xhttp.open("GET",url,true);
 	xhttp.send();  

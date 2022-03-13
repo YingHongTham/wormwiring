@@ -33,6 +33,10 @@ $wafile = '../../cell_files/wa_link.txt';
 if ($db == 'N2W'){
 	$neuron_list = '../../cell_files/pharynx_neurons.txt';
 	$muscle_list = '../../cell_files/pharynx_muscle.txt';
+} 
+else if ($db == 'JSE'){
+	$neuron_list = '../../cell_files/jse_neurons.txt';
+	$muscle_list = '../../cell_files/jse_muscles.txt';
 } else {
 	if ($sex == 'herm'){
 		$neuron_list = '../../cell_files/full_herm_neurons.txt';
@@ -42,7 +46,6 @@ if ($db == 'N2W'){
 		$muscle_list = '../../cell_files/full_male_muscle.txt';      
 	};  
 }
-
 
 $neurons = file($neuron_list,FILE_IGNORE_NEW_LINES);
 $muscles = file($muscle_list,FILE_IGNORE_NEW_LINES);

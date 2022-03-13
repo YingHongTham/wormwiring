@@ -275,8 +275,11 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 		self.maps[name].synObjs.push(sphere);
 		//var url = '/maps/getImages.php?neuron=' +
 		//params.neuron + '&db=' + params.db +'&continNum='+contin;
+    
+    //note that this is relative to floatingdialog.js...
 		var url = '../synapseViewer/?neuron=' + 
 		params.neuron + '&db=' + params.db +'&continNum='+contin;
+  console.log('url:', url);
 		//THREEx.Linkify(self.domEvents,sphere,url);	    
     
 		var _partner = partner.split(',');
@@ -310,6 +313,9 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 		});
 
 		self.domEvents.addEventListener(sphere,'click',function(event){
+      // menu.synClick is really a floatingdialog object
+      // (see ../../include/floatingdialog.js
+      // which opens a floating dialog displaying url stuff
 			self.menu.synClick(url,'Synapse viewer');
 		});
 		self.scene.add(sphere);
