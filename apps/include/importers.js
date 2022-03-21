@@ -201,7 +201,7 @@ ImporterMenu.prototype.AddGroup = function (name, parameters)
 ImporterMenu.prototype.AddSubItem = function (parent, name, parameters)
 {
 
-    function GetTruncatedName (name)
+  function GetTruncatedName (name)
 	{
 		var maxLength = 20;
 		if (name.length > maxLength) {
@@ -278,7 +278,7 @@ ImporterMenu.prototype.AddSubItem = function (parent, name, parameters)
 
 	parent.appendChild (menuItem);
 	if (menuContent !== null) {
-		parent.appendChild (menuContent);
+		parent.appendChild(menuContent);
 	}
 
 	return menuContent;

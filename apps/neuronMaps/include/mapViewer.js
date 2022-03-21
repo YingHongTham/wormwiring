@@ -12,7 +12,8 @@ MapViewer = function(_canvas,_menu,_debug=false)
 	this.GapColor = 0x00ffff;
 	this.CBColor = 0xff0000;
 	this.CBWidth = 5;
-	
+  // some default value of translation, probably to avoid the origin..
+  // don't think it is ever updated
 	this.translate = {
     x:200,
 		y:100,
@@ -20,7 +21,13 @@ MapViewer = function(_canvas,_menu,_debug=false)
   };
 	
 	// keeps track of movement of skeleton etc by the user (slider)
-  //
+  // (see this.translateMaps)
+  // note this is NOT the view origin of the camera,
+  // i.e. moving the slider changes this,
+  // but the camera and angle stays put, so the skeleton moves
+  // (relative to the grid also)
+  // note also that this should always be negative of *-slider values
+  // (i.e. this.position.x = doc.get..Id('x-slider').value
 	this.position = new THREE.Vector3(0,0,0);
 	    
 	this.non_series_keys = ["plotParam","cellBody",
@@ -56,6 +63,8 @@ MapViewer = function(_canvas,_menu,_debug=false)
 		fov: 45
 	};
 	this.camera = null;
+
+  // where the camera is looking
 	this.cameraTarget = this.cameraDefaults.posCameraTarget;
 	this.controls = null;
 	
@@ -163,6 +172,7 @@ MapViewer.prototype.clearMaps = function()
 
 /*
  * loads neuron
+ * synchronous
  */
 MapViewer.prototype.loadMap = function(map)
 {
@@ -412,20 +422,24 @@ MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,p
 };
 */
 
-// translate (what?) to given x,y,z
-// this "what" is 0,0,0 at the beginning
+// translate this.position to given x,y,z
+// 0,0,0 at the beginning
 // The user may adjust with slider
+// all stuff moves with this.position
+// note that this is called with -x,-y,-z in the onchange functions
+// of the sliders
+// probably because of some sign conventions in the EMs..
 MapViewer.prototype.translateMaps = function(x,y,z)
 {
   var posnew = new THREE.Vector3(x,y,z);
   var delta =  this.position.clone();
   delta.sub(posnew);
-  console.log(delta.x, this.position.x, posnew.x);
+  this.position = posnew.clone();
+
   var m = new THREE.Matrix4()
   m.makeTranslation(delta.x,delta.y,delta.z);
-  this.position = posnew.clone();
   
-  for (var name in this.maps){
+  for (var name in this.maps) {
     this.translateSkeleton(this.maps[name].skeleton,m)
     this.translateSynapse(this.maps[name].synObjs,m)
   };
@@ -591,6 +605,18 @@ MapViewer.prototype.dumpJSON = function() {
   };
 };
 
+// color: {r: 0.2, g: 0.4, b: 0.7} values are between 0 and 1
+// (usual RGB color / 255)
+MapViewer.prototype.setColor = function(cell, color) {
+  for (const obj of this.maps[cell].skeleton) {
+    if (!obj.cellBody) {
+      obj.material.color.r = color.r;
+      obj.material.color.g = color.g;
+      obj.material.color.b = color.b;
+    }
+  }
+};
+
 MapViewer.prototype.getColor = function(cell) {
   for (const obj of this.maps[cell].skeleton) {
     if (!obj.cellBody) {
@@ -619,7 +645,8 @@ MapViewer.prototype.dumpMapsJSON = function() {
 MapViewer.prototype.dumpCameraJSON = function() {
   const cameraSettings = {
     position: this.camera.position,
-    viewOrigin: this.controls.target,
+    viewOrigin: this.controls.target, // where camera is looking
   };
   return cameraSettings;
 };
+

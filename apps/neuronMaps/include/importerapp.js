@@ -226,19 +226,44 @@ ImporterApp.prototype.LoadFromFile = function() {
   if (input === null)
     return;
   file.readAsText(input.files[0]);
+
+  const main_this = this;
   file.onloadend = function(ev) {
+    // read data is in this.result
+    const data = JSON.parse(this.result);
+    for (const cell in data.sqlData) {
+      console.log('loadmap ', cell);
+      main_this.data[cell] = data.sqlData[cell];
+      main_this.viewer.loadMap(main_this.data[cell]);
+    }
+    // update color (OK, viewer.loadMap is synchronous)
+    for (const cell in data.mapsSettings) {
+      // seems like the color selector thing is created
+      // when user clicks the button,
+      // so we just need to modify the color directly on the object
+      obj = main_this.viewer.setColor(
+        cell,
+        data.mapsSettings[cell].color
+      );
+    }
     console.log(JSON.parse(this.result));
   };
 };
 
+/*
+ * json file expected:
+ *
+ *
+ */
 ImporterApp.prototype.SaveToFile = function() {
-  const settings = this.viewer.dumpJSON();
-  console.log(settings);
-
   const data = {
-    data: this.data,
-    settings: settings,
+    sqlData: this.data,
+    mapsSettings: this.viewer.dumpMapsJSON(),
+    cameraSettings: this.viewer.dumpCameraJSON(),
+    mapsTranslation: this.GetMapsTranslate(),
   };// object to hold data to save
+
+  console.log(data);
 
   const a = document.getElementById('forSaveToFileButton');
   if (a === null)
@@ -249,6 +274,10 @@ ImporterApp.prototype.SaveToFile = function() {
   ));
   a.setAttribute('download', 'session.json');
   a.click();
+};
+
+ImporterApp.prototype.SetCellColor = function(cell, r,g,b) {
+
 };
 
 ImporterApp.prototype.PreloadParamsLoaded = function() {
@@ -465,6 +494,9 @@ ImporterApp.prototype.ClearMaps = function(mapName)
  * mapname: neuron that we want
  * db: database from which to select
  *
+ * does not create entry in menu on the left,
+ * that's handled by LoadMapMenu (see NeuronSelectorDialog)
+ *
  * I don't like how neurons, and all it's traces, positions etc
  * are stored twice, once in ImporterApp (.data)
  * and another time in mapViewer.
@@ -494,6 +526,9 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
  * and also takes callback to perform after loaded
  *
  * callback expected to take db, mapname as input
+ * TODO do this when allow loading from
+ * json file that didn't save the skeleton and stuff
+ * perhaps even use this as unified way to load via url params
  */
 ImporterApp.prototype.LoadMapCallback = function(db, mapname, callback)
 {
@@ -532,6 +567,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
 					content.removeChild(content.lastChild);
 				};
 				colorInput = document.createElement('input');
+        // class no CSS, but used below
 				colorInput.className = 'colorSelector';
 				colorInput.setAttribute('type','text');
 				var obj = self.viewer.maps[mapname].skeleton[0];
@@ -628,23 +664,23 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
 
 	menuObj.AddSubItem(menuGroup,mapname,{
 		openCloseButton:{
-		visible : false,
-		open: 'images/info.png',
-		close: 'images/info.png',
-		onOpen : function(content,mapName){
-			while(content.lastChild){
-				content.removeChild(content.lastChild);
-			};
-			menuObj.AddSubItem(content,'Color',colorparams);
-			menuObj.AddSubItem(content,'Remarks',remarksparams);
-			if (walink != undefined){
-				menuObj.AddSubItem(content,'WormAtlas',infoparams);
-			}
-			menuObj.AddSubItem(content,'Synaptic partners',partnerListparams);
-			menuObj.AddSubItem(content,'Synapse list',synapseListparams);
-		},
-		title : 'Show/Hide Information',
-		userData : mapname
+		  visible : false,
+		  open: 'images/info.png',
+		  close: 'images/info.png',
+		  onOpen : function(content,mapName){
+		  	while(content.lastChild){
+		  		content.removeChild(content.lastChild);
+		  	};
+		  	menuObj.AddSubItem(content,'Color',colorparams);
+		  	menuObj.AddSubItem(content,'Remarks',remarksparams);
+		  	if (walink != undefined){
+		  		menuObj.AddSubItem(content,'WormAtlas',infoparams);
+		  	}
+		  	menuObj.AddSubItem(content,'Synaptic partners',partnerListparams);
+		  	menuObj.AddSubItem(content,'Synapse list',synapseListparams);
+		  },
+		  title : 'Show/Hide Information',
+		  userData : mapname
 		},
 		userButton : {
 			visible : true,
@@ -687,7 +723,7 @@ ImporterApp.prototype.SetCellSelector = function()
 	xhttp.onreadystatechange = function(){
 		if (this.readyState == 4 && this.status == 200){
 			self.selectedNeurons = JSON.parse(this.responseText);
-      console.log(self.selectedNeurons);
+      //console.log(self.selectedNeurons);
 		};
 	};
 	xhttp.open("GET",url,true);
@@ -1028,7 +1064,7 @@ ImporterApp.prototype.GenerateMenu = function()
 		  var x = document.getElementById('x-slider').value;
 		  var y = document.getElementById('y-slider').value;
 		  var z = document.getElementById('z-slider').value;
-      // why negative
+      // why negative? probably something to do with EM coords
 		  params.callback(-x,-y,-z);
 		};
 		parent.appendChild(slider);
@@ -1085,8 +1121,30 @@ ImporterApp.prototype.GenerateMenu = function()
   this.AddLoadSave();
 };
 
+ImporterApp.prototype.SetMapsTranslate = function(x,y,z) {
+  const xEl = document.getElementById('x-slider');
+  const yEl = document.getElementById('y-slider');
+  const zEl = document.getElementById('z-slider');
+
+  xEl.value = x;
+  yEl.value = y;
+  zEl.value = z;
+
+  // trigger the usual function to update the viewer
+  xEl.onchange();
+  yEl.onchange();
+  zEl.onchange();
+};
+
 
 ImporterApp.prototype.GetMapsTranslate = function() {
-  console.log(this.viewer.position);
-  console.log(document.getElementById('x-slider').value);
+  const xEl = document.getElementById('x-slider');
+  const yEl = document.getElementById('y-slider');
+  const zEl = document.getElementById('z-slider');
+
+  return {
+    x: parseInt(xEl.value),
+    y: parseInt(yEl.value),
+    z: parseInt(zEl.value),
+  };
 };
