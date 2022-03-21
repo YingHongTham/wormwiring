@@ -1,5 +1,3 @@
-//TODO add close button
-
 FloatingDialog = function ()
 {
 	this.dialogDiv = null;
@@ -8,6 +6,7 @@ FloatingDialog = function ()
 
 FloatingDialog.prototype.Open = function (parameters)
 {
+  window.dispatchEvent(new Event('resize'));
 	function AddButton (dialog, parent, button)
 	{
 		var buttonDiv = document.createElement ('div');
@@ -45,10 +44,21 @@ FloatingDialog.prototype.Open = function (parameters)
 		button = parameters.buttons[i];
 		AddButton (this, buttonsDiv, button);
 	}
-	document.body.appendChild (this.dialogDiv);
+
+  // YH
+  //const canvas = document.getElementById ('meshviewer');
+  const left = document.getElementById ('left');
+  this.dialogDiv.style.width = (window.innerWidth - 200) + 'px';
+  this.dialogDiv.style.height = (left.offsetHeight - 50) + 'px';
+  this.dialogDiv.style.overflow = 'auto';
+  contentDiv.style.width = (this.dialogDiv.offsetWidth - 200) + 'px';
+  contentDiv.style.height = (this.dialogDiv.offsetHeight - 200) + 'px';
+  contentDiv.style.overflow = 'auto';
+
+	document.body.appendChild(this.dialogDiv);
 
 	document.addEventListener ('click', this.mouseClick, true);
-	this.Resize ();
+	this.Resize();
 };
 
 FloatingDialog.prototype.Close = function ()
@@ -62,14 +72,17 @@ FloatingDialog.prototype.Close = function ()
 	this.dialogDiv = null;
 };
 
+// should this be called reposition??
 FloatingDialog.prototype.Resize = function ()
 {
 	if (this.dialogDiv === null) {
 		return;
 	}
 	
-	this.dialogDiv.style.left = ((document.body.clientWidth - this.dialogDiv.clientWidth) / 2.0) + 'px';
-	this.dialogDiv.style.top = ((document.body.clientHeight - this.dialogDiv.clientHeight) / 3.0) + 'px';
+	//this.dialogDiv.style.left = ((document.body.clientWidth - this.dialogDiv.clientWidth) / 2.0) + 'px';
+	//this.dialogDiv.style.top = ((document.body.clientHeight - this.dialogDiv.clientHeight) / 3.0) + 'px';
+	this.dialogDiv.style.left = ((window.innerWidth - this.dialogDiv.offsetWidth) / 2.0) + 'px';
+	this.dialogDiv.style.top = ((window.innerHeight - this.dialogDiv.offsetHeight) / 2.0) + 'px';
 };
 
 FloatingDialog.prototype.MouseClick = function (clickEvent)

@@ -31,7 +31,7 @@ pageBlueAttr[urlToName[url]] = blueString;
 //html for header
 //useful to keep the html structure in tact for readability
 var headerhtml =
-"<div class='headerimage' style='font-size: 0px; height: 80px'>"+
+"<div id='headerimage' class='headerimage' style='font-size: 0px; height: 80px'>"+
 "  <a href='/index.html' style='color: white; text-decoration: none'>"+
 "    <h1 style='font-size: 37px; color:white; position:relative; top:-9px'><b>"+
 "      WormWiring"+

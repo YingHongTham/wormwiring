@@ -1,3 +1,4 @@
+// apps/include/three/threex.resizewindow.js
 
 MapViewer = function(_canvas,_menu,_debug=false)
 {
@@ -12,11 +13,14 @@ MapViewer = function(_canvas,_menu,_debug=false)
 	this.CBColor = 0xff0000;
 	this.CBWidth = 5;
 	
-	this.translate = {x:200,
+	this.translate = {
+    x:200,
 		y:100,
-		z:0};
+		z:0
+  };
 	
-		//position of origin??
+	// keeps track of movement of skeleton etc by the user (slider)
+  //
 	this.position = new THREE.Vector3(0,0,0);
 	    
 	this.non_series_keys = ["plotParam","cellBody",
@@ -62,43 +66,44 @@ MapViewer = function(_canvas,_menu,_debug=false)
 
 MapViewer.prototype.initGL = function()
 {
-    this.renderer = new THREE.WebGLRenderer({
-	canvas: this.canvas,
-	antialias: true,
-	autoClear: true
-    });
-    //this.renderer.setClearColor(0x050505);
-    this.renderer.setClearColor(0xffffff);
+  this.renderer = new THREE.WebGLRenderer({
+	  canvas: this.canvas,
+	  antialias: true,
+	  autoClear: true
+  });
+  //this.renderer.setClearColor(0x050505);
+  this.renderer.setClearColor(0xffffff);
     
-    this.scene = new THREE.Scene();
+  this.scene = new THREE.Scene();
     
-    this.camera = new THREE.PerspectiveCamera(
-	this.cameraDefaults.fov,
-	this.aspectRatio,
-	this.cameraDefaults.near,
-	this.cameraDefaults.far);
-    this.resetCamera();
-    this.controls = new THREE.OrbitControls(this.camera,this.renderer.domElement);
-    //this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement);
-    this.domEvents = new THREEx.DomEvents(this.camera,this.renderer.domElement);
-    
-    var ambientLight = new THREE.AmbientLight(0x404040);
-    var directionalLight1 = new THREE.DirectionalLight(0xC0C090);
-    var directionalLight2 = new THREE.DirectionalLight(0xC0C090);
-    
-    directionalLight1.position.set(-100,-50,100);
-    directionalLight2.position.set(100,50,-100);
-   
-    this.scene.add(directionalLight1);
-    this.scene.add(directionalLight2);
-    this.scene.add(ambientLight);
-    
-    var helper = new THREE.GridHelper(10000,100,0xFF4444,0x404040);
-    this.scene.add(helper);
+  this.camera = new THREE.PerspectiveCamera(
+	  this.cameraDefaults.fov,
+	  this.aspectRatio,
+	  this.cameraDefaults.near,
+	  this.cameraDefaults.far);
+  this.resetCamera();
+  this.controls = new THREE.OrbitControls(this.camera,this.renderer.domElement);
+  //this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement); // z-axis not preserved
+  this.domEvents = new THREEx.DomEvents(this.camera,this.renderer.domElement);
 
-    this.addText('Anterior',{x:100,y:50,z:0},this.axesText);
-    this.addText('Right',{x:150,y:50,z:250,_y:-Math.PI/2},this.axesText);
-    this.addText('Ventral',{x:100,y:0,z:200,_x:-Math.PI/2},this.axesText);
+  // lighting is not necessary for line/sphere objects
+  //var ambientLight = new THREE.AmbientLight(0x404040);
+  //var directionalLight1 = new THREE.DirectionalLight(0xC0C090);
+  //var directionalLight2 = new THREE.DirectionalLight(0xC0C090);
+  //
+  //directionalLight1.position.set(-100,-50,100);
+  //directionalLight2.position.set(100,50,-100);
+  //
+  //this.scene.add(directionalLight1);
+  //this.scene.add(directionalLight2);
+  //this.scene.add(ambientLight);
+  
+  var helper = new THREE.GridHelper(10000,100,0xFF4444,0x404040);
+  this.scene.add(helper);
+
+  this.addText('Anterior',{x:100,y:50,z:0},this.axesText);
+  this.addText('Right',{x:150,y:50,z:250,_y:-Math.PI/2},this.axesText);
+  this.addText('Ventral',{x:100,y:0,z:200,_x:-Math.PI/2},this.axesText);
 };
 
 //for adding the direction names
@@ -142,18 +147,18 @@ MapViewer.prototype.addText = function(text,params,container)
 
 MapViewer.prototype.clearMaps = function()
 {
-    for (var name in this.maps){
-	for (var i=0; i < this.maps[name].skeleton.length; i++){
-	    this.scene.remove(this.maps[name].skeleton[i]);
-	};
-	for (var i=0; i < this.maps[name].synObjs.length; i++){
-	    this.scene.remove(this.maps[name].synObjs[i]);
-	};
-	for (var i=0; i < this.maps[name].remarks.length; i++){
-	    this.scene.remove(this.maps[name].remarks[i]);
-	};
-    };
-    this.maps = {};
+  for (var name in this.maps){
+	  for (var i=0; i < this.maps[name].skeleton.length; i++){
+	      this.scene.remove(this.maps[name].skeleton[i]);
+	  };
+	  for (var i=0; i < this.maps[name].synObjs.length; i++){
+	      this.scene.remove(this.maps[name].synObjs[i]);
+	  };
+	  for (var i=0; i < this.maps[name].remarks.length; i++){
+	      this.scene.remove(this.maps[name].remarks[i]);
+	  };
+  };
+  this.maps = {};
 }
 
 /*
@@ -255,7 +260,7 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 	console.log('addOneSynapse');
 	//WTF why wrap this in a function?
 	//(function (){
-		console.log(synapse[0],synapse[1],synapse[2],synapse[7]);
+		//console.log(synapse[0],synapse[1],synapse[2],synapse[7]);
 		var x = (params.xmin - parseInt(synapse[0]) - params.xmid)*self.XYScale + self.translate.x;
 		var y = (params.ymax - parseInt(synapse[1]) - params.ymid)*self.XYScale + self.translate.y;
 		var z = parseInt(synapse[2]) - params.zmin;
@@ -407,42 +412,45 @@ MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,p
 };
 */
 
-
+// translate (what?) to given x,y,z
+// this "what" is 0,0,0 at the beginning
+// The user may adjust with slider
 MapViewer.prototype.translateMaps = function(x,y,z)
 {
-    var posnew = new THREE.Vector3(x,y,z);
-    var delta =  this.position.clone();
-    delta.sub(posnew);
-    var m = new THREE.Matrix4()
-    m.makeTranslation(delta.x,delta.y,delta.z);
-    this.position = posnew.clone();
-    
-    for (var name in this.maps){
-	this.translateSkeleton(this.maps[name].skeleton,m)
-	this.translateSynapse(this.maps[name].synObjs,m)
-    };
+  var posnew = new THREE.Vector3(x,y,z);
+  var delta =  this.position.clone();
+  delta.sub(posnew);
+  console.log(delta.x, this.position.x, posnew.x);
+  var m = new THREE.Matrix4()
+  m.makeTranslation(delta.x,delta.y,delta.z);
+  this.position = posnew.clone();
+  
+  for (var name in this.maps){
+    this.translateSkeleton(this.maps[name].skeleton,m)
+    this.translateSynapse(this.maps[name].synObjs,m)
+  };
 
 };
 
 MapViewer.prototype.translateSkeleton = function(skeleton,transMatrix)
 {
-    for (var i=0; i < skeleton.length;i++){
-	skeleton[i].applyMatrix(transMatrix);
-    };    
+  for (var i=0; i < skeleton.length;i++){
+	  skeleton[i].applyMatrix(transMatrix);
+  };    
 };
 
 MapViewer.prototype.translateSynapse = function(synObjs,transMatrix)
 {
-    for (var i=0; i < synObjs.length;i++){
-	synObjs[i].applyMatrix(transMatrix);
-    }; 
+  for (var i=0; i < synObjs.length;i++){
+	  synObjs[i].applyMatrix(transMatrix);
+  }; 
 };
 
 MapViewer.prototype.translateRemarks = function(remarks,transMatrix)
 {
-    for (var i=0; i < remarks.length; i++){
-	remarks[i].applyMatrix(transMatrix);
-    };
+  for (var i=0; i < remarks.length; i++){
+	  remarks[i].applyMatrix(transMatrix);
+  };
 };
 
 MapViewer.prototype.toggleMaps = function(name)
@@ -532,33 +540,86 @@ MapViewer.prototype.toggleAxes = function()
     };
 };
 MapViewer.prototype.resizeDisplayGL = function(){
+  // YH
 	//OrbitControls doesn't have resize
 	//this.controls.handleResize();
-	this.recalcAspectRatio();
-	this.renderer.setSize(this.canvas.offsetWidth,this.canvas.offsetHeight,false);
-	this.updateCamera();
+	//this.recalcAspectRatio();
+	//this.renderer.setSize(this.canvas.offsetWidth,this.canvas.offsetHeight,false);
+	//this.updateCamera();
+
+  // YH
+  const renderer = this.renderer;
+  const camera = this.camera;
+  const canvas = this.canvas;
+  // from apps/include/three/threex.resizewindow.js
+  THREEx.WindowResize(renderer, camera, () => {
+    return {
+      width: canvas.offsetWidth,
+      height: canvas.offsetHeight,
+    };
+  });
 };
 
 MapViewer.prototype.recalcAspectRatio = function(){
-    this.aspectRatio = (this.canvas.offsetHeight === 0) ? 1 : this.canvas.offsetWidth / this.canvas.offsetHeight;
+  this.aspectRatio = (this.canvas.offsetHeight === 0) ? 1 : this.canvas.offsetWidth / this.canvas.offsetHeight;
 };
 
 MapViewer.prototype.resetCamera = function(){
-    this.camera.position.copy(this.cameraDefaults.posCamera);
-    this.cameraTarget.copy(this.cameraDefaults.posCameraTarget);
-    this.updateCamera();
+  this.camera.position.copy(this.cameraDefaults.posCamera);
+  this.cameraTarget.copy(this.cameraDefaults.posCameraTarget);
+  this.updateCamera();
 };
 
 MapViewer.prototype.updateCamera = function(){
-    this.camera.apsect = this.aspectRatio;
-    this.camera.lookAt(this.cameraTarget);
-    this.camera.updateProjectionMatrix();
+  this.camera.apsect = this.aspectRatio;
+  this.camera.lookAt(this.cameraTarget);
+  this.camera.updateProjectionMatrix();
 };
 
 MapViewer.prototype.render = function(){  
-    if (! this.renderer.autoClear){
-	this.renderer.clear();
+  if (! this.renderer.autoClear){
+	  this.renderer.clear();
+  };
+  this.controls.update();
+  this.renderer.render(this.scene,this.camera);
+};
+
+MapViewer.prototype.dumpJSON = function() {
+  return {
+    mapsSettings: this.dumpMapsJSON(),
+    cameraSettings: this.dumpCameraJSON(),
+  };
+};
+
+MapViewer.prototype.getColor = function(cell) {
+  for (const obj of this.maps[cell].skeleton) {
+    if (!obj.cellBody) {
+      return {
+        r: obj.material.color.r,
+        g: obj.material.color.g,
+        b: obj.material.color.b,
+      };
+    }
+  }
+  return { r: 0, g: 0, b: 0 };
+};
+
+// return color of maps
+MapViewer.prototype.dumpMapsJSON = function() {
+  const mapsSettings = {};
+  for (const cell in this.maps) {
+    mapsSettings[cell] = {
+      color: this.getColor(cell),
     };
-    this.controls.update();
-    this.renderer.render(this.scene,this.camera);
+  }
+  return mapsSettings;
+};
+
+// return camera position/lookAt origin
+MapViewer.prototype.dumpCameraJSON = function() {
+  const cameraSettings = {
+    position: this.camera.position,
+    viewOrigin: this.controls.target,
+  };
+  return cameraSettings;
 };

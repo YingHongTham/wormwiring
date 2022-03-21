@@ -1,3 +1,5 @@
+// ImporterMenu class from apps/include/importers.js
+
 ImporterApp = function (params)
 {
 	//params are obtained from the url
@@ -22,18 +24,27 @@ ImporterApp = function (params)
 			{value: 'n930', text: 'Adult head (N930)'}
 		]
 	};
-	//holds the data passed back from retrieve_trace_coord.php
-	//the skeleton, synapse locations etc.
+	// holds the data passed back from retrieve_trace_coord.php
+  // which is a MySQL
+	// the skeleton, synapse locations etc.
+  //data['ADAL'] = { ... }
 	this.data = {};
+
+  // HTML elements of menu items on the left
+  // assigned in GenerateMenu()
+  // e.g. this.menuGroup['maps'] = AddDefaultGroup(...);
 	this.menuGroup = {};
 	
-	//selectedNeurons are the cells that have been selected
-	//to be loaded (visibility can later be toggled)
-	//they should appear in the left menu
+	//selectedNeurons are cells to appear in the cell selector dialog
 	//often run through loop: selectedNeurons[group][i]
 	//	group = 'Neurons' or 'Muscles'
 	//	i = the cell name e.g. 'ADAL'
 	this.selectedNeurons = {};
+
+  // but wait, there's more...
+  // many more members defined in Init()
+  // in particular,
+  // this.viewer, the object dealing with the viewer inside canvas
 
 	this.helpParams =  [
 		{
@@ -113,6 +124,7 @@ ImporterApp = function (params)
 
 /*
  * loads all the top buttons, Help, Select Neurons, Clear
+ * the left menu is loaded in GenerateMenu
  */
 ImporterApp.prototype.Init = function ()
 {
@@ -127,9 +139,6 @@ ImporterApp.prototype.Init = function ()
 	var self = this;
 	var top = document.getElementById ('top');
 	var importerButtons = new ImporterButtons (top);
-	//need to wrap self.HelpDialog in function
-	//because that's defined later.. probably..
-	//ideally: importerButtons.AddLogo('Help',self.HelpDialog);
 	importerButtons.AddLogo('Help',()=>{self.HelpDialog();});
 	importerButtons.AddLogo('Select neuron',()=>{self.NeuronSelectorDialog();});
 	importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
@@ -138,8 +147,9 @@ ImporterApp.prototype.Init = function ()
 	//and also when you click synapse (synClick)
 	this.dialog = new FloatingDialog();
 	
-	window.addEventListener ('resize', this.Resize.bind (this), false);
-	this.Resize ();
+  // can't have two callbacks for one event..
+	//window.addEventListener ('resize', this.Resize.bind (this), false);
+	this.Resize();
 	
 	var canvas = document.getElementById('meshviewer');
 	
@@ -154,16 +164,20 @@ ImporterApp.prototype.Init = function ()
 	this.viewer = viewer;
 	
 	var resizeWindow = function(){
-	viewer.resizeDisplayGL();
+    viewer.resizeDisplayGL();
 	};
     
 	var render = function(){
-		//TODO commenting for testing
+		// TODO commenting for testing
 		requestAnimationFrame(render);
+    // TODO make animating/pausing part of MapViewer class
 		self.viewer.render();
 	};
 
-	window.addEventListener('resize',resizeWindow,false);
+  window.addEventListener('resize', () => {
+    self.Resize();
+    resizeWindow();
+  },false);
 	this.viewer.initGL();
 	this.viewer.resizeDisplayGL();
 	render();
@@ -174,6 +188,67 @@ ImporterApp.prototype.Init = function ()
 	} else {
 		this.SetCellSelector();
 	};
+};
+
+// YH
+ImporterApp.prototype.AddLoadSave = function() {
+  // following AddSynapseFilter
+  const parent = this.menuGroup['load-save'];
+
+  const inputLoad = document.createElement('input');
+  inputLoad.type = 'file';
+  inputLoad.id = 'LoadFromFileInput';
+  inputLoad.accept = '.json';
+  inputLoad.onchange = () => this.LoadFromFile();
+  parent.appendChild(inputLoad);
+
+  const buttonSave = document.createElement('button');
+  buttonSave.innerHTML = 'Save';
+  buttonSave.id = 'SaveToFileButton';
+  buttonSave.onclick = () => this.SaveToFile();
+  parent.appendChild(buttonSave);
+
+  const a = document.createElement('a');
+  a.id = 'forSaveToFileButton';
+  parent.appendChild(a);
+};
+
+/*
+ * YH
+ * load settings from file
+ * file expected to be .json, object
+ * one attritbute for each cell,
+ * with 
+ */
+ImporterApp.prototype.LoadFromFile = function() {
+  const input = document.getElementById('LoadFromFileInput');
+  const file = new FileReader();
+  if (input === null)
+    return;
+  file.readAsText(input.files[0]);
+  file.onloadend = function(ev) {
+    console.log(JSON.parse(this.result));
+  };
+};
+
+ImporterApp.prototype.SaveToFile = function() {
+  const settings = this.viewer.dumpJSON();
+  console.log(settings);
+
+  const data = {
+    data: this.data,
+    settings: settings,
+  };// object to hold data to save
+
+  const a = document.getElementById('forSaveToFileButton');
+  if (a === null)
+    return;
+  a.href = URL.createObjectURL(new Blob(
+    [JSON.stringify(data)],
+    { type: 'application/json', }
+  ));
+  a.setAttribute('download', 'session.json');
+  a.click();
 };
 
 ImporterApp.prototype.PreloadParamsLoaded = function() {
@@ -293,28 +368,25 @@ ImporterApp.prototype.AddHelpPanel = function(parent,params)
 
 ImporterApp.prototype.InfoDialog = function(url,title)
 {
-    var self = this;
-    var dialogText = [
-	'<div class="importerdialog">',
-	'<iframe src="'+url+'"',
-	'id="infoFrame"></iframe>',
-	'</div>',
+  var self = this;
+  var dialogText = [
+	  '<div class="importerdialog">',
+	  '<iframe src="'+url+'"',
+	  'id="infoFrame"></iframe>',
+	  '</div>',
     ].join ('');
-    dialog = new FloatingDialog ();
-    dialog.Open ({
-	className: 'infoFrame',
-	title : title,
-	text : dialogText,
-	buttons : [
-    
-	    {
-		text : 'close',
-		callback : function (dialog) {
-			dialog.Close();
-		}
-	    }
-	]
-    });
+  dialog = new FloatingDialog ();
+  dialog.Open ({
+	  className: 'infoFrame',
+	  title : title,
+	  text : dialogText,
+	  buttons : [{
+        text : 'close',
+        callback : function (dialog) {
+          dialog.Close();
+        }
+	  }]
+  });
 }
 
 
@@ -389,12 +461,12 @@ ImporterApp.prototype.ClearMaps = function(mapName)
 
 /*
  * calls php to ask mysql for synapses and stuff
- * and loads it to viewer
+ * and loads it to viewer by its method loadMap
  * mapname: neuron that we want
  * db: database from which to select
  *
  * I don't like how neurons, and all it's traces, positions etc
- * are stored twice, once in ImporterApp,
+ * are stored twice, once in ImporterApp (.data)
  * and another time in mapViewer.
  * Store it once!
  */
@@ -409,7 +481,33 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
 		if (this.readyState == 4 && this.status == 200){
 			self.data[mapname] = JSON.parse(this.responseText);
 			self.viewer.loadMap(self.data[mapname]);
-			console.log(self.data[mapname]);
+			//console.log(self.data[mapname]);
+		}
+	};
+	xhttp.open("GET",url,true);
+	xhttp.send();
+}
+
+/*
+ * YH
+ * retrieves trace, synapses etc and loads into viewer,
+ * and also takes callback to perform after loaded
+ *
+ * callback expected to take db, mapname as input
+ */
+ImporterApp.prototype.LoadMapCallback = function(db, mapname, callback)
+{
+	var self = this;
+	console.log(db + ', ' + mapname);
+	var url = '../php/retrieve_trace_coord.php?neuron='+mapname+'&db='+db;
+	console.log('retrieving skeleton map via '+url);
+	var xhttp = new XMLHttpRequest();    
+	xhttp.onreadystatechange = function(){
+		if (this.readyState == 4 && this.status == 200){
+			self.data[mapname] = JSON.parse(this.responseText);
+			self.viewer.loadMap(self.data[mapname]);
+			//console.log(self.data[mapname]);
+      callback(db, mapname);
 		}
 	};
 	xhttp.open("GET",url,true);
@@ -709,26 +807,30 @@ ImporterApp.prototype.Resize = function ()
 		elem.style.height = value + 'px';
 	}
 
+	var headerimage = document.getElementById ('headerimage');
+	var nav = document.getElementById ('nav');
 	var top = document.getElementById ('top');
 	//why left and not just do the menu
 	var left = document.getElementById ('left');
 	var canvas = document.getElementById ('meshviewer');
-	var height = document.body.clientHeight - top.offsetHeight;
+	// YH; subtracting the nav/image heights too
+	var height = window.innerHeight - top.offsetHeight - headerimage.offsetHeight - nav.offsetHeight - 10;
 
 	SetHeight (canvas, 0);
-	SetWidth (canvas, 0);
+	//SetWidth (canvas, 0);
 
 	SetHeight (left, height);
 
 	SetHeight (canvas, height);
 	SetWidth (canvas, document.body.clientWidth - left.offsetWidth);
 	
-	this.dialog.Resize ();
+	this.dialog.Resize();
 };
 
 ImporterApp.prototype.GenerateMenu = function()
 {
 	var self = this;
+  // AddDefaultGroup returns the HTML element
 	function AddDefaultGroup (menu, name, visible=false) {
 		var group = menu.AddGroup(name, {
 			openCloseButton : {
@@ -769,7 +871,6 @@ ImporterApp.prototype.GenerateMenu = function()
 	function AddSeriesSelector(menu,menuGrp,name){
 		menu.AddSelector(menuGrp,name,{
 			options:self.series.herm,
-			//onChange:self.SetCellSelector, // doesn't work!
       onChange: () => self.SetCellSelector(),
 			id : 'series-selector'
 		});
@@ -924,10 +1025,11 @@ ImporterApp.prototype.GenerateMenu = function()
 		slider.max = params.max;
 		slider.value = params.value;
 		slider.onchange = function(){
-		    var x = document.getElementById('x-slider').value;
-		    var y = document.getElementById('y-slider').value;
-		    var z = document.getElementById('z-slider').value;
-		    params.callback(-x,-y,-z);
+		  var x = document.getElementById('x-slider').value;
+		  var y = document.getElementById('y-slider').value;
+		  var z = document.getElementById('z-slider').value;
+      // why negative
+		  params.callback(-x,-y,-z);
 		};
 		parent.appendChild(slider);
 	};
@@ -949,7 +1051,7 @@ ImporterApp.prototype.GenerateMenu = function()
 	//in apps/include/importers.js
 	var menu = document.getElementById('menu');
 	this.menuObj = new ImporterMenu(menu);
-    
+  
 	this.menuGroup['maps'] = AddDefaultGroup(this.menuObj,'Maps',visible=true);
 	this.menuGroup['series-selector'] =
 		AddDefaultGroup(this.menuObj,'Series selector',visible=true);
@@ -977,11 +1079,14 @@ ImporterApp.prototype.GenerateMenu = function()
 		    'Axes OFF',function(){self.viewer.toggleAxes();});
     //AddToggleButton(this.menuGroup['comments'],'Remarks OFF',
     //'Remarks ON',function(){self.viewer.toggleRemarks();});
-    
+
+  // YH
+	this.menuGroup['load-save'] = AddDefaultGroup(this.menuObj,'Load/Save',visible=true);
+  this.AddLoadSave();
 };
 
 
-
-
-
-
+ImporterApp.prototype.GetMapsTranslate = function() {
+  console.log(this.viewer.position);
+  console.log(document.getElementById('x-slider').value);
+};
