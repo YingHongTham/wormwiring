@@ -95,17 +95,18 @@ MapViewer.prototype.initGL = function()
   //this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement); // z-axis not preserved
   this.domEvents = new THREEx.DomEvents(this.camera,this.renderer.domElement);
 
-  // lighting is not necessary for line/sphere objects
-  //var ambientLight = new THREE.AmbientLight(0x404040);
-  //var directionalLight1 = new THREE.DirectionalLight(0xC0C090);
-  //var directionalLight2 = new THREE.DirectionalLight(0xC0C090);
-  //
-  //directionalLight1.position.set(-100,-50,100);
-  //directionalLight2.position.set(100,50,-100);
-  //
-  //this.scene.add(directionalLight1);
-  //this.scene.add(directionalLight2);
-  //this.scene.add(ambientLight);
+  // lighting is not necessary for line objects,
+  // but is necessary for spheres.. so it seems..
+  var ambientLight = new THREE.AmbientLight(0x404040);
+  var directionalLight1 = new THREE.DirectionalLight(0xC0C090);
+  var directionalLight2 = new THREE.DirectionalLight(0xC0C090);
+  
+  directionalLight1.position.set(-100,-50,100);
+  directionalLight2.position.set(100,50,-100);
+  
+  this.scene.add(directionalLight1);
+  this.scene.add(directionalLight2);
+  this.scene.add(ambientLight);
   
   var helper = new THREE.GridHelper(10000,100,0xFF4444,0x404040);
   this.scene.add(helper);

@@ -67,28 +67,30 @@ ImporterApp.prototype.Init = function()
 
 ImporterApp.prototype.LoadImage = function(_zoom,_objNum)
 {
-    var self = this;
-    var objNum = _objNum;
-    var url = '../php/loadSynapseImage.php?contin='+this.synapse.continNum+
-	'&db='+self.synapse.db+'&objNum='+objNum+'&zoom='+_zoom;
+  var self = this;
+  var objNum = _objNum;
+  //var url = '../php/loadSynapseImage.php?contin='+this.synapse.continNum+
+	//'&db='+self.synapse.db+'&objNum='+objNum+'&zoom='+_zoom;
+  var url = `../php/loadSynapseImage.php?contin=${this.synapse.continNum}`
+    + `&db=${self.synapse.db}&objNum=${objNum}&zoom=${_zoom}`;
+  console.log('synapse viewer: ', url);
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function(){
-	if (this.readyState == 4 && this.status == 200){
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function(){
+	  if (this.readyState == 4 && this.status == 200){
 	    var data = JSON.parse(this.responseText);
 	    var img_src = "data:image/jpeg;base64,"+data;
 	    var canvas = document.getElementById('canvas');
 	    var img = document.createElement('img');
 	    img.src = img_src;
 	    while (canvas.firstChild){
-		canvas.removeChild(canvas.firstChild);
+	  	  canvas.removeChild(canvas.firstChild);
 	    };
 	    canvas.appendChild(img);
 	    console.log('Image loaded: ' + objNum);
-	};
-    };
-    xhttp.open("GET",url,true);
-    xhttp.send();
-    
+	  };
+  };
+  xhttp.open("GET",url,true);
+  xhttp.send();
 }
 

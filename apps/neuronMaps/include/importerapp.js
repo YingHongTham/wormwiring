@@ -291,10 +291,11 @@ ImporterApp.prototype.LoadFromFile = function() {
   };
 };
 
+//TODO synapse colors
+
 /*
  * json file expected:
- *
- *
+ * TODO
  */
 ImporterApp.prototype.SaveToFile = function() {
   const data = {
