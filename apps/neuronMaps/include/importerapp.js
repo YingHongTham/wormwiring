@@ -6,7 +6,7 @@ ImporterApp = function (params)
 	//(e.g. when clicking on neuron from the Interactive Diagram)
 	//https://wormwiring.org/apps/neuronMaps/?cell=RMDDR&sex=herm&db=N2U 
 	this.params = params;
-	this.db = 'JSH';
+	this.db = 'N2U'; // not updated, only used as default for loading..
 	this.selectedCell = '';
 	this.validCells = []; //used by GetCellDisplay()
 	this.GetCellDisplay(); //what does this really do??
@@ -35,8 +35,14 @@ ImporterApp = function (params)
   // e.g. this.menuGroup['maps'] = AddDefaultGroup(...);
 	this.menuGroup = {};
 	
-	//selectedNeurons are cells to appear in the cell selector dialog
-	//often run through loop: selectedNeurons[group][i]
+	// selectedNeurons are cells to appear in the cell selector dialog
+  // reloaded each time different series is selected
+  // this gives rise to a small problem:
+  // the cell selector dialog highlights cells that are selected,
+  // (by giving them a class 'select')
+  // but this is info is lost when switch to different series and back
+  // need to add this in SetCellSelector/PreloadCells
+	// often run through loop: selectedNeurons[group][i]
 	//	group = 'Neurons' or 'Muscles'
 	//	i = the cell name e.g. 'ADAL'
 	this.selectedNeurons = {};
@@ -231,12 +237,48 @@ ImporterApp.prototype.LoadFromFile = function() {
   file.onloadend = function(ev) {
     // read data is in this.result
     const data = JSON.parse(this.result);
+
+    // update the series selector in menu
+    const dbEl = document.getElementById('series-selector');
+    const sexEl = document.getElementById('sex-selector');
+    dbEl.value = data.db;
+    sexEl.value = data.sex;
+
+    // wait for selectedNeurons[group][cell] to have the attributes:
+    // -walink
+    // -visible
+    // -plotted
+    function LoadMapMenuWhenReady(cell) {
+      if (!main_this.selectedNeurons.Neurons.hasOwnProperty(cell)
+        && !main_this.selectedNeurons.Muscles.hasOwnProperty(cell)) {
+        setTimeout(() => LoadMapMenuWhenReady(cell), 200);
+      }
+      else {
+        var group = 'Neurons';
+        if (!main_this.selectedNeurons[group].hasOwnProperty(cell)) {
+          group = 'Muscles';
+        }
+        if (!main_this.selectedNeurons[group][cell].hasOwnProperty('walink')
+          || !main_this.selectedNeurons[group][cell].hasOwnProperty('visible')
+          || !main_this.selectedNeurons[group][cell].hasOwnProperty('plotted')) {
+          setTimeout(() => LoadMapMenuWhenReady(cell), 200);
+        }
+        else {
+          main_this.LoadMapMenu(cell, main_this.selectedNeurons[group][cell].walink);
+          main_this.selectedNeurons[group][cell].visible = 1;
+          main_this.selectedNeurons[group][cell].plotted = 1;
+        }
+      }
+    }
+
     for (const cell in data.sqlData) {
       console.log('loadmap ', cell);
       main_this.data[cell] = data.sqlData[cell];
       main_this.viewer.loadMap(main_this.data[cell]);
+      LoadMapMenuWhenReady(cell);
     }
-    // update color (OK, viewer.loadMap is synchronous)
+
+    // update color (viewer.loadMap sync, ImporterApp.LoadMap async)
     for (const cell in data.mapsSettings) {
       // seems like the color selector thing is created
       // when user clicks the button,
@@ -246,7 +288,6 @@ ImporterApp.prototype.LoadFromFile = function() {
         data.mapsSettings[cell].color
       );
     }
-    console.log(JSON.parse(this.result));
   };
 };
 
@@ -257,6 +298,8 @@ ImporterApp.prototype.LoadFromFile = function() {
  */
 ImporterApp.prototype.SaveToFile = function() {
   const data = {
+    db: document.getElementById('series-selector').value,
+    sex: document.getElementById('sex-selector').value,
     sqlData: this.data,
     mapsSettings: this.viewer.dumpMapsJSON(),
     cameraSettings: this.viewer.dumpCameraJSON(),
@@ -306,7 +349,7 @@ ImporterApp.prototype.PreloadCells = function()
 	document.getElementById('series-selector').value = this.params.db
 	var xhttp = new XMLHttpRequest();    
 	var url = '../php/selectorCells.php?sex='+this.params.sex+'&db='+this.params.db;
-  console.log(`PreloadCell sgetting selectorCells from url ${url}`);
+  console.log(`PreloadCell getting selectorCells from url ${url}`);
 	xhttp.onreadystatechange = function(){
 		if (this.readyState == 4 && this.status == 200){
 			self.selectedNeurons = JSON.parse(this.responseText);
@@ -444,7 +487,8 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 				var series = document.getElementById('series-selector').value;
 				for (var group in self.selectedNeurons){
 					for (var i in self.selectedNeurons[group]){
-						if (self.selectedNeurons[group][i].visible == 1 && self.selectedNeurons[group][i].plotted == 0){
+						if (self.selectedNeurons[group][i].visible == 1
+                && self.selectedNeurons[group][i].plotted == 0){
 							self.LoadMap(series,i);
 							self.LoadMapMenu(i,self.selectedNeurons[group][i].walink);
 							self.selectedNeurons[group][i].plotted = 1;
@@ -465,11 +509,11 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 	//this.SetCellSelector();
 	//adds cells from selected database to the selector dialog
 	var selector = document.getElementsByClassName('selectordialog')[0];
-	for (var group in this.selectedNeurons){
+	for (var group in this.selectedNeurons){ // Neurons/Muscles
 		this.AddSelectPanel(selector,group);
 	};
 	console.log(self.selectedNeurons);
-}
+};
 
 ImporterApp.prototype.ClearMaps = function(mapName)
 {
@@ -731,7 +775,9 @@ ImporterApp.prototype.SetCellSelector = function()
 };
 
 /*
- * adds the Neuron and Muscles panels
+ * adds the Neuron and Muscles entries in the Cell Selector Dialog
+ * name = Neurons or Muscles
+ * called by NeuronSelectorDialog, i.e. when click on 'Select neuron'
  */
 ImporterApp.prototype.AddSelectPanel = function(parent,name)
 {
@@ -754,16 +800,23 @@ ImporterApp.prototype.AddSelectPanel = function(parent,name)
 	};
 	parent.appendChild(header);
 	parent.appendChild(panel);
-    
+
+  // name is Neurons or Muscles, not cell name..
+  // 'select' class adds highlighting to cell entry
 	$("div#"+name+" > .selectCell").click(function () {
 		self.selectedNeurons[name][this.id].visible = 
 			(self.selectedNeurons[name][this.id].visible==1)?0:1;
 		$(this).toggleClass("select");
 	});
 
+  // used when cell loaded from urlParams..
+  // bad because if switch to different series and back,
+  // this info would disappear
+  // should use this.data as well!
 	for (var i in this.selectedNeurons[name]){
-		if (this.selectedNeurons[name][i].visible==1){
-			$("div#"+i).toggleClass("select");  
+		if ( this.selectedNeurons[name][i].visible == 1
+        || this.data.hasOwnProperty(i) ) {
+			$("div#"+i).toggleClass("select", true);
 		}
 	}
 };

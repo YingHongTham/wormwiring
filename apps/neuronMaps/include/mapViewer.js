@@ -267,8 +267,7 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType,params)
 {
 	var self = this;
-	console.log('addOneSynapse');
-	//WTF why wrap this in a function?
+	// why wrap this in a function?
 	//(function (){
 		//console.log(synapse[0],synapse[1],synapse[2],synapse[7]);
 		var x = (params.xmin - parseInt(synapse[0]) - params.xmid)*self.XYScale + self.translate.x;
@@ -294,7 +293,7 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
     //note that this is relative to floatingdialog.js...
 		var url = '../synapseViewer/?neuron=' + 
 		params.neuron + '&db=' + params.db +'&continNum='+contin;
-  console.log('url:', url);
+    //console.log('url:', url);
 		//THREEx.Linkify(self.domEvents,sphere,url);	    
     
 		var _partner = partner.split(',');
