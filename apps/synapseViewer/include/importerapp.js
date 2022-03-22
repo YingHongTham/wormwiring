@@ -67,12 +67,12 @@ ImporterApp.prototype.Init = function()
 
 ImporterApp.prototype.LoadImage = function(_zoom,_objNum)
 {
-  var self = this;
   var objNum = _objNum;
+  //var self = this;
   //var url = '../php/loadSynapseImage.php?contin='+this.synapse.continNum+
 	//'&db='+self.synapse.db+'&objNum='+objNum+'&zoom='+_zoom;
   var url = `../php/loadSynapseImage.php?contin=${this.synapse.continNum}`
-    + `&db=${self.synapse.db}&objNum=${objNum}&zoom=${_zoom}`;
+    + `&db=${this.synapse.db}&objNum=${objNum}&zoom=${_zoom}`;
   console.log('synapse viewer: ', url);
 
   var xhttp = new XMLHttpRequest();

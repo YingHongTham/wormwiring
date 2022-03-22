@@ -164,7 +164,7 @@ ImporterApp.prototype.Init = function ()
 	var viewer = new MapViewer(canvas, {
 			menuObj:this.menuObj,
 			menuGroup:this.menuGroup,
-			synClick: this.InfoDialog
+			synClick: this.InfoDialog // is a FUNCTION that spawns dialog
 		},
 		debug=false);
 	this.viewer = viewer;
@@ -288,10 +288,14 @@ ImporterApp.prototype.LoadFromFile = function() {
         data.mapsSettings[cell].color
       );
     }
+
+    // ideally use some async methods..
+    setTimeout(() => {
+      main_this.SetMapsTranslate(data.mapsTranslation);
+      main_this.viewer.SetCameraFromJSON(data.cameraSettings);
+    }, 1000);
   };
 };
-
-//TODO synapse colors
 
 /*
  * json file expected:
@@ -1175,14 +1179,17 @@ ImporterApp.prototype.GenerateMenu = function()
   this.AddLoadSave();
 };
 
-ImporterApp.prototype.SetMapsTranslate = function(x,y,z) {
+// translation = {x: .., y: .., z: ..}
+ImporterApp.prototype.SetMapsTranslate = function(translation) {
+  console.log('translation: ', translation);
+
   const xEl = document.getElementById('x-slider');
   const yEl = document.getElementById('y-slider');
   const zEl = document.getElementById('z-slider');
 
-  xEl.value = x;
-  yEl.value = y;
-  zEl.value = z;
+  xEl.value = translation.x;
+  yEl.value = translation.y;
+  zEl.value = translation.z;
 
   // trigger the usual function to update the viewer
   xEl.onchange();

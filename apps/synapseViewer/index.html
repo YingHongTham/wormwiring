@@ -14,7 +14,17 @@
   <div id="main-title">Synapse viewer</div>
   <div id="main-help">
     Select EM section from dropdown. Allow a few seconds for images to load.
+    <br/>
+    (Open in separate tab:
+    <a id="selfUrl" target="_blank"></a>
   </div>
+  <script>
+    const el = document.getElementById('selfUrl');
+    const url = window.location.href;
+    console.log(url);
+    el.innerHTML = url;
+    el.href = url;
+  </script>
   <div id="main-info">
     <div class="main-info-left">
       <div class="info-left">Database:</div><div class="info-right" id="database">---</div>

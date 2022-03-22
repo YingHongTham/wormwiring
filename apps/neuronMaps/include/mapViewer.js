@@ -1,5 +1,12 @@
 // apps/include/three/threex.resizewindow.js
 
+// usage:
+//  viewer = new MapViewer(canvas, {
+//		menuObj:this.menuObj,
+//		menuGroup:this.menuGroup,
+//		synClick: this.InfoDialog
+//	},
+//	debug=false);
 MapViewer = function(_canvas,_menu,_debug=false)
 {
 	//Parameters
@@ -329,9 +336,11 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 
 		self.domEvents.addEventListener(sphere,'click',function(event){
       // menu.synClick is really a floatingdialog object
-      // (see ../../include/floatingdialog.js
-      // which opens a floating dialog displaying url stuff
+      // (see importerapp.js, ImporterApp.InfoDialog)
+      // (see also ../../include/floatingdialog.js
+      // which opens a floating dialog displaying url stuff)
 			self.menu.synClick(url,'Synapse viewer');
+      console.log('synClick url: ', url);
 		});
 		self.scene.add(sphere);
 	//});
@@ -648,5 +657,16 @@ MapViewer.prototype.dumpCameraJSON = function() {
     viewOrigin: this.controls.target, // where camera is looking
   };
   return cameraSettings;
+};
+
+MapViewer.prototype.SetCameraFromJSON = function(cameraSettings) {
+  console.log('cameraSettings: ', cameraSettings);
+  this.camera.position.x = cameraSettings.position.x;
+  this.camera.position.y = cameraSettings.position.y;
+  this.camera.position.z = cameraSettings.position.z;
+  this.cameraTarget.x = cameraSettings.viewOrigin.x;
+  this.cameraTarget.y = cameraSettings.viewOrigin.y;
+  this.cameraTarget.z = cameraSettings.viewOrigin.z;
+  this.updateCamera();
 };
 
