@@ -18,6 +18,7 @@ MapViewer = function(_canvas,_menu,_debug=false)
 	this.PostColor = 0xbf00ff;
 	this.GapColor = 0x00ffff;
 	this.CBColor = 0xff0000;
+	this.SkelWidth = 2;
 	this.CBWidth = 5;
   // some default value of translation, probably to avoid the origin..
   // don't think it is ever updated
@@ -42,7 +43,10 @@ MapViewer = function(_canvas,_menu,_debug=false)
 	"gapJunction","remarks","nmj",
 	"name","series"];
 	
-	this.skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor });
+  // redundant as each skeleton will need its own Material
+  // (which allows individual color change)
+  // TODO maybe can optimize this by only create material if change color
+  this.skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor, linewidth: this.SkelWidth });
 	this.cbMaterial = new THREE.LineBasicMaterial({color:this.CBColor,linewidth:this.CBWidth});
 	this.preMaterial = new THREE.MeshLambertMaterial({color:this.PreColor});
 	this.postMaterial = new THREE.MeshLambertMaterial({color:this.PostColor});
@@ -196,7 +200,10 @@ MapViewer.prototype.loadMap = function(map)
 		default : '---',
 		remarks : false
 	};
-	var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor });
+
+  // make a copy otherwise changing one color will affect all others
+	var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor,
+    linewidth: this.SkelWidth});
 	this.maps[map.name] = {
 		visible : true,
 		skeleton : [], //array of line segments, each is one THREE object!!
