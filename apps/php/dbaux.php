@@ -366,43 +366,40 @@ class NeuronTrace {
 		$this->objects = array();
 
 
-	//stuff copied from retrieve_trace_coord.php
-	$DISPLAY = 2;
-	//_v is discarded
-	foreach ($this->series as $s => $_v){
-		if ($DISPLAY == 2){
-			$sql = $this->display2_sql($s);
-		} elseif ($DISPLAY == 3){
-			$sql = $this->display3_sql($s);
-		}
-		$val = $_db->_return_query_rows_assoc($sql);
-		foreach ($val as $v){
-			$this->series[$s]->add_x($v['x1'],$v['x2']);
-			$this->series[$s]->add_y($v['y1'],$v['y2']);
-			$z1 = $_db->get_object_section_number($v['objName1']);
-			$z2 = $_db->get_object_section_number($v['objName2']);
-			$this->series[$s]->add_z($z1,$z2);
-			$this->series[$s]->add_cb($v['cellbody']);
-			$this->add_object($v['objName1'],$v['x1'],$v['y1'],$z1);
-			$this->add_object($v['objName2'],$v['x2'],$v['y2'],$z2);
-			if ($v['cellbody'] == 1){
-				$this->cellBody->add_x($v['x1'],$v['x2']);
-				$this->cellBody->add_y($v['y1'],$v['y2']);
-				$this->cellBody->add_z($z1,$z2);
-			}
-			if ($v['remarks1'] != ''){
-				$this->add_remark($v['x1'],$v['y1'],$z1,$s,$v['remarks1']);
-			}
-			if ($v['remarks2'] != ''){
-				$this->add_remark($v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
-			}
-		}
+    // YH
+	  //stuff copied from retrieve_trace_coord.php
+	  $DISPLAY = 2;
+	  //_v is discarded
+	  foreach ($this->series as $s => $_v){
+	  	if ($DISPLAY == 2){
+	  		$sql = $this->display2_sql($s);
+	  	} elseif ($DISPLAY == 3){
+	  		$sql = $this->display3_sql($s);
+	  	}
+	  	$val = $_db->_return_query_rows_assoc($sql);
+	  	foreach ($val as $v){
+	  		$this->series[$s]->add_x($v['x1'],$v['x2']);
+	  		$this->series[$s]->add_y($v['y1'],$v['y2']);
+	  		$z1 = $_db->get_object_section_number($v['objName1']);
+	  		$z2 = $_db->get_object_section_number($v['objName2']);
+	  		$this->series[$s]->add_z($z1,$z2);
+	  		$this->series[$s]->add_cb($v['cellbody']);
+	  		$this->add_object($v['objName1'],$v['x1'],$v['y1'],$z1);
+	  		$this->add_object($v['objName2'],$v['x2'],$v['y2'],$z2);
+	  		if ($v['cellbody'] == 1){
+	  			$this->cellBody->add_x($v['x1'],$v['x2']);
+	  			$this->cellBody->add_y($v['y1'],$v['y2']);
+	  			$this->cellBody->add_z($z1,$z2);
+	  		}
+	  		if ($v['remarks1'] != ''){
+	  			$this->add_remark($v['x1'],$v['y1'],$z1,$s,$v['remarks1']);
+	  		}
+	  		if ($v['remarks2'] != ''){
+	  			$this->add_remark($v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
+	  		}
+	  	}
+	  }
 	}
-	
-
-	}
-
-
 
 	function add_object($obj,$x,$y,$z){
 		$this->objects[$obj] = array( 

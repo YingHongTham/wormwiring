@@ -185,6 +185,9 @@ MapViewer.prototype.clearMaps = function()
 /*
  * loads neuron
  * synchronous
+ *
+ * @param {Object} map - object returned by retrieve_trace_coord.php
+ * keys are the series NR, VC, ... and this.non_series_keys
  */
 MapViewer.prototype.loadMap = function(map)
 {
@@ -214,8 +217,8 @@ MapViewer.prototype.loadMap = function(map)
 		params : params
 	};
 
-	//key is VC, NR etc, and value map[key]
-	//comes from TraceLocation from dbaux.php
+	// series keys like VC, NR etc, and value map[key]
+	// comes from NeuronTrace constructor/TraceLocation from dbaux.php
 	for (var key in map){
 		if (this.non_series_keys.indexOf(key) == -1){
 			this.addSkeleton(map.name,map[key],params);	    

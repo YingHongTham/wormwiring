@@ -155,6 +155,7 @@ ImporterApp.prototype.Init = function ()
 	
   // can't have two callbacks for one event..
 	//window.addEventListener ('resize', this.Resize.bind (this), false);
+  //(see window.addEventListener below)
 	this.Resize();
 	
 	var canvas = document.getElementById('meshviewer');
@@ -550,6 +551,10 @@ ImporterApp.prototype.ClearMaps = function(mapName)
  * are stored twice, once in ImporterApp (.data)
  * and another time in mapViewer.
  * Store it once!
+ *
+ * YH
+ * modified retrieve_trace_coord.php to return
+ * some data about OBJ_Remarks
  */
 ImporterApp.prototype.LoadMap = function(db,mapname)
 {

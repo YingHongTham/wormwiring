@@ -1,3 +1,5 @@
+// models are located in apps/neuronVolume/models/
+
 ImporterApp = function ()
 {
     this.viewer = null;
@@ -153,43 +155,40 @@ ImporterApp.prototype.AddHelpPanel = function(parent,params)
 
 ImporterApp.prototype.NeuronSelectorDialog = function()
 {
-    var self = this;
-    var dialogText = [
-	'<div class="selectordialog">',
-	//this.NeuronSelector (),
-	'</div>',
-    ].join ('');
-    this.dialog.Open ({
-	className: 'cell-selector',
-	title : 'Cell Selector',
-	text : dialogText,
-	buttons : [
-    
+  var self = this;
+  var dialogText = [
+	  '<div class="selectordialog">',
+	  //this.NeuronSelector (),
+	  '</div>',
+  ].join ('');
+  this.dialog.Open ({
+	  className: 'cell-selector',
+	  title : 'Cell Selector',
+	  text : dialogText,
+	  buttons : [
 	    {
-		text : 'ok',
-		callback : function (dialog) {
-		    var db = document.getElementById('series-selector').value;
-		    var dir = './models/' + db;
-		    for (var i in self.selectedNeurons[group]){
-			if (self.selectedNeurons[group][i].visible == 1 && self.selectedNeurons[group][i].plotted == 0){
-			    self.viewer.loadModel(dir,i);
-			    self.selectedNeurons[group][i].plotted = 1;
-			};
-		    };
-	
-		dialog.Close();
-		}
+		    text : 'ok',
+		    callback : function (dialog) {
+		      var db = document.getElementById('series-selector').value;
+          // this is apps/neuronVolume/models
+		      var dir = './models/' + db;
+		      for (var i in self.selectedNeurons[group]){
+			      if (self.selectedNeurons[group][i].visible == 1 && self.selectedNeurons[group][i].plotted == 0){
+			        self.viewer.loadModel(dir,i);
+			        self.selectedNeurons[group][i].plotted = 1;
+			      };
+		      }
+		      dialog.Close();
+		    },
 	    }
-	]
-    });
-
+	  ]
+  });
     
-    var selector = document.getElementsByClassName('selectordialog')[0];
-    for (var group in this.selectedNeurons){
-	this.AddSelectPanel(selector,group);
-    };  
-
-}
+  var selector = document.getElementsByClassName('selectordialog')[0];
+  for (var group in this.selectedNeurons){
+	  this.AddSelectPanel(selector,group);
+  }  
+};
 
 ImporterApp.prototype.AddSelectPanel = function(parent,name)
 {

@@ -1,16 +1,20 @@
+// models are located in apps/neuronVolume/models/
+// which is a symlink to /usr/local/data/image_data/models
+// there is also a image_data symlink to /usr/local/data/image_data
+
 MeshViewer = function(_canvas,_menu,_debug=false)
 {
-    this.validator = THREE.LoaderSupport.Validator;
-    this.debug = _debug;
-    
-    this.menu = _menu;
-    this.canvas = _canvas;
-    this.aspectRation = 1;
-    this.recalcAspectRatio();
-    
-    
-    this.scene = null;
-    this.cameraDefaults = {
+  this.validator = THREE.LoaderSupport.Validator;
+  this.debug = _debug;
+  
+  this.menu = _menu;
+  this.canvas = _canvas;
+  this.aspectRation = 1;
+  this.recalcAspectRatio();
+
+
+  this.scene = null;
+  this.cameraDefaults = {
 	posCamera: new THREE.Vector3( 0.0, 125.0, 200.0),
 	posCameraTarget: new THREE.Vector3( 0, 0, 0),
 	near: 0.1,
@@ -26,140 +30,135 @@ MeshViewer = function(_canvas,_menu,_debug=false)
 }
 
 MeshViewer.prototype.initGL = function(){
-    this.renderer = new THREE.WebGLRenderer({
-	canvas: this.canvas,
-	antialias: true,
-	autoClear: true
-    });
-    this.renderer.setClearColor(0x050505);
+  this.renderer = new THREE.WebGLRenderer({
+	  canvas: this.canvas,
+	  antialias: true,
+	  autoClear: true
+  });
+  this.renderer.setClearColor(0x050505);
     
-    this.scene = new THREE.Scene();
+  this.scene = new THREE.Scene();
     
-    this.camera = new THREE.PerspectiveCamera(
-	this.cameraDefaults.fov,
-	this.aspectRatio,
-	this.cameraDefaults.near,
-	this.cameraDefaults.far);
-    this.resetCamera();
-    this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement);
+  this.camera = new THREE.PerspectiveCamera(
+	  this.cameraDefaults.fov,
+	  this.aspectRatio,
+	  this.cameraDefaults.near,
+	  this.cameraDefaults.far);
+  this.resetCamera();
+  this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement);
     
-    var ambientLight = new THREE.AmbientLight(0x404040);
-    var directionalLight1 = new THREE.DirectionalLight(0xC0C090);
-    var directionalLight2 = new THREE.DirectionalLight(0xC0C090);
-    
-    directionalLight1.position.set(-100,-50,100);
-    directionalLight2.position.set(100,50,-100);
-   
-    this.scene.add(directionalLight1);
-    this.scene.add(directionalLight2);
-    this.scene.add(ambientLight);
-    
-    var helper = new THREE.GridHelper(1200,60,0xFF4444,0x404040);
-    this.scene.add(helper);
+  var ambientLight = new THREE.AmbientLight(0x404040);
+  var directionalLight1 = new THREE.DirectionalLight(0xC0C090);
+  var directionalLight2 = new THREE.DirectionalLight(0xC0C090);
+  
+  directionalLight1.position.set(-100,-50,100);
+  directionalLight2.position.set(100,50,-100);
+  
+  this.scene.add(directionalLight1);
+  this.scene.add(directionalLight2);
+  this.scene.add(ambientLight);
+  
+  var helper = new THREE.GridHelper(1200,60,0xFF4444,0x404040);
+  this.scene.add(helper);
 };
 
 MeshViewer.prototype.loadModel = function(_dir,_model){
-    var modelName = _model;
-    var obj = _dir + '/' + _model + '.obj';
-    var mtl = _dir + '/' + _model + '.mtl';
-    this._reportProgress({ 
-	detail: {
+  var modelName = _model;
+  var obj = _dir + '/' + _model + '.obj';
+  var mtl = _dir + '/' + _model + '.mtl';
+  this._reportProgress({ 
+	  detail: {
 	    test: 'Loading: ' + modelName
-	}
-    });
-    
-    var scope = this;
-    var objLoader = new THREE.OBJLoader2();
-    var callbackOnLoad = function(event){
-	//Add to menu
-	menuObj = scope.menu.menuObj;
-	menuGrp = scope.menu.meshGroup;
-	menuObj.AddSubItem(menuGrp,modelName,
-	   {
-	       openCloseButton : {
-		   visible : false,
-		   open : 'images/info.png',
-		   close: 'images/info.png',
-		   onOpen : function(content,modelName){
-		       var obj = scope.scene.getObjectByName(scope.meshes[modelName].name);
-		       var r = Math.round(255*obj.material.color.r);
-		       var b = Math.round(255*obj.material.color.b);
-		       var g = Math.round(255*obj.material.color.g);
-		       var rgb = b | (g << 8 ) | (r << 16);
-		       var hex = '#' + rgb.toString(16);
-		       colorInput = document.createElement('input');
-		       colorInput.className = 'colorSelector';
-		       colorInput.setAttribute("type","text");
-		       colorInput.setAttribute("value",hex);
-		       while(content.lastChild){
-			   content.removeChild(content.lastChild);
-		       };
-		       content.appendChild(colorInput);
-		       $(".colorSelector").spectrum({
-			   preferredFormat: "rgb",
-			   showInput: true,
-			   move: function(color){
-			       var obj = scope.scene.getObjectByName(scope.meshes[modelName].name);
-			       var rgb = color.toRgb()
-			       obj.material.color.r = rgb.r/255.;
-			       obj.material.color.g = rgb.g/255.;
-			       obj.material.color.b = rgb.b/255.;
-			       
-			   }
-		       });
-		       
-		   },
-		   title : 'Show/Hide Information',
-		   userData: modelName
-	       },
-	       userButton : {
-		   visible : true,
-		   onCreate : function(image){
-		       image.src = 'images/visible.png';
-		   },
-		   onClick: function(image,modelName){
-		       var visible = scope.meshes[modelName].visible;
-		       var obj = scope.scene.getObjectByName(scope.meshes[modelName].name);
-		       image.src = visible ? 'images/hidden.png' : 'images/visible.png';
-		       obj.visible = !visible;
-		       scope.meshes[modelName].visible = !visible;
-		       
-		   },
-		   title : 'Show/Hide mesh',
-		   userData : modelName
-	       }
-	   });
-	
+	  }
+  });
 
-	var obj = event.detail.loaderRootNode;
-	obj.rotation.z = Math.PI;
-	obj.position.y = 18;
-	obj.position.x = 15;
-	obj.children[0].material.opacity = 1;
-	scope.meshes[modelName] = {
+  var scope = this;
+  var objLoader = new THREE.OBJLoader2();
+  var callbackOnLoad = function(event){
+	  //Add to menu
+	  menuObj = scope.menu.menuObj;
+	  menuGrp = scope.menu.meshGroup;
+	  menuObj.AddSubItem(menuGrp,modelName,{
+	    openCloseButton: {
+		    visible: false,
+		    open: 'images/info.png',
+		    close: 'images/info.png',
+		    onOpen: function(content,modelName){
+		      var obj = scope.scene.getObjectByName(scope.meshes[modelName].name);
+		      var r = Math.round(255*obj.material.color.r);
+		      var b = Math.round(255*obj.material.color.b);
+		      var g = Math.round(255*obj.material.color.g);
+		      var rgb = b | (g << 8 ) | (r << 16);
+		      var hex = '#' + rgb.toString(16);
+		      colorInput = document.createElement('input');
+		      colorInput.className = 'colorSelector';
+		      colorInput.setAttribute("type","text");
+		      colorInput.setAttribute("value",hex);
+		      while(content.lastChild) {
+		        content.removeChild(content.lastChild);
+		      };
+		      content.appendChild(colorInput);
+		      $(".colorSelector").spectrum({
+		        preferredFormat: "rgb",
+		        showInput: true,
+		        move: function(color){
+		          var obj = scope.scene.getObjectByName(scope.meshes[modelName].name);
+		          var rgb = color.toRgb()
+		          obj.material.color.r = rgb.r/255.;
+		          obj.material.color.g = rgb.g/255.;
+		          obj.material.color.b = rgb.b/255.;
+		        }
+		      });
+		    },
+		    title : 'Show/Hide Information',
+		    userData: modelName
+	    },
+	    userButton : {
+		    visible : true,
+		    onCreate : function(image){
+		      image.src = 'images/visible.png';
+		    },
+		    onClick: function(image,modelName){
+		      var visible = scope.meshes[modelName].visible;
+		      var obj = scope.scene.getObjectByName(scope.meshes[modelName].name);
+		      image.src = visible ? 'images/hidden.png' : 'images/visible.png';
+		      obj.visible = !visible;
+		      scope.meshes[modelName].visible = !visible;
+		    },
+		    title : 'Show/Hide mesh',
+		    userData : modelName
+	    }
+    });
+
+	  var obj = event.detail.loaderRootNode;
+	  obj.rotation.z = Math.PI;
+	  obj.position.y = 18;
+	  obj.position.x = 15;
+	  obj.children[0].material.opacity = 1;
+	  scope.meshes[modelName] = {
 	    name: obj.children[0].name,
 	    id: obj.children[0].id,
-	    visible: true
-	},
-	scope.meshNames.push(modelName);
-	scope.scene.add(obj);
-	if (scope.debug){
+	    visible: true,
+	  };
+	  scope.meshNames.push(modelName);
+	  scope.scene.add(obj);
+	  if (scope.debug){
 	    console.log('Loading complete: ' + obj.name);
-	}
-	scope._reportProgress({
+	  }
+	  scope._reportProgress({
 	    detail: {
-		text: ''
+	  	  text: ''
 	    }
-	});
-    };
+	  });
+  };
     
-    var onLoadMtl = function(materials){
-	objLoader.setModelName(modelName);
-	objLoader.setMaterials(materials);
-	objLoader.setLogging(true,true);
-	objLoader.load(obj,callbackOnLoad,null,null,null,false);
-    };
-    objLoader.loadMtl(mtl,null,onLoadMtl);
+  var onLoadMtl = function(materials){
+	  objLoader.setModelName(modelName);
+	  objLoader.setMaterials(materials);
+	  objLoader.setLogging(true,true);
+	  objLoader.load(obj,callbackOnLoad,null,null,null,false);
+  };
+  objLoader.loadMtl(mtl,null,onLoadMtl);
 };
 
 

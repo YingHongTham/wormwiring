@@ -166,6 +166,10 @@ foreach($data as $d){
 	}
 }
 
+// YH wait is there already remarks?
+$data = $_db->get_obj_remarks($nt->continName);
+//$nt->objRemarks = $data;
+
 
 
 if ($DISPLAY == 2){   

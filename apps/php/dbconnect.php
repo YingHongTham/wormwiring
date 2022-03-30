@@ -299,7 +299,29 @@ class DB {
 			order by pre desc,sections desc";
 			$sql = str_ireplace('sleep','',$sql);
 		return $this->_return_query_rows($sql);
-	}      
+  }
+
+  // continName is cell name..
+  function get_obj_remarks($continName) {
+    $sql = "
+      select
+        OBJ_Name as objNum,
+        OBJ_X as x,
+        OBJ_Y as y,
+        image.IMG_SectionNumber as z,
+        OBJ_Remarks as remarks
+      from object
+      join contin
+        on object.CON_Number = contin.CON_Number
+      join image
+        on object.IMG_Number = image.IMG_Number 
+      where
+        OBJ_Remarks != ''
+        and CON_AlternateName like '%$cell%'
+    ";
+		$sql = str_ireplace('sleep','',$sql); // unclear why
+    return $this->_return_query_rows($sql);
+  }
 
 
 	function has_cell($cell){
