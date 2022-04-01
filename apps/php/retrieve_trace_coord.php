@@ -31,7 +31,7 @@ $time_end = microtime(true);
 //NeuronTrace from dbaux.php
 $nt = new NeuronTrace($_db,$cell);
 
-
+// YH sent this stuff to initialization of NeuronTrace
 //$nt->retrieve_traces_maybe();
 /*
 foreach ($nt->series as $s => $_v){
@@ -167,8 +167,9 @@ foreach($data as $d){
 }
 
 // YH wait is there already remarks?
+// class DB in dbconnect.php
 $data = $_db->get_obj_remarks($nt->continName);
-//$nt->objRemarks = $data;
+$nt->objRemarks = $data;
 
 
 

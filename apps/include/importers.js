@@ -200,9 +200,8 @@ ImporterMenu.prototype.AddGroup = function (name, parameters)
 
 ImporterMenu.prototype.AddSubItem = function (parent, name, parameters)
 {
-
-  function GetTruncatedName (name)
-	{
+  // just for cutting displaying width
+  function GetTruncatedName (name) {
 		var maxLength = 20;
 		if (name.length > maxLength) {
 			return name.substr (0, maxLength) + '...';
@@ -257,11 +256,13 @@ ImporterMenu.prototype.AddSubItem = function (parent, name, parameters)
 			userImage = document.createElement ('img');
 			userImage.className = 'menubutton';
 			userImage.title = parameters.userButton.title;
-			if (parameters.userButton.onCreate !== undefined && parameters.userButton.onCreate !== null) {
+			if (parameters.userButton.onCreate !== undefined
+          && parameters.userButton.onCreate !== null) {
 				parameters.userButton.onCreate (userImage, parameters.userButton.userData);
 			}
 			userImage.onclick = function () {
-				if (parameters.userButton.onClick !== undefined && parameters.userButton.onClick !== null) {
+				if (parameters.userButton.onClick !== undefined
+            && parameters.userButton.onClick !== null) {
 					parameters.userButton.onClick (userImage, parameters.userButton.userData);
 				}
 			};

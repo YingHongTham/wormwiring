@@ -1,4 +1,15 @@
 <?php
+/*
+ * defines NeuronTrace class,
+ * which is how retrieve_trace_coord.php handles cells
+ * it is initialized (automatically queries for skeleton maps)
+ * then call stuff like get_gap_junction_synapses_assoc
+ * and then compile_data returns the data in a formate suitable for
+ * sending back to client
+ */
+
+
+
 if (file_exists('./dbconnect.php')){
    require_once('./dbconnect.php');
 }else{
@@ -376,7 +387,7 @@ class NeuronTrace {
 	  	} elseif ($DISPLAY == 3){
 	  		$sql = $this->display3_sql($s);
 	  	}
-	  	$val = $_db->_return_query_rows_assoc($sql);
+      $val = $_db->_return_query_rows_assoc($sql);
 	  	foreach ($val as $v){
 	  		$this->series[$s]->add_x($v['x1'],$v['x2']);
 	  		$this->series[$s]->add_y($v['y1'],$v['y2']);
@@ -390,13 +401,17 @@ class NeuronTrace {
 	  			$this->cellBody->add_x($v['x1'],$v['x2']);
 	  			$this->cellBody->add_y($v['y1'],$v['y2']);
 	  			$this->cellBody->add_z($z1,$z2);
-	  		}
+        }
+        // rather strange that the NULL values automatically become ''
 	  		if ($v['remarks1'] != ''){
 	  			$this->add_remark($v['x1'],$v['y1'],$z1,$s,$v['remarks1']);
 	  		}
 	  		if ($v['remarks2'] != ''){
 	  			$this->add_remark($v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
-	  		}
+        }
+        // YH basically same as remark, just we use assoc array
+        // and keep the object number
+        // TODO
 	  	}
 	  }
 	}
@@ -471,7 +486,8 @@ class NeuronTrace {
 	}
 
 
-	function add_remark($x,$y,$z,$series,$remark){
+  function add_remark($x,$y,$z,$series,$remark){
+    // why negative in x???
 		$this->remarks[] = array(-$x,$y,$z,$series,$remark);
 	}
 
@@ -522,12 +538,15 @@ class NeuronTrace {
 		$data['preSynapse'] = $this->preSynapse->get_synapses();
 		$data['postSynapse'] = $this->postSynapse->get_synapses();
 		$data['gapJunction'] = $this->gapJunction->get_synapses();
-		$data['nmj'] = array();
+    $data['nmj'] = array();
+    // original remarks; I think it returns duplicate objects
+    // did my own version below, objRemarks
 		$data['remarks'] = $this->remarks;
+    $data['objRemarks'] = $this->objRemarks; // YH
 		foreach($this->series as $s => $v){
 			$data[$s] = $this->series[$s]->get_data();
 		}
-		$data['plotParam'] = $this->plotParam;
+    $data['plotParam'] = $this->plotParam;
 		return $data;     
 	}
 

@@ -301,6 +301,7 @@ class DB {
 		return $this->_return_query_rows($sql);
   }
 
+  // YH
   // continName is cell name..
   function get_obj_remarks($continName) {
     $sql = "
@@ -317,10 +318,10 @@ class DB {
         on object.IMG_Number = image.IMG_Number 
       where
         OBJ_Remarks != ''
-        and CON_AlternateName like '%$cell%'
+        and CON_AlternateName like '%$continName%'
     ";
 		$sql = str_ireplace('sleep','',$sql); // unclear why
-    return $this->_return_query_rows($sql);
+    return $this->_return_query_rows_assoc($sql);
   }
 
 

@@ -1,5 +1,9 @@
 // apps/include/three/threex.resizewindow.js
+//
+// note confusing terminology, series can refer to database N2U etc
+// or also the regions of the worm, VC, NR etc..
 
+// @constructor
 // usage:
 //  viewer = new MapViewer(canvas, {
 //		menuObj:this.menuObj,
@@ -27,6 +31,9 @@ MapViewer = function(_canvas,_menu,_debug=false)
 		y:100,
 		z:0
   };
+  this.defaultTextColor = "rgba(255,0,0,0.95)";
+  this.remarksColor = "rgba(0,255,25,0.95)";
+  this.objRemarksColor = "rgba(0,255,25,0.95)";
 	
 	// keeps track of movement of skeleton etc by the user (slider)
   // (see this.translateMaps)
@@ -41,7 +48,7 @@ MapViewer = function(_canvas,_menu,_debug=false)
 	this.non_series_keys = ["plotParam","cellBody",
 	"preSynapse","postSynapse",
 	"gapJunction","remarks","nmj",
-	"name","series"];
+	"name","series","objRemarks"];
 	
   // redundant as each skeleton will need its own Material
   // (which allows individual color change)
@@ -127,43 +134,70 @@ MapViewer.prototype.initGL = function()
   this.addText('Ventral',{x:100,y:0,z:200,_x:-Math.PI/2},this.axesText);
 };
 
-//for adding the direction names
-MapViewer.prototype.addText = function(text,params,container)
+/*
+ * usage: labels for obj with remarks, coordinate label (anterior etc)
+ *
+ * @param {string} text
+ * @param {Object} params -
+ *  keys: font, color, _x,_y,_z rotations, x,y,z position
+ * @param {Array} container - references to THREE objects that displays the text
+ * (e.g. this.axesText has three elements, one text label for each axis)
+ * 
+ * YH modified to also return the THREE object, clearer logic
+ * let the caller deal with saving to whatever container they want
+ */
+MapViewer.prototype.addText = function(text,params,container=null)
 {
-    var canvas = document.createElement('canvas');
-    var context = canvas.getContext('2d');
-    if (params.font != undefined){
-	context.font = params.font;
-    } else {
-	context.font = "Bold 20px Arial";
-    };
-    if (params.color != undefined){
-	context.fillStyle = params.color;
-    } else {
-	context.fillStyle = "rgba(255,0,0,0.95)";
-    };
-    context.fillText(text, 0, 50);
+  var canvas = document.createElement('canvas');
+  var context = canvas.getContext('2d');
+  //if (params.font != undefined){
+	//  context.font = params.font;
+  //} else {
+  //  context.font = "Bold 20px Arial";
+  //};
+  //if (params.color != undefined){
+  //  context.fillStyle = params.color;
+  //} else {
+  //  context.fillStyle = "rgba(255,0,0,0.95)";
+  //};
+  context.font = (params.font != undefined) ?
+    params.font : "Bold 20px Arial";
+  context.fillStyle = (params.color != undefined) ?
+    params.color : this.defaultTextColor;
+  context.fillText(text, 0, 50); // 0, 50 relative pos of text in ctx
     
-    // canvas contents will be used for a texture
-    var texture = new THREE.Texture(canvas) 
-    texture.needsUpdate = true;
-    
-    var material = new THREE.MeshBasicMaterial( {map: texture, side:THREE.DoubleSide } );
-    material.transparent = true;
+  // canvas contents will be used for a texture
+  var texture = new THREE.Texture(canvas) 
+  texture.needsUpdate = true;
 
-    var mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(canvas.width, canvas.height),
-        material
-    );
-    if (params._x != undefined){mesh.rotateX(params._x)};
-    if (params._y != undefined){mesh.rotateY(params._y)};
-    if (params._z != undefined){mesh.rotateZ(params._z)};
-    if (params.visible != undefined){mesh.visible = params.visible};
-    mesh.position.set(params.x,params.y,params.z);
+  // material for the rectangle in which text is written
+  // hence set to transparent
+  var material = new THREE.MeshBasicMaterial({
+    map: texture,
+    side:THREE.DoubleSide
+  });
+  material.transparent = true;
+
+  var mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(canvas.width, canvas.height),
+    material
+  );
+
+  if (params._x != undefined){mesh.rotateX(params._x)};
+  if (params._y != undefined){mesh.rotateY(params._y)};
+  if (params._z != undefined){mesh.rotateZ(params._z)};
+
+  if (params.visible != undefined){mesh.visible = params.visible};
+
+  mesh.position.set(params.x,params.y,params.z);
+
+  if (container !== null) {
     container.push(mesh);
-    
-    this.scene.add( mesh );
+  }
+  
+  this.scene.add( mesh );
 
+  return mesh;
 }
 
 MapViewer.prototype.clearMaps = function()
@@ -188,6 +222,11 @@ MapViewer.prototype.clearMaps = function()
  *
  * @param {Object} map - object returned by retrieve_trace_coord.php
  * keys are the series NR, VC, ... and this.non_series_keys
+ * TODO comment on the keys of map
+ *
+ * @param {Array} map.objRemarks - OBJ_Remarks,
+ *  each entry is object, with keys:
+ *  -objNum, x,y,z, and remarks
  */
 MapViewer.prototype.loadMap = function(map)
 {
@@ -214,33 +253,56 @@ MapViewer.prototype.loadMap = function(map)
 		synapses : {},
 		synObjs : [],
 		remarks : [],
+    objRemarks: [], // YH
 		params : params
 	};
 
 	// series keys like VC, NR etc, and value map[key]
 	// comes from NeuronTrace constructor/TraceLocation from dbaux.php
 	for (var key in map){
+    // this is really bad; should check for inclusion, not exclusion
+    // or even better, put the skeleton in its own key
+    // but I'm too afraid to change this lest it breaks something else
 		if (this.non_series_keys.indexOf(key) == -1){
 			this.addSkeleton(map.name,map[key],params);	    
 		}
 	}
-    
+
 	//map['..'] here are arrays of 
 	this.addSynapse(map.name,map['preSynapse'],this.preMaterial,'Presynaptic',params);
 	this.addSynapse(map.name,map['postSynapse'],this.postMaterial,'Postsynaptic',params);
 	this.addSynapse(map.name,map['gapJunction'],this.gapMaterial,'Gap junction',params);
 
+  // map.remarks[i] has 5 elements,
+  // x, y, z, series, remark
+  // note that for some reason the x is -x...
+  // see dbaux.php add_remark(..)
 	for (var i in map.remarks){
 		var x = parseInt(map.remarks[i][0] - params.xmid)*this.XYScale - 10;
 		var y = (params.ymax - parseInt(map.remarks[i][1]) - params.ymid)*this.XYScale-30 + this.translate.y;
 		var z = parseInt(map.remarks[i][2]) - params.zmin;
 		var params2 = {x:x,y:y,z:z,
-			color : "rgba(255,255,255,0.95)",
-			font : "10px Arial",
+			//color : "rgba(255,255,255,0.95)",
+			color : self.remarksColor,
+			font : "Bold 10px Arial",
 			visible : false
 		};
 		this.addText(map.remarks[i][4],params2,this.maps[map.name].remarks);
 	}
+    
+  // YH copying the scaling/translation for objRemarks from remarks
+  map.objRemarks.forEach( obj => {
+		var x = parseInt(obj.x - params.xmid)*self.XYScale - 10;
+		var y = (params.ymax - parseInt(obj.y) - params.ymid)*self.XYScale-30 + self.translate.y;
+		var z = parseInt(obj.z) - params.zmin;
+		var params2 = {x:x,y:y,z:z,
+			//color : "rgba(255,255,255,0.95)",
+			color : self.objRemarksColor,
+			font : "Bold 10px Arial",
+			visible : true,
+		};
+		self.maps[map.name].objRemarks.push(self.addText(obj.remarks,params2));
+	});
     
 	var m = new THREE.Matrix4();
 	m.makeTranslation(-this.position.x,-this.position.y,-this.position.z)
@@ -550,20 +612,47 @@ MapViewer.prototype.toggleSynapseContin = function(contin)
 
 MapViewer.prototype.toggleRemarks = function()
 {
-    for (var name in this.maps){
-	this._toggleRemarks(name);
-    };
+  for (var name in this.maps){
+	  this._toggleRemarks(name);
+  };
 };
 
 MapViewer.prototype._toggleRemarks = function(name,bool=null)
 {
-    for (var i in this.maps[name].remarks){
-	if (bool != null){
+  for (var i in this.maps[name].remarks) {
+	  if (bool != null){
 	    this.maps[name].remarks[i].visible = bool;
-	} else {
-	    this.maps[name].remarks[i].visible = (this.maps[name].remarks[i].visible==true)?false:true;
-	};
-    };
+	  } else {
+	    //this.maps[name].remarks[i].visible = (this.maps[name].remarks[i].visible==true)?false:true;
+      if (typeof(this.maps[name].remarks[i].visible) !== 'boolean') {
+        this.maps[name].remarks[i].visible = false;
+      } else {
+        this.maps[name].remarks[i].visible = !this.maps[name].remarks[i].visible;
+      }
+	  }
+  }
+};
+
+/*
+ * toggle visibility of objRemarks in viewer
+ *
+ * @param {String} name - neuron/muscle name
+ * @param {Boolean} bool - if given, specifies whether visible
+ */
+MapViewer.prototype._toggleObjRemarks = function(name,bool=null)
+{
+  this.maps[name].objRemarks.forEach( rmk => {
+  //for (var i in this.maps[name].remarks) {
+	  if (bool != null){
+	    rmk.visible = bool;
+	  } else {
+      if (typeof(rmk.visible) !== 'boolean') {
+        rmk.visible = false;
+      } else {
+        rmk.visible = !rmk.visible;
+      }
+	  }
+  });
 };
 
 MapViewer.prototype.toggleAxes = function()
