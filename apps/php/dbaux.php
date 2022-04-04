@@ -380,7 +380,8 @@ class NeuronTrace {
     // YH
 	  //stuff copied from retrieve_trace_coord.php
 	  $DISPLAY = 2;
-	  //_v is discarded
+    //_v is discarded
+    // s is series, NR, VC, etc.
 	  foreach ($this->series as $s => $_v){
 	  	if ($DISPLAY == 2){
 	  		$sql = $this->display2_sql($s);
@@ -388,30 +389,43 @@ class NeuronTrace {
 	  		$sql = $this->display3_sql($s);
 	  	}
       $val = $_db->_return_query_rows_assoc($sql);
-	  	foreach ($val as $v){
+      foreach ($val as $v){
+        // v is row in query results, corresponds to one edge
+        // position of edges (x1,y1,z1) --- (x2,y2,z2)
 	  		$this->series[$s]->add_x($v['x1'],$v['x2']);
 	  		$this->series[$s]->add_y($v['y1'],$v['y2']);
 	  		$z1 = $_db->get_object_section_number($v['objName1']);
 	  		$z2 = $_db->get_object_section_number($v['objName2']);
 	  		$this->series[$s]->add_z($z1,$z2);
+
+        // whether this edge(?) corresponds to a cell body
+        // isn't 'cellbody' a property of objects and not relationships?
 	  		$this->series[$s]->add_cb($v['cellbody']);
+
 	  		$this->add_object($v['objName1'],$v['x1'],$v['y1'],$z1);
 	  		$this->add_object($v['objName2'],$v['x2'],$v['y2'],$z2);
+
 	  		if ($v['cellbody'] == 1){
 	  			$this->cellBody->add_x($v['x1'],$v['x2']);
 	  			$this->cellBody->add_y($v['y1'],$v['y2']);
 	  			$this->cellBody->add_z($z1,$z2);
         }
         // rather strange that the NULL values automatically become ''
+	  		//if ($v['remarks1'] != ''){
+	  		//	$this->add_remark($v['x1'],$v['y1'],$z1,$s,$v['remarks1']);
+	  		//}
+	  		//if ($v['remarks2'] != ''){
+	  		//	$this->add_remark($v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
+        //}
+        // YH basically same as above, just we use assoc array
+        // and keep the object number so no repeats
+        // TODO
 	  		if ($v['remarks1'] != ''){
-	  			$this->add_remark($v['x1'],$v['y1'],$z1,$s,$v['remarks1']);
+	  			$this->add_remark_alt($v['objName1'],$v['x1'],$v['y1'],$z1,$s,$v['remarks1']);
 	  		}
 	  		if ($v['remarks2'] != ''){
-	  			$this->add_remark($v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
+	  			$this->add_remark_alt($v['objName2'],$v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
         }
-        // YH basically same as remark, just we use assoc array
-        // and keep the object number
-        // TODO
 	  	}
 	  }
 	}
@@ -489,7 +503,26 @@ class NeuronTrace {
   function add_remark($x,$y,$z,$series,$remark){
     // why negative in x???
 		$this->remarks[] = array(-$x,$y,$z,$series,$remark);
-	}
+  }
+
+  // same as add_remark, just add objnum so we don't repeat
+  // and we store as assoc array
+  // also checks for repeat obj, and doesn't store if obj already present
+  function add_remark_alt($objNum,$x,$y,$z,$series,$remark){
+    foreach ($this->remarks as $rmk) {
+      if ($rmk["objNum"] == $objNum) {
+        return;
+      }
+    }
+    $this->remarks[] = array(
+      "objNum" => $objNum,
+      "x" => -$x,
+      "y" => $y,
+      "z" => $z,
+      "series" => $series,
+      "remarks" => $remark
+    );
+  }
 
 	function load_map2_params($_db){
 		$continStr = implode(",",$this->continNums);
@@ -581,7 +614,8 @@ class TraceLocation {
 		$this->z[] = array($z1,$z2);
 	}
 	      
-	function add_cb($cb){
+  function add_cb($cb){
+    // lol this is how to append in php
 		$this->cb[] = $cb;
 	}     
 	

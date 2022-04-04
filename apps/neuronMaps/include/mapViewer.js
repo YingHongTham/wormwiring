@@ -220,6 +220,8 @@ MapViewer.prototype.clearMaps = function()
  * loads neuron
  * synchronous
  *
+ * loads maps into view from data in this.maps
+ *
  * @param {Object} map - object returned by retrieve_trace_coord.php
  * keys are the series NR, VC, ... and this.non_series_keys
  * TODO comment on the keys of map
@@ -253,7 +255,7 @@ MapViewer.prototype.loadMap = function(map)
 		synapses : {},
 		synObjs : [],
 		remarks : [],
-    objRemarks: [], // YH
+    //objRemarks: [], // YH
 		params : params
 	};
 
@@ -277,32 +279,47 @@ MapViewer.prototype.loadMap = function(map)
   // x, y, z, series, remark
   // note that for some reason the x is -x...
   // see dbaux.php add_remark(..)
-	for (var i in map.remarks){
-		var x = parseInt(map.remarks[i][0] - params.xmid)*this.XYScale - 10;
-		var y = (params.ymax - parseInt(map.remarks[i][1]) - params.ymid)*this.XYScale-30 + this.translate.y;
-		var z = parseInt(map.remarks[i][2]) - params.zmin;
-		var params2 = {x:x,y:y,z:z,
-			//color : "rgba(255,255,255,0.95)",
-			color : self.remarksColor,
-			font : "Bold 10px Arial",
-			visible : false
-		};
-		this.addText(map.remarks[i][4],params2,this.maps[map.name].remarks);
-	}
-    
-  // YH copying the scaling/translation for objRemarks from remarks
-  map.objRemarks.forEach( obj => {
+	//for (var i in map.remarks){
+	//	var x = parseInt(map.remarks[i][0] - params.xmid)*this.XYScale - 10;
+	//	var y = (params.ymax - parseInt(map.remarks[i][1]) - params.ymid)*this.XYScale-30 + this.translate.y;
+	//	var z = parseInt(map.remarks[i][2]) - params.zmin;
+	//	var params2 = {x:x,y:y,z:z,
+	//		//color : "rgba(255,255,255,0.95)",
+	//		color : self.remarksColor,
+	//		font : "Bold 10px Arial",
+	//		visible : false
+	//	};
+	//	this.addText(map.remarks[i][4],params2,this.maps[map.name].remarks);
+	//}
+  //
+  // YH rewriting above to follow add_remark_alt
+  // which returns assoc array, not just array
+  map.remarks.forEach( obj => {
 		var x = parseInt(obj.x - params.xmid)*self.XYScale - 10;
 		var y = (params.ymax - parseInt(obj.y) - params.ymid)*self.XYScale-30 + self.translate.y;
 		var z = parseInt(obj.z) - params.zmin;
 		var params2 = {x:x,y:y,z:z,
 			//color : "rgba(255,255,255,0.95)",
-			color : self.objRemarksColor,
+			color : self.remarksColor,
 			font : "Bold 10px Arial",
-			visible : true,
+			visible : true, // default; see remarksparams in importerapps.js
 		};
-		self.maps[map.name].objRemarks.push(self.addText(obj.remarks,params2));
+		self.maps[map.name].remarks.push(self.addText(obj.remarks,params2));
 	});
+    
+  // YH copying the scaling/translation for objRemarks from remarks
+  //map.objRemarks.forEach( obj => {
+	//	var x = parseInt(obj.x - params.xmid)*self.XYScale - 10;
+	//	var y = (params.ymax - parseInt(obj.y) - params.ymid)*self.XYScale-30 + self.translate.y;
+	//	var z = parseInt(obj.z) - params.zmin;
+	//	var params2 = {x:x,y:y,z:z,
+	//		//color : "rgba(255,255,255,0.95)",
+	//		color : self.objRemarksColor,
+	//		font : "Bold 10px Arial",
+	//		visible : true,
+	//	};
+	//	self.maps[map.name].objRemarks.push(self.addText(obj.remarks,params2));
+	//});
     
 	var m = new THREE.Matrix4();
 	m.makeTranslation(-this.position.x,-this.position.y,-this.position.z)
@@ -620,7 +637,8 @@ MapViewer.prototype.toggleRemarks = function()
 MapViewer.prototype._toggleRemarks = function(name,bool=null)
 {
   for (var i in this.maps[name].remarks) {
-	  if (bool != null){
+    if (typeof(bool) === 'boolean') {
+	  //if (bool != null){
 	    this.maps[name].remarks[i].visible = bool;
 	  } else {
 	    //this.maps[name].remarks[i].visible = (this.maps[name].remarks[i].visible==true)?false:true;
@@ -642,7 +660,6 @@ MapViewer.prototype._toggleRemarks = function(name,bool=null)
 MapViewer.prototype._toggleObjRemarks = function(name,bool=null)
 {
   this.maps[name].objRemarks.forEach( rmk => {
-  //for (var i in this.maps[name].remarks) {
 	  if (bool != null){
 	    rmk.visible = bool;
 	  } else {

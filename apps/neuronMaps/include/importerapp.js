@@ -568,7 +568,6 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
   xhttp.onreadystatechange = function(){
     if (this.readyState == 4 && this.status == 200){
       self.data[mapname] = JSON.parse(this.responseText);
-      console.log(self.data[mapname].objRemarks);
       self.viewer.loadMap(self.data[mapname]);
     }
   };
@@ -612,6 +611,9 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   var self = this;
   var menuObj = this.menuObj;
   var menuGroup = this.menuGroup.maps;    
+
+  // params for sub items under each cell entry in Maps
+
   var colorparams = {
     openCloseButton:{
       visible : false,
@@ -658,17 +660,32 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   // (after clicking on a loaded cell)
   var remarksparams = {
     userButton:{
-      visible: false,
+      visible: true, // YH originally false
+      // see also loadMap in MapViewer, in the remarks.forEach(...)
+      // which sets remarks to be visible by default
       onCreate : function(image){
-        image.src = 'images/hidden.png';
+        image.src = 'images/visible.png'; // YH orig hidden.png
       },
-      onClick : function(image,mapname){
-      //onClick : function(image,modelName){
-        console.log(mapname);
+      // mapname is cell name..
+      onClick : function(image,mapname){ // YH modelName -> mapname
+        if (self.viewer.maps[mapname].remarks.length === 0) {
+          console.log('no remarks');
+          return;
+        }
+
+        // it is unclear where params.remarks is defined
+        // it seems it is automatically initialized to false?
+        // whatever it is, bad practice to hard code default values
+        // that depend on each other
+        //self.viewer._toggleRemarks(mapname);
+        //var visible = self.viewer.maps[mapname].params.remarks;
+        //image.src = visible ? 'images/hidden.png' : 'images/visible.png';
+        //self.viewer.maps[mapname].params.remarks = !visible;
+
+        // better to rely directly on the THREE object
         self.viewer._toggleRemarks(mapname);
-        var visible = self.viewer.maps[mapname].params.remarks;
-        image.src = visible ? 'images/hidden.png' : 'images/visible.png';
-        self.viewer.maps[mapname].params.remarks = !visible;
+        var visible = self.viewer.maps[mapname].remarks[0].visible;
+        image.src = visible ? 'images/visible.png' : 'images/hidden.png';
       },
       title : 'Show/Hide remarks',
       userData : mapname
@@ -676,22 +693,22 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   };
 
   // YH rewriting of Remarks
-  var objRemarksParams = {
-    userButton:{
-      visible: true,
-      onCreate : function(image){
-        image.src = 'images/visible.png';
-      },
-      onClick : function(image,mapname){
-        self.viewer._toggleObjRemarks(mapname);
-        var visible = self.viewer.maps[mapname].params.remarks;
-        image.src = visible ? 'images/hidden.png' : 'images/visible.png';
-        self.viewer.maps[mapname].params.remarks = !visible;
-      },
-      title : 'Show/Hide remarks',
-      userData : mapname
-    }
-  };
+  //var objRemarksParams = {
+  //  userButton:{
+  //    visible: true,
+  //    onCreate : function(image){
+  //      image.src = 'images/visible.png';
+  //    },
+  //    onClick : function(image,mapname){
+  //      self.viewer._toggleObjRemarks(mapname);
+  //      var visible = self.viewer.maps[mapname].params.remarks;
+  //      image.src = visible ? 'images/hidden.png' : 'images/visible.png';
+  //      self.viewer.maps[mapname].params.remarks = !visible;
+  //    },
+  //    title : 'Show/Hide remarks',
+  //    userData : mapname
+  //  }
+  //};
 
   var infoparams = {
     openCloseButton:{
@@ -751,8 +768,8 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
           content.removeChild(content.lastChild);
         };
         menuObj.AddSubItem(content,'Color',colorparams);
-        //menuObj.AddSubItem(content,'Remarks',remarksparams);
-        menuObj.AddSubItem(content,'Remarks',objRemarksParams);
+        menuObj.AddSubItem(content,'Remarks',remarksparams);
+        //menuObj.AddSubItem(content,'Remarks',objRemarksParams);
         if (walink != undefined){
           menuObj.AddSubItem(content,'WormAtlas',infoparams);
         }
