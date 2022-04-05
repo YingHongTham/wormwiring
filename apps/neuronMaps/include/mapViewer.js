@@ -1,16 +1,16 @@
 // apps/include/three/threex.resizewindow.js
 //
 // note confusing terminology, series can refer to database N2U etc
-// or also the regions of the worm, VC, NR etc..
+// or also the regions of the worm: VC, NR, DC, VC2, RIG, LEF
 
 // @constructor
-// usage:
+// usage (in importerapp.js):
 //  viewer = new MapViewer(canvas, {
 //		menuObj:this.menuObj,
 //		menuGroup:this.menuGroup,
-//		synClick: this.InfoDialog
-//	},
-//	debug=false);
+//		synClick: this.InfoDialog,
+//		app: this,
+//	});
 MapViewer = function(_canvas,_menu,_debug=false)
 {
 	//Parameters
@@ -88,7 +88,10 @@ MapViewer = function(_canvas,_menu,_debug=false)
 	
 	this.textLabels = [];
 	this.axesText = [];
-	this.maps = {};
+	this.maps = {}; // see loadMap for expected form
+
+  // last clicked 
+
 }
 
 MapViewer.prototype.initGL = function()
@@ -136,6 +139,10 @@ MapViewer.prototype.initGL = function()
 
 /*
  * usage: labels for obj with remarks, coordinate label (anterior etc)
+ *
+ * by default (no rotations), text appears in
+ * x-y plane,
+ * perpendicular to Anterior-Posterior axis
  *
  * @param {string} text
  * @param {Object} params -
@@ -204,14 +211,18 @@ MapViewer.prototype.clearMaps = function()
 {
   for (var name in this.maps){
 	  for (var i=0; i < this.maps[name].skeleton.length; i++){
-	      this.scene.remove(this.maps[name].skeleton[i]);
-	  };
-	  for (var i=0; i < this.maps[name].synObjs.length; i++){
-	      this.scene.remove(this.maps[name].synObjs[i]);
-	  };
+	    this.scene.remove(this.maps[name].skeleton[i]);
+	  }
+    for (const syn of this.maps[name].synObjs.children) {
+      this.scene.remove(syn);
+    }
+    this.scene.remove(this.maps[name].synObjs);
+	  //for (var i=0; i < this.maps[name].synObjs.length; i++){
+	  //  this.scene.remove(this.maps[name].synObjs[i]);
+	  //}
 	  for (var i=0; i < this.maps[name].remarks.length; i++){
-	      this.scene.remove(this.maps[name].remarks[i]);
-	  };
+	    this.scene.remove(this.maps[name].remarks[i]);
+	  }
   };
   this.maps = {};
 }
@@ -220,11 +231,81 @@ MapViewer.prototype.clearMaps = function()
  * loads neuron
  * synchronous
  *
- * loads maps into view from data in this.maps
+ * loads/processes map (data retrieved from retrieve_trace_coord.php)
+ * into this.maps[map.name] and into viewer object
+ *
+ * note that the map data is also stored directly in ImporterApp object
+ * as aa.data[mapname]
+ *
+ * (map.name = mapname = name of neuron/muscle)
  *
  * @param {Object} map - object returned by retrieve_trace_coord.php
  * keys are the series NR, VC, ... and this.non_series_keys
- * TODO comment on the keys of map
+ *
+ * map expected of following form:
+ * {
+ *  name: 'ADAR'
+ *  NR: {
+ *    // edge from
+ *    // (NR.x[k][0], NR.y[k][0], NR.z[k][0]) to
+ *    // (NR.x[k][1], NR.y[k][1], NR.z[k][1])
+ *    x: [
+ *      [-1588, -1612],
+ *      ...
+ *    ],
+ *    y: [
+ *      [735, 762],
+ *      ...
+ *    ],
+ *    z: [
+ *      [60, 61],
+ *      ...
+ *    ],
+ *    cb: [
+ *      0, // whether is cellbody (0/1)
+ *      ...
+ *    ]
+ *  }
+ *  VC: //similar to NR
+ *  // potentially other series names, DC, VC2, RIG, LEF
+ *  cellBody: sub-skeleton consisting of those part of cell body (no cb)
+ *  plotParam: {
+ *    xScaleMax: -205
+ *    xScaleMin: -8907
+ *    yScaleMax: "7023"
+ *    yScaleMin: "45"
+ *    zScaleMax: "2551"
+ *    zScaleMin: "2"
+ *  }
+ *  preSynapse: [
+ *    {
+ *      continNum: "5872",
+ *      x: -1089,
+ *      y: "1847",
+ *      z: "219",
+ *      label: "AVBR,RIMR",
+ *      numSections: "5",
+ *      pre: "ADAR",
+ *      post: "AVBR,RIMR",
+ *      zLow: "217"
+ *      zHigh: "221",
+ *    },
+ *    ...
+ *  ]
+ *  postSynapse: same as preSynapse
+ *  gapJunction: same as preSynapse
+ *  remarks: [
+ *    {
+ *      objNum: "477998"
+ *      x: -1588
+ *      y: "735"
+ *      z: "60"
+ *      remarks: "end"
+ *      series: "NR"
+ *    },
+ *    ...
+*   ]
+ * }
  *
  * @param {Array} map.objRemarks - OBJ_Remarks,
  *  each entry is object, with keys:
@@ -248,16 +329,38 @@ MapViewer.prototype.loadMap = function(map)
   // make a copy otherwise changing one color will affect all others
 	var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor,
     linewidth: this.SkelWidth});
+
+
+  /*
+   *  synapses: { // organized by the name(s) of other cell and type
+   *    'RIPR': {
+   *      Presynaptic: [
+   *        THREE.Sphere objects
+   *      ],
+   *      Postsynaptic: same
+   *      'Gap junction': same
+   *    },
+   *    ...
+   *  }
+   *
+   *  since synObjs and synapses essentially store the same info,
+   *  when doing concrete things like deleting from viewer,
+   *  e.g. in clearMaps, or toggleAllSynapses
+   *  only need to do on synObjs (which is more convenient to go through)
+   */
 	this.maps[map.name] = {
 		visible : true,
 		skeleton : [], //array of line segments, each is one THREE object!!
 		skelMaterial : skelMaterial,
-		synapses : {},
-		synObjs : [],
-		remarks : [],
+		//synObjs : [], // the synapse THREE.Sphere objects
+    synObjs: new THREE.Group(),
+		synapses : {}, // same, but organized by cell name of other side
+		remarks : [], // about endpoints
     //objRemarks: [], // YH
 		params : params
 	};
+
+  this.scene.add(this.maps[map.name].synObjs);
 
 	// series keys like VC, NR etc, and value map[key]
 	// comes from NeuronTrace constructor/TraceLocation from dbaux.php
@@ -302,7 +405,7 @@ MapViewer.prototype.loadMap = function(map)
 			//color : "rgba(255,255,255,0.95)",
 			color : self.remarksColor,
 			font : "Bold 10px Arial",
-			visible : true, // default; see remarksparams in importerapps.js
+			visible : false, // default; see remarksparams in importerapps.js
 		};
 		self.maps[map.name].remarks.push(self.addText(obj.remarks,params2));
 	});
@@ -361,78 +464,116 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 };
 
 //add just one synapse
+//(see commented addSynapse for original)
+//in original, synapse given as plain array:
+//0,1,2: x,y,z
+//3: numSections
+//4: label
+//5: zLow
+//6: zHigh
+//7: continNum
+//8: pre
+//9: post
+//
+// @param {String} name - cell name
+// @param {Object} synapse - see map.preSynapse[0] in comment for loadMap
+// @param {THREE.Material} sphereMaterial
+// @param {String} synType - 'pre','post','gap'
+// @param {Object} params - TODO
 MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType,params)
 {
 	var self = this;
-	// why wrap this in a function?
-	//(function (){
-		//console.log(synapse[0],synapse[1],synapse[2],synapse[7]);
-		var x = (params.xmin - parseInt(synapse[0]) - params.xmid)*self.XYScale + self.translate.x;
-		var y = (params.ymax - parseInt(synapse[1]) - params.ymid)*self.XYScale + self.translate.y;
-		var z = parseInt(synapse[2]) - params.zmin;
-		var _radius = synapse[3];
-		var radius = Math.min(self.SynMax,parseInt(synapse[3])*self.SynScale);
-		var partner = synapse[4];
-		var sect1 = synapse[5];
-		var sect2 = synapse[6];
-		var contin = synapse[7];
-		var source = synapse[8];
-		var target = synapse[9];
-		var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
-		var sphere = new THREE.Mesh(geometry,sphereMaterial);
-		sphere.name = contin;
-		sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
-		sphere.material.transparent = true;
-		self.maps[name].synObjs.push(sphere);
-		//var url = '/maps/getImages.php?neuron=' +
-		//params.neuron + '&db=' + params.db +'&continNum='+contin;
-    
-    //note that this is relative to floatingdialog.js...
-		var url = '../synapseViewer/?neuron=' + 
-		params.neuron + '&db=' + params.db +'&continNum='+contin;
-    //console.log('url:', url);
-		//THREEx.Linkify(self.domEvents,sphere,url);	    
-    
-		var _partner = partner.split(',');
-		for (var j in _partner){
-			if (!(_partner[j] in self.maps[name].synapses)){
-				self.maps[name].synapses[_partner[j]] = 
-					{'Presynaptic':[],'Postsynaptic':[],'Gap junction':[]};
-			};
-			self.maps[name].synapses[_partner[j]][synType].push(sphere);
+	var x = (params.xmin - parseInt(synapse['x']) - params.xmid)*self.XYScale + self.translate.x;
+	var y = (params.ymax - parseInt(synapse['y']) - params.ymid)*self.XYScale + self.translate.y;
+	var z = parseInt(synapse['z']) - params.zmin;
+	var _radius = synapse['numSections'];
+	var radius = Math.min(self.SynMax,parseInt(synapse['numSections'])*self.SynScale);
+	var partner = synapse['label'];
+	var sect1 = synapse['zLow'];
+	var sect2 = synapse['zHigh'];
+	var contin = synapse['continNum'];
+	var source = synapse['pre'];
+	var target = synapse['post'];
+
+	var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
+	var sphere = new THREE.Mesh(geometry,sphereMaterial);
+	sphere.name = contin;
+	sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
+	sphere.material.transparent = true;
+
+	//self.maps[name].synObjs.push(sphere); // old synObjs = []
+	self.maps[name].synObjs.add(sphere);
+  
+	var _partner = partner.split(',');
+	for (var j in _partner){
+		if (!(_partner[j] in self.maps[name].synapses)){
+			self.maps[name].synapses[_partner[j]] = 
+				{'Presynaptic':[],'Postsynaptic':[],'Gap junction':[]};
 		};
+		self.maps[name].synapses[_partner[j]][synType].push(sphere);
+	};
 
-		self.domEvents.addEventListener(sphere,'mouseover',function(event){
-			document.getElementById('cellname').innerHTML = name;
-			document.getElementById('syntype').innerHTML = synType;
-			document.getElementById('synsource').innerHTML = source;
-			document.getElementById('syntarget').innerHTML = target;
-			document.getElementById('synweight').innerHTML = _radius;
-			document.getElementById('synsection').innerHTML = '('+sect1+','+sect2+')';
-			document.getElementById('syncontin').innerHTML = sphere.name;
-			return self.renderer.render(self.scene,self.camera);
-		});
-		self.domEvents.addEventListener(sphere,'mouseout',function(event){
-			document.getElementById('cellname').innerHTML = params.default;
-			document.getElementById('syntype').innerHTML = params.default;
-			document.getElementById('synsource').innerHTML = params.default;
-			document.getElementById('syntarget').innerHTML = params.default;
-			document.getElementById('synweight').innerHTML = params.default;
-			document.getElementById('synsection').innerHTML = params.default;
-			document.getElementById('syncontin').innerHTML = params.default;
-			return self.renderer.render(self.scene,self.camera);
-		});
+  const info = {
+    cellname: name,
+    syntype: synType,
+    synsource: source,
+    syntarget: target,
+    synweight: _radius,
+    synsection: `(${sect1},${sect2})`,
+    syncontin: contin,
+  };
 
-		self.domEvents.addEventListener(sphere,'click',function(event){
-      // menu.synClick is really a floatingdialog object
-      // (see importerapp.js, ImporterApp.InfoDialog)
-      // (see also ../../include/floatingdialog.js
-      // which opens a floating dialog displaying url stuff)
-			self.menu.synClick(url,'Synapse viewer');
-      console.log('synClick url: ', url);
-		});
-		self.scene.add(sphere);
-	//});
+  //TODO continue doing the synapse info thing
+
+	self.domEvents.addEventListener(sphere,'mouseover',function(event){
+    self.menu.app.UpdateSynapseInfo(info);
+		//document.getElementById('cellname').innerHTML = name;
+		//document.getElementById('syntype').innerHTML = synType;
+		//document.getElementById('synsource').innerHTML = source;
+		//document.getElementById('syntarget').innerHTML = target;
+		//document.getElementById('synweight').innerHTML = _radius;
+		//document.getElementById('synsection').innerHTML =
+    //  `(${sect1},${sect2})`;
+    //  //'('+sect1+','+sect2+')';
+		//document.getElementById('syncontin').innerHTML = sphere.name;
+    // YH why return this? not even clear it returns any value
+		//return self.renderer.render(self.scene,self.camera);
+    // rendering again redundant since already animating?
+		self.renderer.render(self.scene,self.camera);
+		return;
+	});
+	self.domEvents.addEventListener(sphere,'mouseout',function(event){
+		document.getElementById('cellname').innerHTML = params.default;
+		document.getElementById('syntype').innerHTML = params.default;
+		document.getElementById('synsource').innerHTML = params.default;
+		document.getElementById('syntarget').innerHTML = params.default;
+		document.getElementById('synweight').innerHTML = params.default;
+		document.getElementById('synsection').innerHTML = params.default;
+		document.getElementById('syncontin').innerHTML = params.default;
+    // YH why return this? not even clear it returns any value
+		//return self.renderer.render(self.scene,self.camera);
+		self.renderer.render(self.scene,self.camera);
+    return;
+	});
+
+  // what were these for again?
+	//var url = '/maps/getImages.php?neuron=' +
+	//  params.neuron + '&db=' + params.db +'&continNum='+contin;
+	//THREEx.Linkify(self.domEvents,sphere,url);	    
+  
+  //note that this is relative to floatingdialog.js...
+	var url = '../synapseViewer/?neuron=' + 
+	  params.neuron + '&db=' + params.db +'&continNum='+contin;
+  self.domEvents.addEventListener(sphere,'click',function(event){
+    // menu.synClick is really a floatingdialog object
+    // (see importerapp.js, ImporterApp.InfoDialog)
+    // (see also ../../include/floatingdialog.js
+    // which opens a floating dialog displaying url stuff)
+    self.menu.synClick(url,'Synapse viewer');
+	});
+
+  // YH already added to synObjs Group
+	//self.scene.add(sphere);
 };
 
 
@@ -539,7 +680,8 @@ MapViewer.prototype.translateMaps = function(x,y,z)
   
   for (var name in this.maps) {
     this.translateSkeleton(this.maps[name].skeleton,m)
-    this.translateSynapse(this.maps[name].synObjs,m)
+    //this.translateSynapse(this.maps[name].synObjs,m)
+    this.transformSynapses(m, name)
   };
 
 };
@@ -551,11 +693,20 @@ MapViewer.prototype.translateSkeleton = function(skeleton,transMatrix)
   };    
 };
 
-MapViewer.prototype.translateSynapse = function(synObjs,transMatrix)
-{
-  for (var i=0; i < synObjs.length;i++){
-	  synObjs[i].applyMatrix(transMatrix);
-  }; 
+// YH old code when synObjs = []
+//MapViewer.prototype.translateSynapse = function(synObjs,transMatrix)
+//{
+//  for (var i=0; i < synObjs.length;i++){
+//	  synObjs[i].applyMatrix(transMatrix);
+//  }; 
+//};
+
+/*
+ * @param {Object} m - THREE.Matrix4 object representing transformation
+ * @param {String} name - cell name
+ */
+MapViewer.prototype.transformSynapses = function(m, name) {
+  this.maps[name].synObjs.applyMatrix(m);
 };
 
 MapViewer.prototype.translateRemarks = function(remarks,transMatrix)
@@ -567,28 +718,34 @@ MapViewer.prototype.translateRemarks = function(remarks,transMatrix)
 
 MapViewer.prototype.toggleMaps = function(name)
 {
-    for (var i=0; i < this.maps[name].skeleton.length; i++){
-	this.maps[name].skeleton[i].visible= !this.maps[name].skeleton[i].visible;
-    };
+  for (var i=0; i < this.maps[name].skeleton.length; i++){
+	  this.maps[name].skeleton[i].visible= !this.maps[name].skeleton[i].visible;
+  };
 };
 
 MapViewer.prototype.toggleAllSynapses = function(visible)
 {
-    for (var name in this.maps){
-	this._toggleAllSynapses(name,visible);
-    };
+  for (var name in this.maps){
+    this._toggleAllSynapses(name,visible);
+  }
 };
 
 
-MapViewer.prototype._toggleAllSynapses = function(name,visible)
-{
-    for (var cell in this.maps[name].synapses){
-	for (var syntype in this.maps[name].synapses[cell]){
-	    for (var i in this.maps[name].synapses[cell][syntype]){
-		this.maps[name].synapses[cell][syntype][i].visible = visible;
-	    };
-	};
-    };
+MapViewer.prototype._toggleAllSynapses = function(name,visible=null) {
+  if (typeof(visible) === 'boolean') {
+    this.maps[name].synObjs.visible = visible;
+  } else {
+    this.maps[name].synObjs.visible = !this.maps[name].synObjs.visible;
+  }
+
+  // YH why didn't iterate through synObjs?? oh well..
+  //for (var cell in this.maps[name].synapses){
+  //  for (var syntype in this.maps[name].synapses[cell]){
+  //    for (var i in this.maps[name].synapses[cell][syntype]){
+  //      this.maps[name].synapses[cell][syntype][i].visible = visible;
+  //    }
+  //  }
+  //}
 };
 
 MapViewer.prototype.toggleSynapseType = function(synType,cells=null)
@@ -600,31 +757,29 @@ MapViewer.prototype.toggleSynapseType = function(synType,cells=null)
 
 MapViewer.prototype._toggleSynapseType = function(name,synType,cells=null)
 {
-    var keys;
-    if (cells != null){
-	keys = cells;
-    } else {
-	keys = Object.keys(this.maps[name].synapses);
-    };
+  var keys;
+  if (cells != null){
+	  keys = cells;
+  } else {
+	  keys = Object.keys(this.maps[name].synapses);
+  };
     
-    for (var i in keys){
-	cell = keys[i];
-	try {
+  for (var i in keys){
+	  cell = keys[i];
+	  try {
 	    for (var i in this.maps[name].synapses[cell][synType]){
-		this.maps[name].synapses[cell][synType][i].visible = true;
-	    };
-	} catch(err) {
+		    this.maps[name].synapses[cell][synType][i].visible = true;
+	    }
+	  } catch(err) {
 	    //console.log('Synapse not found!');
-	};
-	
-    };
-    
+	  }
+  }
 };
 
 MapViewer.prototype.toggleSynapseContin = function(contin)
 {
-    var object = this.scene.getObjectByName(contin);
-    object.visible = !object.visible;
+  var object = this.scene.getObjectByName(contin);
+  object.visible = !object.visible;
 };
 
 MapViewer.prototype.toggleRemarks = function()

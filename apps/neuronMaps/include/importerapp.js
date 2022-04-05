@@ -49,6 +49,19 @@ ImporterApp = function (params)
   //  i = the cell name e.g. 'ADAL'
   this.selectedNeurons = {};
 
+  // starting value of the Synapse Info section
+  // will be updated when a synapse is clicked
+  // see AddSynapseInfo for more
+  this.synapseInfoClicked = {
+    'cellname': '---',
+    'syntype': '---',
+    'synsource': '---',
+    'syntarget': '---',
+    'synweight': '---',
+    'synsection': '---',
+    'syncontin': '---',
+  }
+
   // but wait, there's more...
   // many more members defined in Init()
   // in particular,
@@ -165,11 +178,11 @@ ImporterApp.prototype.Init = function ()
   this.GenerateMenu();
   
   var viewer = new MapViewer(canvas, {
-      menuObj:this.menuObj, // apps/include/importers.js
-      menuGroup:this.menuGroup,
-      synClick: this.InfoDialog // is a FUNCTION that spawns dialog
-    },
-    debug=false);
+    menuObj: this.menuObj, // apps/include/importers.js
+    menuGroup: this.menuGroup,
+    synClick: this.InfoDialog, // is a FUNCTION that spawns dialog
+    app: this, // YH so viewer can refer back
+  });
   this.viewer = viewer;
   
   var resizeWindow = function(){
@@ -576,7 +589,7 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
 }
 
 /*
- * YH
+ * YH so far not used..
  * retrieves trace, synapses etc and loads into viewer,
  * and also takes callback to perform after loaded
  *
@@ -596,7 +609,6 @@ ImporterApp.prototype.LoadMapCallback = function(db, mapname, callback)
     if (this.readyState == 4 && this.status == 200){
       self.data[mapname] = JSON.parse(this.responseText);
       self.viewer.loadMap(self.data[mapname]);
-      //console.log(self.data[mapname]);
       callback(db, mapname);
     }
   };
@@ -660,7 +672,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   // (after clicking on a loaded cell)
   var remarksparams = {
     userButton:{
-      visible: true, // YH originally false
+      visible: false,
       // see also loadMap in MapViewer, in the remarks.forEach(...)
       // which sets remarks to be visible by default
       onCreate : function(image){
@@ -1021,6 +1033,11 @@ ImporterApp.prototype.GenerateMenu = function()
     });
   };
 
+  // menu item that displays synapse info when mouse hovers over synapse
+  // this is achieved by emitting an event
+  // (using THREEx.DomEvents library)
+  // elems here have id which the callback uses to identify and update
+  // (see MapViewer.addOneSynapse)
   function AddSynapseInfo(parent){
     var synElems = {
       'cellname':'Cell: ',
@@ -1029,7 +1046,7 @@ ImporterApp.prototype.GenerateMenu = function()
       'syntarget':'Target: ',
       'synweight':'# EM sections: ',
       'synsection':'Sections: ',
-      'syncontin':'Synapse Id: '
+      'syncontin':'Synapse Id/Contin number: '
     };
     for (var i in synElems){
       var left = document.createElement('div');
@@ -1260,3 +1277,30 @@ ImporterApp.prototype.GetMapsTranslate = function() {
     z: parseInt(zEl.value),
   };
 };
+
+
+/*
+ * @param {Object} info - synapse info,
+ * should be of the form this.synapseInfoClicked
+ */
+ImporterApp.prototype.UpdateSynapseInfo = function(info) {
+  document.getElementById('cellname').innerHTML = info.cellname;
+  document.getElementById('syntype').innerHTML = info.syntype;
+  document.getElementById('synsource').innerHTML = info.synsource;
+  document.getElementById('syntarget').innerHTML = info.syntarget;
+  document.getElementById('synweight').innerHTML = info.synweight;
+  document.getElementById('synsection').innerHTML = info.synsection;
+  document.getElementById('syncontin').innerHTML = info.syncontin;
+};
+
+// returns Synapse Info to last clicked synapse
+ImporterApp.prototype.RestoreSynapseInfo = function() {
+  const info = this.synapseInfoClicked;
+  this.UpdateSynapseInfo(info);
+};
+
+// update clicked synapse
+ImporterApp.prototype.UpdateClickedSynapseInfo = function(info) {
+  Object.assign(this.synapseInfoClicked, info); // copy
+  this.UpdateSynapseInfo(info);
+}

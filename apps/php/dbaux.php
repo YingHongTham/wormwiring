@@ -575,7 +575,7 @@ class NeuronTrace {
     // original remarks; I think it returns duplicate objects
     // did my own version below, objRemarks
 		$data['remarks'] = $this->remarks;
-    $data['objRemarks'] = $this->objRemarks; // YH
+    //$data['objRemarks'] = $this->objRemarks; // YH
 		foreach($this->series as $s => $v){
 			$data[$s] = $this->series[$s]->get_data();
 		}
@@ -637,9 +637,23 @@ class TraceSynapse{
 		$this->synapses = array();
 	}
 
+  // secs: number of sections
+  // label: typically the cell(s) on the other side of the synapse
+  // z1,z2: gives range (z2 - z1 = secs - 1)
+  // c: contin number
 	function add_synapse($x,$y,$z,$secs,$label,$z1,$z2,$cont,$pre,$post){
-		$this->synapses[] = array(-$x,$y,$z,$secs,$label,
-			$z1,$z2,$cont,$pre,$post);
+    $this->synapses[] = array(
+      'x' => -$x,
+      'y' => $y,
+      'z' => $z,
+      'numSections' => $secs,
+      'label' => $label,
+      'zLow' => $z1,
+      'zHigh' => $z2,
+      'continNum' => $cont,
+      'pre' => $pre,
+      'post' => $post
+    );
 	}
 
 	function get_synapses(){

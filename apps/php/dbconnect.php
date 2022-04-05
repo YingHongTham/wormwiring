@@ -233,6 +233,7 @@ class DB {
 		return $this->_return_query_rows($sql);
 	}
 
+  // get synapses whose pre is continName (cell name)
 	//returns rows of assoc arrays, easier to reference
 	//each row is array with keys repn one chem synapse
 	// 'pre', 'post', 'sections', 'continNum', 'IMG_SectionNumber'
