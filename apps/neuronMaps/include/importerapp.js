@@ -467,6 +467,7 @@ ImporterApp.prototype.AddHelpPanel = function(parent,params)
 
 ImporterApp.prototype.InfoDialog = function(url,title)
 {
+  console.log(`opening info dialog for ${url}`);
   var self = this;
   var dialogText = [
     '<div class="importerdialog">',
@@ -1070,7 +1071,13 @@ ImporterApp.prototype.GenerateMenu = function()
     const synViewerBtn = document.createElement('button');
     synViewerBtn.innerHTML = 'Details (EM Viewer)';
     synViewerBtn.onclick = () => {
+      const cellname = document.getElementById('cellname').innerHTML;
+      const db = document.getElementById('series-selector').value;
+      const syncontin = document.getElementById('syncontin').innerHTML;
+	    const url = `../synapseViewer/?neuron=${cellname}&db=${db}&continNum=${syncontin}`;
+      self.InfoDialog(url,'Synapse viewer');
     };
+    parent.appendChild(synViewerBtn);
   };
 
   function AddSynapseFilter(parent){

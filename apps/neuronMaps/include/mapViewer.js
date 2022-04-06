@@ -9,8 +9,8 @@
 /* @constructor
  * usage (in importerapp.js):
  *  viewer = new MapViewer(canvas, {
- *		menuObj:this.menuObj,
- *		menuGroup:this.menuGroup,
+ *		menuObj: this.menuObj,
+ *		menuGroup: this.menuGroup,
  *		synClick: this.InfoDialog,
  *		app: this,
  * });
@@ -325,7 +325,8 @@ MapViewer.prototype.loadMap = function(map)
 {
 	var self = this;
   // YH fixed php so returns integers not strings
-	var params = {neuron:map.name,
+	var params = {
+    neuron:map.name,
 		db : map.db,
 		xmid : 0.5*(map.plotParam.xScaleMin + map.plotParam.xScaleMax),
 		xmin : Math.min(this.minX,map.plotParam.xScaleMin),
@@ -597,9 +598,9 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 	//  params.neuron + '&db=' + params.db +'&continNum='+contin;
 	//THREEx.Linkify(self.domEvents,sphere,url);	    
   
-  //note that this is relative to floatingdialog.js...
-	var url = '../synapseViewer/?neuron=' + 
-	  params.neuron + '&db=' + params.db +'&continNum='+contin;
+  // no longer in use; see AddSynapseInfo in importerapp.js
+  // note that this is relative to floatingdialog.js...
+	//const url = `../synapseViewer/?neuron=${params.neuron}&db=${params.db}&continNum=${contin}`;
   self.domEvents.addEventListener(sphere,'click',function(event){
     // YH change behaviour, now click will keep the synapse info
     // user click button to see synapse dialog
