@@ -217,6 +217,7 @@ MapViewer.prototype.clearMaps = function()
       this.scene.remove(syn);
     }
     this.scene.remove(this.maps[name].synObjs);
+    // YH old code for when synObjs is []
 	  //for (var i=0; i < this.maps[name].synObjs.length; i++){
 	  //  this.scene.remove(this.maps[name].synObjs[i]);
 	  //}
@@ -355,11 +356,13 @@ MapViewer.prototype.loadMap = function(map)
 		//synObjs : [], // the synapse THREE.Sphere objects
     synObjs: new THREE.Group(),
 		synapses : {}, // same, but organized by cell name of other side
-		remarks : [], // about endpoints
+		remarks : [], // about endpoints TODO make THREE.Group also
     //objRemarks: [], // YH
 		params : params
 	};
 
+  // in future just add synapses to synObjs
+  // no need to add synapse to scene directly
   this.scene.add(this.maps[map.name].synObjs);
 
 	// series keys like VC, NR etc, and value map[key]
@@ -527,6 +530,9 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 
 	self.domEvents.addEventListener(sphere,'mouseover',function(event){
     self.menu.app.UpdateSynapseInfo(info);
+
+    // YH moving the updating of html to importerapp,
+    // keep separation of logic clear..
 		//document.getElementById('cellname').innerHTML = name;
 		//document.getElementById('syntype').innerHTML = synType;
 		//document.getElementById('synsource').innerHTML = source;
@@ -536,22 +542,23 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
     //  `(${sect1},${sect2})`;
     //  //'('+sect1+','+sect2+')';
 		//document.getElementById('syncontin').innerHTML = sphere.name;
+
     // YH why return this? not even clear it returns any value
 		//return self.renderer.render(self.scene,self.camera);
-    // rendering again redundant since already animating?
 		self.renderer.render(self.scene,self.camera);
 		return;
 	});
 	self.domEvents.addEventListener(sphere,'mouseout',function(event){
-		document.getElementById('cellname').innerHTML = params.default;
-		document.getElementById('syntype').innerHTML = params.default;
-		document.getElementById('synsource').innerHTML = params.default;
-		document.getElementById('syntarget').innerHTML = params.default;
-		document.getElementById('synweight').innerHTML = params.default;
-		document.getElementById('synsection').innerHTML = params.default;
-		document.getElementById('syncontin').innerHTML = params.default;
-    // YH why return this? not even clear it returns any value
-		//return self.renderer.render(self.scene,self.camera);
+    self.menu.app.RestoreSynapseInfo();
+
+		//document.getElementById('cellname').innerHTML = params.default;
+		//document.getElementById('syntype').innerHTML = params.default;
+		//document.getElementById('synsource').innerHTML = params.default;
+		//document.getElementById('syntarget').innerHTML = params.default;
+		//document.getElementById('synweight').innerHTML = params.default;
+		//document.getElementById('synsection').innerHTML = params.default;
+		//document.getElementById('syncontin').innerHTML = params.default;
+
 		self.renderer.render(self.scene,self.camera);
     return;
 	});
@@ -565,11 +572,16 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 	var url = '../synapseViewer/?neuron=' + 
 	  params.neuron + '&db=' + params.db +'&continNum='+contin;
   self.domEvents.addEventListener(sphere,'click',function(event){
+    // YH change behaviour, now click will keep the synapse info
+    // user click button to see synapse dialog
+    self.menu.app.UpdateClickedSynapseInfo(info);
+
+    // YH floating dialog now handled by button
     // menu.synClick is really a floatingdialog object
     // (see importerapp.js, ImporterApp.InfoDialog)
     // (see also ../../include/floatingdialog.js
     // which opens a floating dialog displaying url stuff)
-    self.menu.synClick(url,'Synapse viewer');
+    //self.menu.synClick(url,'Synapse viewer');
 	});
 
   // YH already added to synObjs Group
@@ -583,10 +595,6 @@ MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,p
 		this.addOneSynapse(name,synapse,sphereMaterial,synType,params);
 	}
 };
-
-//TODO!! skeleton diagram no longer displays synapses!
-
-
 
 
 //hmm clickFunc is not used?

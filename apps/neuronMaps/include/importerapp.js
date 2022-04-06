@@ -1280,8 +1280,11 @@ ImporterApp.prototype.GetMapsTranslate = function() {
 
 
 /*
+ * YH
+ *
  * @param {Object} info - synapse info,
  * should be of the form this.synapseInfoClicked
+ * (or inferred from code below..)
  */
 ImporterApp.prototype.UpdateSynapseInfo = function(info) {
   document.getElementById('cellname').innerHTML = info.cellname;
@@ -1299,7 +1302,7 @@ ImporterApp.prototype.RestoreSynapseInfo = function() {
   this.UpdateSynapseInfo(info);
 };
 
-// update clicked synapse
+// update clicked synapse and the synapse info panel
 ImporterApp.prototype.UpdateClickedSynapseInfo = function(info) {
   Object.assign(this.synapseInfoClicked, info); // copy
   this.UpdateSynapseInfo(info);
