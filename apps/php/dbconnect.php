@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * main change to look out for:
+ * in the query functions returning sql query results,
+ * we ensure certain fields are returned as integers (e.g. x1, y1 etc)
+ * this used to be handled by the javascript on client side code
+ * but I (YH) think that's terrible practice
+ * also in the first place, shouldn't these values be integers anyway?
+ */
+
 //TODO make database initialize in constructor e.g. DB($db)?
 class DB {
 	var $con;      
@@ -193,7 +202,13 @@ class DB {
 			and synapsecombined.type like 'electrical' 
 			order by pre desc,sections desc";
 
-		return $this->_return_query_rows_assoc($sql);
+    // cast integers
+    $data = $this->_return_query_rows_assoc($sql);
+    foreach ($data as $d) {
+      $d['continNum'] = intval($d['continNum']);
+    }
+
+		return $data;
 	}
 
 	function get_pre_chemical_partners($continName){
@@ -236,24 +251,34 @@ class DB {
   // get synapses whose pre is continName (cell name)
 	//returns rows of assoc arrays, easier to reference
 	//each row is array with keys repn one chem synapse
-	// 'pre', 'post', 'sections', 'continNum', 'IMG_SectionNumber'
-	// IMG_SectionNumber is used as z coord
+  // 'pre', 'post', 'sections', 'continNum'
+  // (used to have 'IMG_SectionNumber', seems is redundant
+	// IMG_SectionNumber is used as z coord)
 	// synapsecombined.mid is the object that is more or less
 	// in the middle of the synapse
-	// (we seem to be assuming one synapse belongs to one contin)
-	//it is assumed that one synapse has exactly one contin
+	// (we seem to be assuming one synapse has exactly one contin)
 	function get_pre_chemical_synapses_assoc($continName){
-		$sql = "select pre,post,sections,continNum,
-			image.IMG_SectionNumber from synapsecombined 
-			join object on
-			synapsecombined.mid = object.OBJ_Name
-			join image on
-			object.IMG_Number = image.IMG_Number 
+    //  , image.IMG_SectionNumber as z
+	  //  join image on
+		//    object.IMG_Number = image.IMG_Number 
+    $sql = "
+      select
+        pre,post,sections,continNum
+      from synapsecombined 
+			  join object on
+			    synapsecombined.mid = object.OBJ_Name
 			where pre like '%$continName%' 
-			and synapsecombined.type like 'chemical' 
+			  and synapsecombined.type like 'chemical' 
 			order by pre desc,sections desc";
 
-		return $this->_return_query_rows_assoc($sql);
+    // cast integers
+    $data = $this->_return_query_rows_assoc($sql);
+    foreach ($data as $d) {
+      $d['sections'] = intval($d['sections']);
+      $d['continNum'] = intval($d['continNum']);
+    }
+
+		return $data;
 	}
 
 	function get_post_chemical_partners($continName){
@@ -466,34 +491,36 @@ class DB {
 		return $dict;
 	}
 
-     function get_synapse_section_range($continNum){
-     	      $sql = "select sectionNum1,sectionNum2 
-	      	     from contin 
-		     where CON_Number = $continNum";
-	      $row = array();
-	      if ($this->result = $this->con->query($sql)){
-	      	 $row = $this->result->fetch_array(MYSQLI_ASSOC);
-	      }
-	      return $row;
-     }     
+  function get_synapse_section_range($continNum) {
+    $sql = "select sectionNum1,sectionNum2 
+	      from contin 
+		    where CON_Number = $continNum";
+	  $row = array();
+	  if ($this->result = $this->con->query($sql)){
+	    $row = $this->result->fetch_array(MYSQLI_ASSOC);
+    }
+    $row['sectionNum1'] = intval($row['sectionNum1']);
+    $row['sectionNum2'] = intval($row['sectionNum2']);
+	  return $row;
+  }     
 
-     function get_object_section_number($object){
-     	      $sql = "select IMG_SectionNumber 
-	      	     from image 
-		     join object on 
-		     image.IMG_Number = object.IMG_Number
-		     where object.OBJ_Name = $object";
-	      $val = $this->_return_value_assoc($sql,'IMG_SectionNumber');	   
-	      return $val;
-     }
+  function get_object_section_number($object){
+    $sql = "select IMG_SectionNumber 
+	      from image 
+		    join object on 
+		    image.IMG_Number = object.IMG_Number
+		    where object.OBJ_Name = $object";
+    $val = $this->_return_value_assoc($sql,'IMG_SectionNumber');	   
+	  return intval($val);
+  }
 
-     function get_object_contin($obj){
-     	      $sql = "select CON_Number 
-	      	     from object
-		     where OBJ_Name = $obj";
-	      $val = $this->_return_value_assoc($sql,'CON_Number');
-	      return $val;
-     }     
+  function get_object_contin($obj){
+    $sql = "select CON_Number 
+	      from object
+		    where OBJ_Name = $obj";
+	  $val = $this->_return_value_assoc($sql,'CON_Number');
+	  return $val;
+  }     
 
      function get_section_contin_object($sectNum,$contin){
      	      $sql = "select OBJ_Name 

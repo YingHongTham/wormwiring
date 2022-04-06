@@ -122,11 +122,11 @@ foreach($data as $d){
 }
 
 // get synapses on cell (=continName)
-// 'pre', 'post', 'sections', 'continNum', 'IMG_SectionNumber'
+// 'pre', 'post', 'sections' = numSections, 'continNum'
 $data = $_db->get_pre_chemical_synapses_assoc($nt->continName);
 //$data = $_db->get_pre_chemical_synapses($nt->continName);
 foreach($data as $d){
-	$c = $d['continNum'];
+  $c = $d['continNum'];
 	$dict = $_db->get_synapse_cell_object_dict($c);
 	if (!array_key_exists($nt->continName,$dict)){
 		continue;

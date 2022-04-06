@@ -1,6 +1,12 @@
-// ImporterMenu class from apps/include/importers.js
-// note confusing terminology, series can refer to database N2U etc
-// or also the regions of the worm, VC, NR etc..
+/*
+ * ImporterMenu class from apps/include/importers.js
+ * note confusing terminology, series can refer to database N2U etc
+ * or also the regions of the worm, VC, NR etc..
+ *
+ *
+ * note to self: viewer is initalized much later,
+ * because it needs references to the menu items...
+ */
 
 ImporterApp = function (params)
 {
@@ -1059,22 +1065,28 @@ ImporterApp.prototype.GenerateMenu = function()
       parent.appendChild(left);
       parent.appendChild(right);
     }
+
+    // YH adding button to see synapse viewer
+    const synViewerBtn = document.createElement('button');
+    synViewerBtn.innerHTML = 'Details (EM Viewer)';
+    synViewerBtn.onclick = () => {
+    };
   };
 
   function AddSynapseFilter(parent){
-    var filterChecks = document.createElement('div')
-    filterChecks.id = 'synfiltercheck'
+    var filterChecks = document.createElement('div');
+    filterChecks.id = 'synfiltercheck';
     var _filters = {
       'Presynaptic':'Pre.',
       'Postsynaptic':'Post.',
       'Gap junction':'Gap'
     };
     for (var i in _filters){
-      var label = document.createElement('label')
-      var chkbx = document.createElement('input')
+      var label = document.createElement('label');
+      var chkbx = document.createElement('input');
       chkbx.type = 'checkbox';
       chkbx.className = 'synfilter';
-      chkbx.id = i
+      chkbx.id = i;
       
       label.appendChild(chkbx);
       //label.innerHTML = _filters[i];
@@ -1082,33 +1094,39 @@ ImporterApp.prototype.GenerateMenu = function()
       filterChecks.appendChild(label);
     };
     parent.appendChild(filterChecks);
-    var filterDialog = document.createElement('div');
+
+    const filterDialog = document.createElement('div');
     filterDialog.id = 'synfiltercellsdialog';
-    var filterDialogLabel = document.createElement('label');
+
+    const filterDialogLabel = document.createElement('label');
     filterDialogLabel.appendChild(document.createTextNode('Cells: '));
-    var filterText = document.createElement('input');
+
+    const filterText = document.createElement('input');
     filterText.type = 'text';
     filterText.id = 'synfiltercells';
+
     filterDialogLabel.appendChild(filterText);
     filterDialog.appendChild(filterDialogLabel);
     parent.appendChild(filterDialog);
+
+    // buttons for filtering by cells
     var filterBtn = document.createElement('button');
     filterBtn.innerHTML = 'Filter';
     filterBtn.className = 'filterButton';
     filterBtn.onclick = function(){
-    self.viewer.toggleAllSynapses(false);
-    var cells = document.getElementById('synfiltercells').value
+      self.viewer.toggleAllSynapses(false);
+      var cells = document.getElementById('synfiltercells').value
       if (cells != ""){
         cells = cells.split(',');
       } else {
         cells = null;
-      };
+      }
       for (var i in _filters){
         if (document.getElementById(i).checked){
           self.viewer.toggleSynapseType(i,cells=cells);
-        };
-      };
-    }
+        }
+      }
+    };
     var restoreBtn = document.createElement('button');
     restoreBtn.innerHTML = 'Restore';
     restoreBtn.className = 'filterButton';
@@ -1119,35 +1137,44 @@ ImporterApp.prototype.GenerateMenu = function()
     parent.appendChild(filterBtn);
     parent.appendChild(restoreBtn); 
 
+
+    // filter by synapse ids/contin numbers
     var filterContinDialog = document.createElement('div');
     filterContinDialog.id = 'synfiltercellsdialog';
     var filterContinDialogLabel = document.createElement('label');
-    filterContinDialogLabel.appendChild(document.createTextNode('Synapse Id: '));
+    filterContinDialogLabel.appendChild(
+      document.createTextNode('Synapse Id(s): '));
     var filterContinText = document.createElement('input');
     filterContinText.type = 'text';
     filterContinText.id = 'synfiltercontins';
     filterContinDialogLabel.appendChild(filterContinText);
     filterContinDialog.appendChild(filterContinDialogLabel);
     parent.appendChild(filterContinDialog); 
+
+    // buttons for filtering by synapse ids
     var filterBtn = document.createElement('button');
     filterBtn.innerHTML = 'Filter';
     filterBtn.className = 'filterContinButton';
     filterBtn.onclick = function(){
-        self.viewer.toggleAllSynapses(false);
-        var contins = document.getElementById('synfiltercontins').value
-        if (contins != ""){
-      contins = contins.split(',');
-        } else {
-      contins = null;
-        };
-        
-        if (contins != null){
-      console.log(contins);
-      for (var i in contins){
-          self.viewer.toggleSynapseContin(contins[i]);
-      };
-        };
-    }
+      self.viewer.toggleAllSynapses(false);
+      const contins = document.getElementById('synfiltercontins').value;
+      if (contins != ""){
+        continList = contins.split(',');
+        continList.forEach( contin => {
+          self.viewer.toggleSynapseContin(contin);
+        });
+      }
+      //else {
+      //  contins = null;
+      //}
+      //  
+      //if (contins != null){
+      //  console.log(contins);
+      //  for (var i in contins){
+      //    self.viewer.toggleSynapseContin(contins[i]);
+      //  }
+      //}
+    };
     var restoreBtn = document.createElement('button');
     restoreBtn.innerHTML = 'Restore';
     restoreBtn.className = 'filterContinButton';
@@ -1157,7 +1184,6 @@ ImporterApp.prototype.GenerateMenu = function()
     };
     parent.appendChild(filterBtn);
     parent.appendChild(restoreBtn); 
-
   };
 
   function AddMapTranslate(parent,slider,callback){
@@ -1196,15 +1222,18 @@ ImporterApp.prototype.GenerateMenu = function()
     parent.appendChild(slider);
   };
 
-  function AddToggleButton(parent,onText,offText,callback){
+  // callback expects no arguments
+  // (usage: application of viewer.toggleRemarks or toggleAxes)
+  function AddToggleButton(parent,onText,offText,isOn,callback){
     var remarkBtn = document.createElement('button');
-    remarkBtn.innerHTML = onText;
-    remarkBtn.value = true;
+    remarkBtn.innerHTML = isOn ? onText : offText;
+    remarkBtn.value = isOn;
     remarkBtn.className = 'filterbutton';
     //remarkBtn.id = 'remarkBtn';
-    remarkBtn.onclick = function(){
-        this.innerHTML=(this.innerHTML==onText)?offText:onText;
-        callback();
+    remarkBtn.onclick = function() {
+      isOn = !isOn;
+      this.innerHTML = isOn ? onText : offText;
+      callback();
     };
     parent.appendChild(remarkBtn);
   };
@@ -1222,25 +1251,30 @@ ImporterApp.prototype.GenerateMenu = function()
   this.menuGroup['map-translate'] = AddDefaultGroup(this.menuObj,'Map translate',visible=true);
   this.menuGroup['comments'] = AddDefaultGroup(this.menuObj,'Comments',visible=true);
     
-    //Series selector
-    AddSexSelector(this.menuObj,this.menuGroup['series-selector'],'Sex');
-    AddSeriesSelector(this.menuObj,this.menuGroup['series-selector'],'Series');
-    
-    //Synapse info
-    AddSynapseInfo(this.menuGroup['synapse-info']);
+  AddSexSelector(this.menuObj,this.menuGroup['series-selector'],'Sex');
+  AddSeriesSelector(this.menuObj,this.menuGroup['series-selector'],'Series');
 
-    //Synapse filter
-    AddSynapseFilter(this.menuGroup['synapse-filter']);
+  //Synapse info
+  AddSynapseInfo(this.menuGroup['synapse-info']);
 
-    //Translate map
-    AddMapTranslate(this.menuGroup['map-translate'],AddSlider,
-       function(x,y,z){self.viewer.translateMaps(x,y,z);});
+  //Synapse filter
+  AddSynapseFilter(this.menuGroup['synapse-filter']);
 
-    //Synapse remarks
-    AddToggleButton(this.menuGroup['comments'],'Axes ON',
-        'Axes OFF',function(){self.viewer.toggleAxes();});
-    //AddToggleButton(this.menuGroup['comments'],'Remarks OFF',
-    //'Remarks ON',function(){self.viewer.toggleRemarks();});
+  //Translate map
+  AddMapTranslate(this.menuGroup['map-translate'],AddSlider,
+    function(x,y,z){self.viewer.translateMaps(x,y,z);});
+
+  //Synapse remarks
+  AddToggleButton(this.menuGroup['comments'],
+    'Hide Axes', 'Show Axes', true, // used to be Axes ON, Axes OFF
+    () => { self.viewer.toggleAxes(); });
+
+  // ideally 'false' here is this.viewer.remarksAllVisible,
+  // but this.viewer is initialized after this >:(
+  // see this.remarksAllVisible in MapViewer
+  AddToggleButton(this.menuGroup['comments'],
+    'Hide Remarks', 'Show Remarks', false, // used to be Remarks ON/OFF
+    () => { self.viewer.toggleRemarks(); } );
 
   // YH
   this.menuGroup['load-save'] = AddDefaultGroup(this.menuObj,'Load/Save',visible=true);

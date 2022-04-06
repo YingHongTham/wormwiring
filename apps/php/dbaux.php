@@ -392,10 +392,19 @@ class NeuronTrace {
       foreach ($val as $v){
         // v is row in query results, corresponds to one edge
         // position of edges (x1,y1,z1) --- (x2,y2,z2)
-	  		$this->series[$s]->add_x($v['x1'],$v['x2']);
-	  		$this->series[$s]->add_y($v['y1'],$v['y2']);
+        // but first cast to integer, because for some reason
+        // MySQL table has string entries for these position values wtf
+        foreach (['x1','y1','x2','y2','objName1','objName2','cellbody']
+            as $k) {
+          $v[$k] = intval($v[$k]);
+        }
+
 	  		$z1 = $_db->get_object_section_number($v['objName1']);
 	  		$z2 = $_db->get_object_section_number($v['objName2']);
+
+        // add edge
+	  		$this->series[$s]->add_x($v['x1'],$v['x2']);
+	  		$this->series[$s]->add_y($v['y1'],$v['y2']);
 	  		$this->series[$s]->add_z($z1,$z2);
 
         // whether this edge(?) corresponds to a cell body
@@ -441,7 +450,7 @@ class NeuronTrace {
 	
 	//expect object number..
 	//neuron made of many objects
-	//xyz is added by add_object,
+	//xyz is added by add_object (for NeuronTrace not CellSyn..)
 	//and is obtained from display2
 	//this differs from the values from object table;
 	//e.g. see the object 43881,
@@ -536,7 +545,7 @@ class NeuronTrace {
 		);
 		foreach($query as $k => $q){
 			$val = $_db->_return_value_assoc($q,'val');
-			$this->plotParam[$k] = $val;
+			$this->plotParam[$k] = intval($val); // YH convert here not js
 		}    
 		$this->plotParam['xScaleMin'] = -$this->plotParam['xScaleMin'];
 		$this->plotParam['xScaleMax'] = -$this->plotParam['xScaleMax'];
@@ -557,7 +566,7 @@ class NeuronTrace {
 		);
 		foreach($query as $k => $q){
 			$val = $_db->_return_value_assoc($q,'val');
-			$this->plotParam[$k] = $val;
+			$this->plotParam[$k] = intval($val); // YH convert here not js
 		}    
 		$this->plotParam['xScaleMin'] = -$this->plotParam['xScaleMin'];
 		$this->plotParam['xScaleMax'] = -$this->plotParam['xScaleMax'];
@@ -566,14 +575,13 @@ class NeuronTrace {
 	function compile_data(){
 		$data = array();
 		$data['name'] = $this->continName;
-		$data['series'] = $this->db;
+		$data['series'] = $this->db; // big brain
+		$data['db'] = $this->db; // YH
 		$data['cellBody'] = $this->cellBody->get_data();
 		$data['preSynapse'] = $this->preSynapse->get_synapses();
 		$data['postSynapse'] = $this->postSynapse->get_synapses();
 		$data['gapJunction'] = $this->gapJunction->get_synapses();
     $data['nmj'] = array();
-    // original remarks; I think it returns duplicate objects
-    // did my own version below, objRemarks
 		$data['remarks'] = $this->remarks;
     //$data['objRemarks'] = $this->objRemarks; // YH
 		foreach($this->series as $s => $v){
@@ -646,11 +654,11 @@ class TraceSynapse{
       'x' => -$x,
       'y' => $y,
       'z' => $z,
-      'numSections' => $secs,
+      'numSections' => intval($secs), // YH weird, already passing integer
       'label' => $label,
       'zLow' => $z1,
       'zHigh' => $z2,
-      'continNum' => $cont,
+      'continNum' => intval($cont),
       'pre' => $pre,
       'post' => $post
     );
