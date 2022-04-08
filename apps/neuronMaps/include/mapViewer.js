@@ -94,7 +94,7 @@ MapViewer = function(_canvas,_menu,_debug=false)
 	this.textLabels = [];
 	this.maps = {}; // see loadMap for expected form
   this.gridHelper = null; // defined in initGL
-	this.axesText = new THREE.Group(); // YH old was []
+	this.axesText = new THREE.Group(); // also has arrows
 
   // YH no need anymore
   // YH see toggleRemarks
@@ -143,7 +143,6 @@ MapViewer.prototype.initGL = function()
 
   // TODO high z is anterior or posterior?
   this.scene.add(this.axesText);
-  // YH adding arrow for the axes too
   const axesTextDist = 200;
   this.axesText.add(
       this.addText('Anterior (-z)',{x:0,y:0,z:-axesTextDist}));
@@ -151,8 +150,9 @@ MapViewer.prototype.initGL = function()
       this.addText('Right (+x)',{x:axesTextDist,y:0,z:0,_y:-Math.PI/2}));
   this.axesText.add(
       this.addText('Ventral (-y)',{x:0,y:-axesTextDist,z:0,_x:-Math.PI/2}));
+  // YH adding arrow for the axesText too
   const origin = new THREE.Vector3(0,0,0);
-  const arrowColor = 0xff00ff;
+  const arrowColor = 0x5500ff;
   const length = 300;
   this.axesText.add( new THREE.ArrowHelper(
       new THREE.Vector3(0,0,-1), origin, length, arrowColor));
@@ -917,6 +917,10 @@ MapViewer.prototype._toggleObjRemarks = function(name,bool=null)
       }
 	  }
   });
+};
+
+MapViewer.prototype.toggleGrid = function() {
+  this.gridHelper.visible = !this.gridHelper.visible;
 };
 
 MapViewer.prototype.toggleAxes = function() {

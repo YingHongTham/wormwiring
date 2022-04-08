@@ -96,12 +96,8 @@ ImporterApp = function (params)
     },
     {
       title : 'Synapse info',
-      text : 'Synapses are represented as spheres. Mousing over synapse to display info for that synapse in the left panel. '
-        + 'There are three types of synapses: presynapses (pink), '
-        + 'postsynapses (purple), and gap junctions (blue). For presynapses and postsynapses, the cel pre- and postsynaptic, respectively. '
-        + 'The info dialog gives the the cell on which the synapse sphere is located (Cell), the synapse type, the presynaptic source, '
-        + 'the postsynaptic target, the estimated volume of the synapse (# of EM sections), the sections over which the synapse occurs '
-        + 'and numerical id of the synapse.',
+      text :
+      'Synapses are represented as spheres along the skeleton diagram. Click/hover over synapse to display info for that synapse in the left panel. Synapses come in three colors: gap junction = blue, chemical = pink/purple; pink if the cell on which the sphere appears is presynaptic, and purple if post. The Synapse info menu item shows the the cell on which the synapse sphere is located (Cell), the synapse type, the presynaptic source, the postsynaptic target(s), the estimated volume of the synapse (# of EM sections), the sections over which the synapse occurs, and numerical id of the synapse. The Details (EM Viewer) button opens a floating dialog that shows the electron micrographs containing the selected (clicked) synapse. (Video is a little outdated.)',
       video: 'https://www.youtube.com/embed/DDjFMjFSdO0',
       name : 'help-synapse-info'
     },
@@ -130,7 +126,7 @@ ImporterApp = function (params)
     },
     {
       title : 'Comments',
-      text : 'Toggle map comments on/off.',
+      text : 'Various global settings. Toggle visibility of grid, axes, cell remarks, synapse labels.',
       video: 'https://www.youtube.com/embed/D25joOnz1XE',
       name : 'help-comments'
     },
@@ -1297,6 +1293,11 @@ ImporterApp.prototype.GenerateMenu = function()
 
   this.menuGroup['comments'] =
       this.menuObj.AddDefaultGroup('Comments',visible=true);
+
+  AddToggleButton(this.menuGroup['comments'],
+    'Hide Grid', 'Show Grid', true,
+    () => { self.viewer.toggleGrid(); });
+
   AddToggleButton(this.menuGroup['comments'],
     'Hide Axes', 'Show Axes', true, // used to be Axes ON, Axes OFF
     () => { self.viewer.toggleAxes(); });
