@@ -3,14 +3,14 @@
 // note confusing terminology, series can refer to database N2U etc
 // or also the regions of the worm: VC, NR, DC, VC2, RIG, LEF
 //
-// TODO the parseInt in addOneSynapse makes me nervous
-// should sort out the data types before getting to that point
+// YH fixed php to ensure return integers for position/objNums etc
+// so got rid of stuff with parseInt
 
 /* @constructor
  * usage (in importerapp.js):
  *  viewer = new MapViewer(canvas, {
- *		menuObj: this.menuObj,
- *		menuGroup: this.menuGroup,
+ *		menuObj: this.menuObj, // not used??
+ *		menuGroup: this.menuGroup, // not used??
  *		synClick: this.InfoDialog,
  *		app: this,
  * });
@@ -92,14 +92,16 @@ MapViewer = function(_canvas,_menu,_debug=false)
 	this.controls = null;
 	
 	this.textLabels = [];
-	this.axesText = [];
 	this.maps = {}; // see loadMap for expected form
+  this.gridHelper = null; // defined in initGL
+	this.axesText = new THREE.Group(); // YH old was []
 
+  // YH no need anymore
   // YH see toggleRemarks
   // this default value should be same as the value in AddToggleButton
   // (search self.viewer.toggleRemarks in importerapp.js)
-  this.remarksAllVisible = false;
-}
+  //this.remarksAllVisible = false;
+};
 
 MapViewer.prototype.initGL = function()
 {
@@ -136,12 +138,32 @@ MapViewer.prototype.initGL = function()
   this.scene.add(directionalLight2);
   this.scene.add(ambientLight);
   
-  var helper = new THREE.GridHelper(10000,100,0xFF4444,0x404040);
-  this.scene.add(helper);
+  this.gridHelper = new THREE.GridHelper(10000,100,0xFF4444,0x404040);
+  this.scene.add(this.gridHelper);
 
-  this.addText('Anterior',{x:100,y:50,z:0},this.axesText);
-  this.addText('Right',{x:150,y:50,z:250,_y:-Math.PI/2},this.axesText);
-  this.addText('Ventral',{x:100,y:0,z:200,_x:-Math.PI/2},this.axesText);
+  // TODO high z is anterior or posterior?
+  this.scene.add(this.axesText);
+  // YH adding arrow for the axes too
+  const axesTextDist = 200;
+  this.axesText.add(
+      this.addText('Anterior (-z)',{x:0,y:0,z:-axesTextDist}));
+  this.axesText.add(
+      this.addText('Right (+x)',{x:axesTextDist,y:0,z:0,_y:-Math.PI/2}));
+  this.axesText.add(
+      this.addText('Ventral (-y)',{x:0,y:-axesTextDist,z:0,_x:-Math.PI/2}));
+  const origin = new THREE.Vector3(0,0,0);
+  const arrowColor = 0xff00ff;
+  const length = 300;
+  this.axesText.add( new THREE.ArrowHelper(
+      new THREE.Vector3(0,0,-1), origin, length, arrowColor));
+  this.axesText.add( new THREE.ArrowHelper(
+      new THREE.Vector3(1,0,0), origin, length, arrowColor));
+  this.axesText.add( new THREE.ArrowHelper(
+      new THREE.Vector3(0,-1,0), origin, length, arrowColor));
+  // YH old method of adding axes text
+  //this.addText('Anterior',{x:100,y:50,z:0},this.axesText);
+  //this.addText('Right',{x:150,y:50,z:250,_y:-Math.PI/2},this.axesText);
+  //this.addText('Ventral',{x:100,y:0,z:200,_x:-Math.PI/2},this.axesText);
 };
 
 /*
@@ -153,35 +175,41 @@ MapViewer.prototype.initGL = function()
  *
  * @param {string} text
  * @param {Object} params -
- *  keys: font, color, _x,_y,_z rotations, x,y,z position
- * @param {Array} container - references to THREE objects that displays the text
- * (e.g. this.axesText has three elements, one text label for each axis)
+ *  keys:
+ *    x,y,z: position (required)
+ *    _x,_y,_z: rotation (optional, default x-y plane)
+ *    font: optional (default "Bold 20px Arial")
+ *    color: optional (default this.defaultTextColor)
+ * @param {Array} container - contains references to the
+ *    THREE mesh/text object created displaying the text
+ *    (addText push-es the object into this container)
  * 
  * YH modified to also return the THREE object, clearer logic
  * let the caller deal with saving to whatever container they want
  */
 MapViewer.prototype.addText = function(text,params,container=null)
 {
-  var canvas = document.createElement('canvas');
-  var context = canvas.getContext('2d');
-  //if (params.font != undefined){
-	//  context.font = params.font;
-  //} else {
-  //  context.font = "Bold 20px Arial";
-  //};
-  //if (params.color != undefined){
-  //  context.fillStyle = params.color;
-  //} else {
-  //  context.fillStyle = "rgba(255,0,0,0.95)";
-  //};
-  context.font = (params.font != undefined) ?
+  const textCanvas = document.createElement('canvas');
+  const ctx = textCanvas.getContext('2d');
+  const font = (params.font != undefined) ?
     params.font : "Bold 20px Arial";
-  context.fillStyle = (params.color != undefined) ?
+  ctx.font = font;
+  const fillStyle = (params.color != undefined) ?
     params.color : this.defaultTextColor;
-  context.fillText(text, 0, 50); // 0, 50 relative pos of text in ctx
+  ctx.fillStyle = fillStyle;
+
+  textCanvas.width = ctx.measureText(text).width;
+  textCanvas.height = 30;
+
+  // browser bugs: this is reset to default after measureText!
+	ctx.font = font;
+  ctx.fillStyle = fillStyle;
+
+  ctx.fillText(text, 0, textCanvas.height - 5);
+  //ctx.fillText(text, 0, 50); // 0, 50 relative pos of text in ctx
     
-  // canvas contents will be used for a texture
-  var texture = new THREE.Texture(canvas) 
+  // textCanvas contents will be used for a texture
+  var texture = new THREE.Texture(textCanvas) 
   texture.needsUpdate = true;
 
   // material for the rectangle in which text is written
@@ -193,7 +221,7 @@ MapViewer.prototype.addText = function(text,params,container=null)
   material.transparent = true;
 
   var mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(canvas.width, canvas.height),
+    new THREE.PlaneGeometry(textCanvas.width, textCanvas.height),
     material
   );
 
@@ -203,6 +231,7 @@ MapViewer.prototype.addText = function(text,params,container=null)
 
   if (params.visible != undefined){mesh.visible = params.visible};
 
+  // position is of the center of the canvas
   mesh.position.set(params.x,params.y,params.z);
 
   if (container !== null) {
@@ -220,17 +249,17 @@ MapViewer.prototype.clearMaps = function()
 	  for (var i=0; i < this.maps[name].skeleton.length; i++){
 	    this.scene.remove(this.maps[name].skeleton[i]);
 	  }
-    for (const syn of this.maps[name].synObjs.children) {
-      this.scene.remove(syn);
-    }
     this.scene.remove(this.maps[name].synObjs);
+    this.scene.remove(this.maps[name].synLabels);
+    this.scene.remove(this.maps[name].remarks);
     // YH old code for when synObjs is []
 	  //for (var i=0; i < this.maps[name].synObjs.length; i++){
 	  //  this.scene.remove(this.maps[name].synObjs[i]);
 	  //}
-	  for (var i=0; i < this.maps[name].remarks.length; i++){
-	    this.scene.remove(this.maps[name].remarks[i]);
-	  }
+    // YH old code for when remarks is []
+	  //for (var i=0; i < this.maps[name].remarks.length; i++){
+	  //  this.scene.remove(this.maps[name].remarks[i]);
+	  //}
   };
   this.maps = {};
 }
@@ -376,19 +405,23 @@ MapViewer.prototype.loadMap = function(map)
 		visible : true,
 		skeleton : [], //array of line segments, each is one THREE object!!
 		skelMaterial : skelMaterial,
-		//synObjs : [], // the synapse THREE.Sphere objects
-    synObjs: new THREE.Group(), // YH
+    synObjs: new THREE.Group(), // YH; old was []
 		synapses : {}, // same, but organized by cell name of other side
-		remarks : [], // about endpoints TODO make THREE.Group also
-    //objRemarks: [], // YH attempt to add remarks, realized already exist
     synLabels : new THREE.Group(), // YH
+		remarks : new THREE.Group(), // remarks about endpoints
+    //objRemarks: [], // YH attempt to add remarks, realized already exist
 		params : params,
 	};
 
-  // in future just add synapses/labels to synObjs/synLabels
+  // in future just add synapses/labels to synObjs/synLabels/remarks
   // no need to add synapse to scene directly
   this.scene.add(this.maps[map.name].synObjs);
   this.scene.add(this.maps[map.name].synLabels);
+  this.scene.add(this.maps[map.name].remarks);
+  // default visibl.; see use of AddToggleButton in importerapp.js
+  this.maps[map.name].remarks.synObjs = true;
+  this.maps[map.name].remarks.visible = false;
+  this.maps[map.name].synLabels.visible = false;
 
 	// series keys like VC, NR etc, and value map[key]
 	// comes from NeuronTrace constructor/TraceLocation from dbaux.php
@@ -435,10 +468,11 @@ MapViewer.prototype.loadMap = function(map)
 		var params2 = {
       x:x, y:y, z:z,
 			color : self.remarksColor,
-			font : "Bold 10px Arial",
-			visible : false, // default; see remarksparams in importerapps.js
+			font : "Bold 20px Arial",
+			visible : true, // visibility handled by remarks Group
 		};
-		self.maps[map.name].remarks.push(self.addText(obj.remarks,params2));
+    // YH old code use .push not .add
+		self.maps[map.name].remarks.add(self.addText(obj.remarks,params2));
 	});
     
   // YH copying the scaling/translation for objRemarks from remarks
@@ -550,9 +584,10 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 	sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
 	sphere.material.transparent = true;
 
-	//self.maps[name].synObjs.push(sphere); // old synObjs = []
-	self.maps[name].synObjs.add(sphere);
-  
+  self.maps[name].synObjs.add(sphere); // old: .push(sphere)
+
+  // putting synapse objects into the maps[name].synapses
+  // which is just a more organized version
 	var _partner = partner.split(',');
 	for (var j in _partner){
 		if (!(_partner[j] in self.maps[name].synapses)){
@@ -562,6 +597,18 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 		self.maps[name].synapses[_partner[j]][synType].push(sphere);
 	};
 
+  // adding text labels next to synapses
+  this.maps[name].synLabels.add(this.addText(partner,{
+    x: sphere.position.x,
+    y: sphere.position.y,
+    z: sphere.position.z,
+    _x:-Math.PI/4,
+    font: "20px Arial",
+  }));
+
+
+  // setting up events/listeners to respond to
+  // mouse events over synapse in viewer
   const info = {
     cellname: name,
     syntype: synType,
@@ -598,19 +645,15 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 	//  params.neuron + '&db=' + params.db +'&continNum='+contin;
 	//THREEx.Linkify(self.domEvents,sphere,url);	    
   
-  // no longer in use; see AddSynapseInfo in importerapp.js
-  // note that this is relative to floatingdialog.js...
-	//const url = `../synapseViewer/?neuron=${params.neuron}&db=${params.db}&continNum=${contin}`;
+  // YH change behaviour of clicking;
+  // floating dialog now handled by button
+  // (see AddSynapseInfo in importerapp.js)
   self.domEvents.addEventListener(sphere,'click',function(event){
-    // YH change behaviour, now click will keep the synapse info
-    // user click button to see synapse dialog
     self.menu.app.UpdateClickedSynapseInfo(info);
 
-    // YH floating dialog now handled by button
-    // menu.synClick is really a floatingdialog object
-    // (see importerapp.js, ImporterApp.InfoDialog)
-    // (see also ../../include/floatingdialog.js
-    // which opens a floating dialog displaying url stuff)
+    // note menu.synClick is really a floatingdialog object
+    // which opens a floating dialog displaying url stuff
+    // (see ../../include/floatingdialog.js)
     //self.menu.synClick(url,'Synapse viewer');
 	});
 
@@ -619,7 +662,7 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 };
 
 
-//should be called addSynapses!
+//should be called addSynapseS!
 MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,params) {
 	for (var synapse of synapses) {
 		this.addOneSynapse(name,synapse,sphereMaterial,synType,params);
@@ -775,43 +818,37 @@ MapViewer.prototype._toggleAllSynapses = function(name,visible=null) {
   } else {
     this.maps[name].synObjs.visible = !this.maps[name].synObjs.visible;
   }
-
-  // YH why didn't iterate through synObjs?? oh well..
-  //for (var cell in this.maps[name].synapses){
-  //  for (var syntype in this.maps[name].synapses[cell]){
-  //    for (var i in this.maps[name].synapses[cell][syntype]){
-  //      this.maps[name].synapses[cell][syntype][i].visible = visible;
-  //    }
-  //  }
-  //}
 };
 
-MapViewer.prototype.toggleSynapseType = function(synType,cells=null)
+MapViewer.prototype.toggleSynapseByType = function(synType,bool=null,cells=null)
 {
-    for (var name in this.maps){
-	this._toggleSynapseType(name,synType,cells=cells);
-    };
-};
-
-MapViewer.prototype._toggleSynapseType = function(name,synType,cells=null)
-{
-  var keys;
-  if (cells != null){
-	  keys = cells;
-  } else {
-	  keys = Object.keys(this.maps[name].synapses);
-  };
-    
-  for (var i in keys){
-	  cell = keys[i];
-	  try {
-	    for (var i in this.maps[name].synapses[cell][synType]){
-		    this.maps[name].synapses[cell][synType][i].visible = true;
-	    }
-	  } catch(err) {
-	    //console.log('Synapse not found!');
-	  }
+  if (typeof(bool) !== 'boolean') {
+    bool = true; // TODO should be toggling behaviour
   }
+  for (var name in this.maps){
+	  this._toggleSynapseByTypeName(name,synType,bool=null,cells=cells);
+  };
+};
+
+// TODO perhaps better to store synObjs as having one Group
+// for each synType, then this would be again trivial
+MapViewer.prototype._toggleSynapseByTypeName
+  = function(name,synType,bool=null,cells=null) {
+  if (typeof(bool) !== 'boolean') {
+    bool = true; // TODO should be toggling behaviour
+  }
+
+  const keys = (cells != null) ?
+    cells : Object.keys(this.maps[name].synapses);
+
+  keys.forEach( cell => {
+    this.maps[name].synapses[cell][synType].forEach( syn => {
+      syn.visible = true;
+    });
+	  //for (var j in this.maps[name].synapses[cell][synType]){
+		//  this.maps[name].synapses[cell][synType][j].visible = true;
+	  //}
+  });
 };
 
 MapViewer.prototype.toggleSynapseContin = function(contin)
@@ -822,34 +859,46 @@ MapViewer.prototype.toggleSynapseContin = function(contin)
 
 // toggle all remarks
 MapViewer.prototype.toggleRemarks = function(bool=null) {
-  if (typeof(bool) !== 'boolean') {
-    bool = !this.remarksAllVisible;
+  for (const cell in this.maps) {
+	  this.toggleRemarksByCell(cell, bool);
   }
-  for (var name in this.maps){
-	  this._toggleRemarks(name, bool);
-  };
-  this.remarksAllVisible = bool;
 };
 
-// toggle remarks by cell
+// YH better version of _toggleRemarks
+MapViewer.prototype.toggleRemarksByCell = function(cell, bool) {
+  if (typeof(bool) !== 'boolean') {
+    bool = !this.maps[cell].remarks.visible;
+  }
+  this.maps[cell].remarks.visible = bool;
+};
+
+// YH old method; toggle remarks by cell
 MapViewer.prototype._toggleRemarks = function(name,bool=null)
 {
-  for (var i in this.maps[name].remarks) {
-    if (typeof(bool) === 'boolean') {
-	  //if (bool != null){
-	    this.maps[name].remarks[i].visible = bool;
-	  } else {
-	    //this.maps[name].remarks[i].visible = (this.maps[name].remarks[i].visible==true)?false:true;
-      if (typeof(this.maps[name].remarks[i].visible) !== 'boolean') {
-        this.maps[name].remarks[i].visible = false;
-      } else {
-        this.maps[name].remarks[i].visible = !this.maps[name].remarks[i].visible;
-      }
-	  }
+  if (typeof(bool) === 'boolean') {
+    this.maps[name].remarks.visible = bool;
+  } else {
+    this.maps[name].remarks.visible = !this.maps[name].remarks.visible;
   }
+  // YH old code when remarks was an Array
+  //for (var i in this.maps[name].remarks) {
+  //  if (typeof(bool) === 'boolean') {
+	//  //if (bool != null){
+	//    this.maps[name].remarks[i].visible = bool;
+	//  } else {
+	//    //this.maps[name].remarks[i].visible = (this.maps[name].remarks[i].visible==true)?false:true;
+  //    if (typeof(this.maps[name].remarks[i].visible) !== 'boolean') {
+  //      this.maps[name].remarks[i].visible = false;
+  //    } else {
+  //      this.maps[name].remarks[i].visible = !this.maps[name].remarks[i].visible;
+  //    }
+	//  }
+  //}
 };
 
 /*
+ * YH currently not in use; decided to fix the original remarks stuff
+ *
  * toggle visibility of objRemarks in viewer
  *
  * @param {String} name - neuron/muscle name
@@ -870,12 +919,24 @@ MapViewer.prototype._toggleObjRemarks = function(name,bool=null)
   });
 };
 
-MapViewer.prototype.toggleAxes = function()
-{
-    for (var i in  this.axesText){
-	this.axesText[i].visible = (this.axesText[i].visible==true)?false:true;
-    };
+MapViewer.prototype.toggleAxes = function() {
+  this.axesText.visible = !this.axesText.visible;
 };
+
+MapViewer.prototype.toggleAllSynapseLabels = function(bool=null) {
+  for (const name in this.maps){
+	  this.toggleSynapseLabels(name, bool);
+  };
+};
+
+MapViewer.prototype.toggleSynapseLabels = function(name,bool=null) {
+  if (typeof(bool) !== 'boolean') {
+    bool = !this.maps[name].synLabels.visible;
+  }
+  this.maps[name].synLabels.visible = bool;
+};
+
+
 MapViewer.prototype.resizeDisplayGL = function(){
   // YH
 	//OrbitControls doesn't have resize

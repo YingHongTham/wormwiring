@@ -305,44 +305,40 @@ ImporterApp.prototype.Resize = function ()
 
 ImporterApp.prototype.GenerateMenu = function()
 {
-    function AddDefaultGroup (menu, name, visible=false)
-    {
-	var group = menu.AddGroup (name, {
-	    openCloseButton : {
-		visible : visible,
-		open : 'images/opened.png',
-		close : 'images/closed.png',
-		title : 'Show/Hide ' + name
-	    }
-	});
-	return group;
-    };
+  // sent to ImporterMenu in apps/include/importers.js
+  //function AddDefaultGroup(menu, name, visible=false) {
+	//  var group = menu.AddGroup(name, {
+	//    openCloseButton : {
+	//	    visible : visible,
+	//	    open : 'images/opened.png',
+	//	    close : 'images/closed.png',
+	//	    title : 'Show/Hide ' + name
+	//    }
+	//  });
+	//  return group;
+  //};
 
-
-    function AddSeriesSelector(menu,menuGrp,name){
-	menu.AddSelector(menuGrp,name,{
+  function AddSeriesSelector(menu,menuGrp,name){
+	  menu.AddSelector(menuGrp,name,{
 	    options:self.series,
 	    onChange:function(){
-		self.selectedNeurons = {'neurons':{}};	
-		self.GetCellDisplay();
+		    self.selectedNeurons = {'neurons':{}};	
+		    self.GetCellDisplay();
 	    },
-	    id : 'series-selector'
-	});	
-    };
+	    id : 'series-selector',
+	  });	
+  };
 
-    var self = this;
-    var menu = document.getElementById('menu');
-    this.menuObj = new ImporterMenu(menu);
-    this.menuGroup['series-selector'] =
-	AddDefaultGroup(this.menuObj,'Series selector',visible=true);
-    this.menuGroup['mesh-group'] = AddDefaultGroup(this.menuObj,'Meshes',visible=true);
+  var self = this;
+  var menu = document.getElementById('menu');
+  this.menuObj = new ImporterMenu(menu);
+  this.menuGroup['series-selector'] =
+	  this.menuObj.AddDefaultGroup('Series selector',visible=true);
+	  //AddDefaultGroup(this.menuObj,'Series selector',visible=true);
+  this.menuGroup['mesh-group'] =
+    this.menuObj.AddDefaultGroup('Meshes',visible=true);
+    //AddDefaultGroup(this.menuObj,'Meshes',visible=true);
 
-    AddSeriesSelector(this.menuObj,this.menuGroup['series-selector'],'Series');
-    
+  AddSeriesSelector(this.menuObj,this.menuGroup['series-selector'],'Series');
 };
-
-
-
-
-
 

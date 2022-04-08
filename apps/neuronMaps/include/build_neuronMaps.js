@@ -1,5 +1,18 @@
-// apps/neuronMaps/include/importerapp.js
-// Initialization of stuff begins here
+/*
+ * apps/neuronMaps/include/importerapp.js
+ * Initialization of stuff begins here
+ *
+ * can pass params via query string in url
+ * in order to automatically load one cell
+ * (used by, say, Synapse List, to show the skeleton of that cell)
+ * 
+ * if want to load cell this way, query string needs:
+ * -db: N2U, JSE, N2W, JSH, n2y, n930 (case insensitive)
+ * -cell or neuron: name of cell to load (case sensitive)
+ * -sex: no longer required (we infer from db)
+ *
+ *  TODO also pass in view options
+ */
 
 window.onload = function(){
 	//get url query string
@@ -17,28 +30,37 @@ window.onload = function(){
   for (const pair of urlParams.entries()) {
     params[pair[0]] = pair[1];
   }
-  // pass value of neuron to cell
-  // (I think old version uses 'neuron' to indicate the cell name
-  // kinda weird and misleading since it could be muscle)
+
+  // pass value of neuron to cell (old version uses 'neuron'
+  // to indicate the cell name, misleading since it could be muscle)
   if (!params.hasOwnProperty('cell') && params.hasOwnProperty('neuron')) {
-    params['cell'] = params['neuron'];
+    params.cell = params.neuron;
   }
-	console.log(params);
+
+  // clear bad db value, and deduce sex from db
+  if (params.hasOwnProperty('db')) {
+    params.db = params.db.toUpperCase();
+    if (['N2U','JSE','N2W','JSH'].includes(params.db)) {
+      params.sex = 'herm';
+    } else if (['N2Y','N930'].includes(params.db)) {
+      params.sex = 'male';
+      params.db = params.db.toLowerCase();
+    }
+    else {
+      params.db = '';
+    }
+  }
 
 	// banner and wwnavbar no longer used
 	//    new ImporterWW("banner","wwnavbar");
 
-  // the thing that holds all the stuff
-  // but access in console via the variable aa (because window.aa)
-	var importerApp = new ImporterApp(params);
-	importerApp.Init();
-
+  // used to be 'mousemove', seems a bit excessive
   window.addEventListener('mousedown', () => {
     window.dispatchEvent(new Event('resize'));
   });
-  //window.addEventListener('mousemove', () => {
-  //  window.dispatchEvent(new Event('resize'));
-  //});
 
-	window.aa = importerApp;
+	const importerApp = new ImporterApp(params);
+	importerApp.Init();
+  // access importerApp in the console (used to be window.aa)
+	window.importerApp = importerApp;
 };

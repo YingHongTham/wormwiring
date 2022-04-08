@@ -4,7 +4,7 @@
  * or also the regions of the worm, VC, NR etc..
  *
  *
- * note to self: viewer is initalized much later,
+ * note to self: viewer must be initialized after GenerateMenu()
  * because it needs references to the menu items...
  */
 
@@ -41,6 +41,9 @@ ImporterApp = function (params)
   // HTML elements of menu items on the left
   // assigned in GenerateMenu()
   // e.g. this.menuGroup['maps'] = AddDefaultGroup(...);
+  // YH made redundant by having ImporterMenu object (this.menuObj)
+  // hold the reference to HTML elems
+  // keeping it here for just in case for now
   this.menuGroup = {};
   
   // selectedNeurons are cells to appear in the cell selector dialog
@@ -152,9 +155,14 @@ ImporterApp = function (params)
 /*
  * loads all the top buttons, Help, Select Neurons, Clear
  * the left menu is loaded in GenerateMenu
+ *
+ * no idea why Init function is separate from constructor;
+ * in practice it is immediately called after constructor wtf
  */
 ImporterApp.prototype.Init = function ()
 {
+  const self = this;
+
   if (!Detector.webgl){
     var warning = Detector.getWebGLErrorMessage();
     console.log(warning);
@@ -163,7 +171,6 @@ ImporterApp.prototype.Init = function ()
   };
 
   //set up the Help, selector, clear menu
-  var self = this;
   var top = document.getElementById ('top');
   var importerButtons = new ImporterButtons (top);
   importerButtons.AddLogo('Help',()=>{self.HelpDialog();});
@@ -184,8 +191,9 @@ ImporterApp.prototype.Init = function ()
   this.GenerateMenu();
   
   var viewer = new MapViewer(canvas, {
-    menuObj: this.menuObj, // apps/include/importers.js
-    menuGroup: this.menuGroup,
+    // YH don't think these two are actually used by viewer
+    //menuObj: this.menuObj, // apps/include/importers.js
+    //menuGroup: this.menuGroup,
     synClick: this.InfoDialog, // is a FUNCTION that spawns dialog
     app: this, // YH so viewer can refer back
   });
@@ -221,7 +229,8 @@ ImporterApp.prototype.Init = function ()
 // YH
 ImporterApp.prototype.AddLoadSave = function() {
   // following AddSynapseFilter
-  const parent = this.menuGroup['load-save'];
+  //const parent = this.menuGroup['load-save'];
+  const parent = this.menuObj.mainItems['Load/Save'].content;
 
   const inputLoad = document.createElement('input');
   inputLoad.type = 'file';
@@ -545,9 +554,10 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 
 ImporterApp.prototype.ClearMaps = function(mapName)
 {
-  var menuGroup = this.menuGroup.maps;
-  while(menuGroup.lastChild){
-    menuGroup.removeChild(menuGroup.lastChild);
+  //const menuMaps = this.menuGroup['maps'];
+  const menuMaps = this.menuObj.mainItems['Maps'].content;
+  while(menuMaps.lastChild){
+    menuMaps.removeChild(menuMaps.lastChild);
   };
   this.viewer.clearMaps();
 
@@ -629,7 +639,8 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
 {
   var self = this;
   var menuObj = this.menuObj;
-  var menuGroup = this.menuGroup.maps;    
+  //var menuGroup = this.menuGroup.maps;    
+  const mapsMenuItem = this.menuObj.mainItems['Maps'].content;
 
   // params for sub items under each cell entry in Maps
 
@@ -679,12 +690,14 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   // (after clicking on a loaded cell)
   var remarksparams = {
     userButton:{
-      visible: false,
+      //visible: false,
+      imgSrc: 'images/visible.png',
       // see also loadMap in MapViewer, in the remarks.forEach(...)
       // which sets remarks to be visible by default
-      onCreate : function(image){
-        image.src = 'images/visible.png'; // YH orig hidden.png
-      },
+      // TODO make clear there's global visible setting too
+      //onCreate : function(image){
+      //  image.src = 'images/visible.png'; // YH orig hidden.png
+      //},
       // mapname is cell name..
       onClick : function(image,mapname){ // YH modelName -> mapname
         if (self.viewer.maps[mapname].remarks.length === 0) {
@@ -777,7 +790,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   };
 
   // see Importers in apps/include/importers.js
-  menuObj.AddSubItem(menuGroup,mapname,{
+  menuObj.AddSubItem(mapsMenuItem,mapname,{
     openCloseButton:{
       visible : false,
       open: 'images/info.png',
@@ -799,10 +812,11 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       userData : mapname
     },
     userButton : {
-      visible : true,
-      onCreate : function(image){
-        image.src = 'images/visible.png';
-      },
+      //visible : true, // is not even used..
+      imgSrc: 'images/visible.png',
+      //onCreate : function(image){
+      //  image.src = 'images/visible.png';
+      //},
       onClick: function(image,modelName){
         var visible = self.viewer.maps[modelName].visible
         image.src = visible ? 'images/hidden.png' : 'images/visible.png';
@@ -991,21 +1005,29 @@ ImporterApp.prototype.Resize = function ()
   this.dialog.Resize();
 };
 
+/*
+ * Generates the menu to the left of the viewer
+ * the menu is structured into several items(divs),
+ * each created and returned by AddDefaultGroup
+ *
+ * all the action happens at the end of the function
+ */
 ImporterApp.prototype.GenerateMenu = function()
 {
   var self = this;
+  // sent to ImporterMenu in apps/include/importers.js
   // AddDefaultGroup returns the HTML element
-  function AddDefaultGroup (menu, name, visible=false) {
-    var group = menu.AddGroup(name, {
-      openCloseButton : {
-        visible : visible,
-        open : 'images/opened.png',
-        close : 'images/closed.png',
-        title : 'Show/Hide ' + name
-      }
-    });
-    return group;
-  };
+  //function AddDefaultGroup(menu, name, visible=false) {
+  //  var group = menu.AddGroup(name, {
+  //    openCloseButton : {
+  //      visible : visible,
+  //      open : 'images/opened.png',
+  //      close : 'images/closed.png',
+  //      title : 'Show/Hide ' + name
+  //    }
+  //  });
+  //  return group;
+  //};
 
   function AddSexSelector(menu,menuGrp,name) {
     menu.AddSelector(menuGrp,name,{
@@ -1075,6 +1097,7 @@ ImporterApp.prototype.GenerateMenu = function()
       const db = document.getElementById('series-selector').value;
       const syncontin = document.getElementById('syncontin').innerHTML;
 	    const url = `../synapseViewer/?neuron=${cellname}&db=${db}&continNum=${syncontin}`;
+      // note url is relative to floatingdialog.js...
       self.InfoDialog(url,'Synapse viewer');
     };
     parent.appendChild(synViewerBtn);
@@ -1130,7 +1153,7 @@ ImporterApp.prototype.GenerateMenu = function()
       }
       for (var i in _filters){
         if (document.getElementById(i).checked){
-          self.viewer.toggleSynapseType(i,cells=cells);
+          self.viewer.toggleSynapseByType(i,bool=true,cells=cells);
         }
       }
     };
@@ -1247,44 +1270,50 @@ ImporterApp.prototype.GenerateMenu = function()
 
   //add menu on the left
   //in apps/include/importers.js
-  var menu = document.getElementById('menu');
+  const menu = document.getElementById('menu');
   this.menuObj = new ImporterMenu(menu);
   
-  this.menuGroup['maps'] = AddDefaultGroup(this.menuObj,'Maps',visible=true);
+  this.menuGroup['maps'] =
+      this.menuObj.AddDefaultGroup('Maps',visible=true);
+
   this.menuGroup['series-selector'] =
-    AddDefaultGroup(this.menuObj,'Series selector',visible=true);
-  this.menuGroup['synapse-info'] = AddDefaultGroup(this.menuObj,'Synapse info',visible=true);
-  this.menuGroup['synapse-filter'] = AddDefaultGroup(this.menuObj,'Synapse filter',visible=true);
-  this.menuGroup['map-translate'] = AddDefaultGroup(this.menuObj,'Map translate',visible=true);
-  this.menuGroup['comments'] = AddDefaultGroup(this.menuObj,'Comments',visible=true);
-    
+      this.menuObj.AddDefaultGroup('Series selector',visible=true);
   AddSexSelector(this.menuObj,this.menuGroup['series-selector'],'Sex');
   AddSeriesSelector(this.menuObj,this.menuGroup['series-selector'],'Series');
 
-  //Synapse info
+  this.menuGroup['synapse-info'] =
+      this.menuObj.AddDefaultGroup('Synapse info',visible=true);
   AddSynapseInfo(this.menuGroup['synapse-info']);
 
-  //Synapse filter
+
+  this.menuGroup['synapse-filter'] =
+      this.menuObj.AddDefaultGroup('Synapse filter',visible=true);
   AddSynapseFilter(this.menuGroup['synapse-filter']);
 
-  //Translate map
+  this.menuGroup['map-translate'] =
+      this.menuObj.AddDefaultGroup('Map translate',visible=true);
   AddMapTranslate(this.menuGroup['map-translate'],AddSlider,
     function(x,y,z){self.viewer.translateMaps(x,y,z);});
 
-  //Synapse remarks
+  this.menuGroup['comments'] =
+      this.menuObj.AddDefaultGroup('Comments',visible=true);
   AddToggleButton(this.menuGroup['comments'],
     'Hide Axes', 'Show Axes', true, // used to be Axes ON, Axes OFF
     () => { self.viewer.toggleAxes(); });
 
-  // ideally 'false' here is this.viewer.remarksAllVisible,
-  // but this.viewer is initialized after this >:(
-  // see this.remarksAllVisible in MapViewer
+  // see maps[..].remarks in MapViewer.loadMap
   AddToggleButton(this.menuGroup['comments'],
     'Hide Remarks', 'Show Remarks', false, // used to be Remarks ON/OFF
     () => { self.viewer.toggleRemarks(); } );
 
   // YH
-  this.menuGroup['load-save'] = AddDefaultGroup(this.menuObj,'Load/Save',visible=true);
+  AddToggleButton(this.menuGroup['comments'],
+    'Hide Synapse Labels', 'Show Synapse Labels', false,
+    () => {self.viewer.toggleAllSynapseLabels();});
+
+  // YH
+  this.menuGroup['load-save'] =
+      this.menuObj.AddDefaultGroup('Load/Save',visible=true);
   this.AddLoadSave();
 };
 
