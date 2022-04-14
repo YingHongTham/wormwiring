@@ -308,7 +308,7 @@ MapViewer.prototype.clearMaps = function()
  *  VC: //similar to NR
  *  // potentially other series names, DC, VC2, RIG, LEF
  *  cellBody: sub-skeleton consisting of those part of cell body (no cb)
- *  plotParam: {
+ *  plotParam: { // max/mins of given series(db)
  *    xScaleMax: -205
  *    xScaleMin: -8907
  *    yScaleMax: 7023 // note that old code php returns strings
@@ -355,16 +355,16 @@ MapViewer.prototype.loadMap = function(map)
 	var self = this;
   // YH fixed php so returns integers not strings
 	var params = {
-    neuron:map.name,
-		db : map.db,
-		xmid : 0.5*(map.plotParam.xScaleMin + map.plotParam.xScaleMax),
-		xmin : Math.min(this.minX,map.plotParam.xScaleMin),
-		ymid : 0.5*(map.plotParam.yScaleMin + map.plotParam.yScaleMax),
-		ymax : Math.max(this.maxY, map.plotParam.yScaleMax),
-		zmid : 0.5*(map.plotParam.zScaleMin + map.plotParam.zScaleMax),
-		zmin : map.plotParam.zScaleMin,
-		default : '---',
-		remarks : false
+    neuron: map.name,
+		db: map.db,
+		xmid: 0.5*(map.plotParam.xScaleMin + map.plotParam.xScaleMax),
+		xmin: Math.min(this.minX,map.plotParam.xScaleMin),
+		ymid: 0.5*(map.plotParam.yScaleMin + map.plotParam.yScaleMax),
+		ymax: Math.max(this.maxY, map.plotParam.yScaleMax),
+		zmid: 0.5*(map.plotParam.zScaleMin + map.plotParam.zScaleMax),
+		zmin: map.plotParam.zScaleMin,
+		default: '---',
+		remarks: false
 	};
   // original params, just in case
 	//var params = {neuron:map.name,
@@ -495,6 +495,18 @@ MapViewer.prototype.loadMap = function(map)
 };
 
 /*
+ * @param {Object} vec - Vector3, or object with keys x,y,z
+ * @param {Object} params - see loadMap (keys (x/y/z)(max/min))
+ */
+MapViewer.prototype.applyParamsTranslate = function(vec,params) {
+  return new THREE.Vector3(
+    (params.xmin - vec.x - params.xmid)*this.XYScale + this.translate.x,
+    (params.ymax - vec.y - params.ymid)*this.XYScale + this.translate.y,
+    vec.z - params.zmin
+  );
+};
+
+/*
  * add the neuron skeleton to THREE scene
  * pass skeleton as ..?
  * called by loadMap
@@ -503,18 +515,37 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 { 
 	for (var i=0; i < skeleton.x.length; i++){
 		var lineGeometry = new THREE.Geometry();
-		var vertArray = lineGeometry.vertices;
-		var x1 = (params.xmin - skeleton.x[i][0] - params.xmid)*this.XYScale + this.translate.x;
-		var x2 = (params.xmin - skeleton.x[i][1] - params.xmid)*this.XYScale + this.translate.x;
-		var y1 = (params.ymax - skeleton.y[i][0] - params.ymid)*this.XYScale + this.translate.y;
-		var y2 = (params.ymax - skeleton.y[i][1] - params.ymid)*this.XYScale + this.translate.y;
-		var z1 = skeleton.z[i][0] - params.zmin;
-		var z2 = skeleton.z[i][1] - params.zmin;
-		//set end points of lineGeometry
-		vertArray.push(
-			new THREE.Vector3(x1,y1,z1),
-			new THREE.Vector3(x2,y2,z2)
-		);
+    var v0 = 
+      this.applyParamsTranslate(new THREE.Vector3(
+          skeleton.x[i][0],
+          skeleton.y[i][0],
+          skeleton.z[i][0]
+        ),
+        params
+      );
+    var v1 = 
+      this.applyParamsTranslate(new THREE.Vector3(
+          skeleton.x[i][1],
+          skeleton.y[i][1],
+          skeleton.z[i][1]
+        ),
+        params
+      );
+    v0.sub(this.position);
+    v1.sub(this.position);
+    lineGeometry.vertices.push(v0, v1);
+		//var vertArray = lineGeometry.vertices;
+		//var x1 = (params.xmin - skeleton.x[i][0] - params.xmid)*this.XYScale + this.translate.x;
+		//var x2 = (params.xmin - skeleton.x[i][1] - params.xmid)*this.XYScale + this.translate.x;
+		//var y1 = (params.ymax - skeleton.y[i][0] - params.ymid)*this.XYScale + this.translate.y;
+		//var y2 = (params.ymax - skeleton.y[i][1] - params.ymid)*this.XYScale + this.translate.y;
+		//var z1 = skeleton.z[i][0] - params.zmin;
+		//var z2 = skeleton.z[i][1] - params.zmin;
+		////set end points of lineGeometry
+		//vertArray.push(
+		//	new THREE.Vector3(x1,y1,z1),
+		//	new THREE.Vector3(x2,y2,z2)
+		//);
 		//console.log(vertArray);
 		if (skeleton.cb != undefined && skeleton.cb[i]==1){
 			var line = new THREE.Line(lineGeometry,this.cbMaterial);
@@ -566,9 +597,15 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType,params)
 {
 	var self = this;
-	var x = (params.xmin - synapse['x'] - params.xmid)*self.XYScale + self.translate.x;
-	var y = (params.ymax - synapse['y'] - params.ymid)*self.XYScale + self.translate.y;
-	var z = synapse['z'] - params.zmin;
+  // YH refactored transformation
+  // a bit of abuse of notation, but synapse has .x/y/z so OK
+  var synapsePos = new THREE.Vector3(synapse.x, synapse.y, synapse.z);
+  synapsePos = this.applyParamsTranslate(synapsePos, params);
+  synapsePos.sub(self.position);
+  // TODO weird synapse not aligned; this.position
+	//var x = (params.xmin - synapse['x'] - params.xmid)*self.XYScale + self.translate.x;
+	//var y = (params.ymax - synapse['y'] - params.ymid)*self.XYScale + self.translate.y;
+	//var z = synapse['z'] - params.zmin;
 	var _radius = synapse['numSections'];
 	var radius = Math.min(self.SynMax,synapse['numSections']*self.SynScale);
 	var partner = synapse['label'];
@@ -581,7 +618,9 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 	var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
 	var sphere = new THREE.Mesh(geometry,sphereMaterial);
 	sphere.name = contin;
-	sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
+  // YH use pos above
+	//sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
+  sphere.position.copy(synapsePos);
 	sphere.material.transparent = true;
 
   self.maps[name].synObjs.add(sphere); // old: .push(sphere)

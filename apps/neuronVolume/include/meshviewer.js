@@ -156,8 +156,10 @@ MeshViewer.prototype.loadModel = function(_dir,_model){
 	  objLoader.setModelName(modelName);
 	  objLoader.setMaterials(materials);
 	  objLoader.setLogging(true,true);
+    // obj url at beginning
 	  objLoader.load(obj,callbackOnLoad,null,null,null,false);
   };
+  // mtl url at beginning
   objLoader.loadMtl(mtl,null,onLoadMtl);
 };
 

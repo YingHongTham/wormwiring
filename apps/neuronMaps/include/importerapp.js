@@ -326,7 +326,7 @@ ImporterApp.prototype.LoadFromFile = function() {
 
 /*
  * json file expected:
- * TODO
+ * TODO give expected format
  */
 ImporterApp.prototype.SaveToFile = function() {
   const data = {

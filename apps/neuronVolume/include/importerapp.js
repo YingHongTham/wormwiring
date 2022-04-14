@@ -85,72 +85,71 @@ ImporterApp.prototype.Init = function ()
 
 ImporterApp.prototype.HelpDialog = function()
 {
-    var self = this;
-    var dialogText = [
-	'<div class="container">',
-	'</div>',
-    ].join ('');
-    this.dialog.Open ({
-	className: 'dialog',
-	title : 'Help',
-	text : dialogText,
-	buttons : [
-    
+  var self = this;
+  var dialogText = [
+	  '<div class="container">',
+	  '</div>',
+  ].join ('');
+  this.dialog.Open({
+	  className: 'dialog',
+	  title : 'Help',
+	  text : dialogText,
+	  buttons : [
 	    {
-		text : 'close',
-		callback : function (dialog) {
-		    dialog.Close();
-		}
+		    text : 'close',
+		    callback : function (dialog) {
+		      dialog.Close();
+		    }
 	    }
-	]
-    });
+	  ]
+  });
     
-    var container = document.getElementsByClassName('container')[0];
-    var panelGroup = document.createElement('div');
-    panelGroup.id = 'accordion';
-    panelGroup.className = 'panel-group';
-    for (var i = 0; i < this.helpParams.length; i++){
-	this.AddHelpPanel(panelGroup,this.helpParams[i]);
-    };
-    container.appendChild(panelGroup);
-}
+  var container = document.getElementsByClassName('container')[0];
+  var panelGroup = document.createElement('div');
+  panelGroup.id = 'accordion';
+  panelGroup.className = 'panel-group';
+  for (var i = 0; i < this.helpParams.length; i++){
+	  this.AddHelpPanel(panelGroup,this.helpParams[i]);
+  }
+  container.appendChild(panelGroup);
+};
 
 ImporterApp.prototype.AddHelpPanel = function(parent,params)
 {
-    var self = this;
-    var panel = document.createElement('div');
-    panel.className = 'panel panel-default';
-    var panelHeader = document.createElement('div');
-    panelHeader.className = 'panel-heading';
-    var panelTitle = document.createElement('h4');
-    panelTitle.className = 'panel-title';
-    var panelA = document.createElement('a');
-    panelA.className = 'accordion-toggle';
-    panelA.setAttribute('data-toggle','collapse');
-    panelA.setAttribute('data-parent','#accordion');
-    panelA.href = '#' + params.name;
-    panelA.innerHTML = params.title;
-    panelTitle.appendChild(panelA);
-    panelHeader.appendChild(panelTitle);
-    panel.appendChild(panelHeader);
-    var panelCollapse = document.createElement('div');
-    panelCollapse.id = params.name;
-    panelCollapse.className = 'panel-collapse collapse';
-    if (typeof params.text !== "undefined"){
-	var panelBody = document.createElement('div');
-	panelBody.className = 'panel-body';
-	panelBody.innerHTML = params.text;
-	panelCollapse.appendChild(panelBody);
-    };
-    if (typeof params.video !== "undefined"){
-	panelIFrame = document.createElement("iframe");
-	panelIFrame.setAttribute("width","1140");
-	panelIFrame.setAttribute("height","740");
-	panelIFrame.setAttribute("src",params.video);
-	panelCollapse.appendChild(panelIFrame);
-    };
-    panel.appendChild(panelCollapse);
-    parent.appendChild(panel);
+  var self = this;
+  var panel = document.createElement('div');
+  panel.className = 'panel panel-default';
+  var panelHeader = document.createElement('div');
+  panelHeader.className = 'panel-heading';
+  var panelTitle = document.createElement('h4');
+  panelTitle.className = 'panel-title';
+  var panelA = document.createElement('a');
+  panelA.className = 'accordion-toggle';
+  panelA.setAttribute('data-toggle','collapse');
+  panelA.setAttribute('data-parent','#accordion');
+  panelA.href = '#' + params.name;
+  panelA.innerHTML = params.title;
+  panelTitle.appendChild(panelA);
+  panelHeader.appendChild(panelTitle);
+  panel.appendChild(panelHeader);
+  var panelCollapse = document.createElement('div');
+  panelCollapse.id = params.name;
+  panelCollapse.className = 'panel-collapse collapse';
+  if (typeof params.text !== "undefined"){
+	  var panelBody = document.createElement('div');
+	  panelBody.className = 'panel-body';
+	  panelBody.innerHTML = params.text;
+	  panelCollapse.appendChild(panelBody);
+  };
+  if (typeof params.video !== "undefined"){
+	  panelIFrame = document.createElement("iframe");
+	  panelIFrame.setAttribute("width","1140");
+	  panelIFrame.setAttribute("height","740");
+	  panelIFrame.setAttribute("src",params.video);
+	  panelCollapse.appendChild(panelIFrame);
+  };
+  panel.appendChild(panelCollapse);
+  parent.appendChild(panel);
 }
 
 ImporterApp.prototype.NeuronSelectorDialog = function()
@@ -161,7 +160,7 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 	  //this.NeuronSelector (),
 	  '</div>',
   ].join ('');
-  this.dialog.Open ({
+  this.dialog.Open({
 	  className: 'cell-selector',
 	  title : 'Cell Selector',
 	  text : dialogText,
@@ -172,6 +171,7 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 		      var db = document.getElementById('series-selector').value;
           // this is apps/neuronVolume/models
 		      var dir = './models/' + db;
+          console.log(db, dir);
 		      for (var i in self.selectedNeurons[group]){
 			      if (self.selectedNeurons[group][i].visible == 1 && self.selectedNeurons[group][i].plotted == 0){
 			        self.viewer.loadModel(dir,i);
@@ -192,55 +192,54 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
 
 ImporterApp.prototype.AddSelectPanel = function(parent,name)
 {
-    var self = this;
-    var header = document.createElement('button');
-    header.className = 'panel-header';
-    header.setAttribute('type','button');
-    header.setAttribute('data-toggle','collapse');
-    header.setAttribute('data-target','#'+name);
-    header.innerHTML = name
-    var panel = document.createElement('div');
-    panel.id = name;
-    panel.className = 'collapse';
-    for (var i in this.selectedNeurons[name]){
-	var div = document.createElement('div');
-	div.className = 'selectCell';
-	div.id = i;
-	div.innerHTML = i;
-	panel.appendChild(div);
-    };
-    parent.appendChild(header);
-    parent.appendChild(panel);
+  var self = this;
+  var header = document.createElement('button');
+  header.className = 'panel-header';
+  header.setAttribute('type','button');
+  header.setAttribute('data-toggle','collapse');
+  header.setAttribute('data-target','#'+name);
+  header.innerHTML = name
+  var panel = document.createElement('div');
+  panel.id = name;
+  panel.className = 'collapse';
+  for (var i in this.selectedNeurons[name]){
+	  var div = document.createElement('div');
+	  div.className = 'selectCell';
+	  div.id = i;
+	  div.innerHTML = i;
+	  panel.appendChild(div);
+  };
+  parent.appendChild(header);
+  parent.appendChild(panel);
     
-    $("div#"+name+" > .selectCell").click(function () {
-	self.selectedNeurons[name][this.id].visible = 
-	    (self.selectedNeurons[name][this.id].visible==1)?0:1;
-	$(this).toggleClass("select");
-    });
+  $("div#"+name+" > .selectCell").click(function () {
+	  self.selectedNeurons[name][this.id].visible = 
+	      (self.selectedNeurons[name][this.id].visible==1)?0:1;
+	  $(this).toggleClass("select");
+  });
 
-    for (var i in this.selectedNeurons[name]){
-	if (this.selectedNeurons[name][i].visible==1){
+  for (var i in this.selectedNeurons[name]){
+	  if (this.selectedNeurons[name][i].visible==1){
 	    $("div#"+i).toggleClass("select");  
-	};
-    };
-    
+	  }
+  }
 };
 
 ImporterApp.prototype.ClearMaps = function(mapName)
 {
-    var menuGroup = this.menuGroup['mesh-group'];
-    while(menuGroup.lastChild){
-	menuGroup.removeChild(menuGroup.lastChild);
-    };
-    this.viewer.clearMesh();
+  var menuGroup = this.menuGroup['mesh-group'];
+  while(menuGroup.lastChild){
+	  menuGroup.removeChild(menuGroup.lastChild);
+  };
+  this.viewer.clearMesh();
 
-    for (var group in this.selectedNeurons){
-	for (var i in this.selectedNeurons[group]){
-	    if (this.selectedNeurons[group][i].visible==1){
-		this.selectedNeurons[group][i].visible=0;
-	    };
-	};
-    }; 
+  for (var group in this.selectedNeurons){
+	  for (var i in this.selectedNeurons[group]){
+	    //if (this.selectedNeurons[group][i].visible==1){
+		    this.selectedNeurons[group][i].visible=0;
+	    //}
+	  }
+  }
 }
 
 ImporterApp.prototype.SetDB = function(_db)
