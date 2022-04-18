@@ -697,31 +697,16 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   // (after clicking on a loaded cell)
   var remarksparams = {
     userButton:{
-      //visible: false,
-      imgSrc: 'images/visible.png',
-      // see also loadMap in MapViewer, in the remarks.forEach(...)
-      // which sets remarks to be visible by default
-      // TODO make clear there's global visible setting too
-      //onCreate : function(image){
-      //  image.src = 'images/visible.png'; // YH orig hidden.png
-      //},
+      imgSrc: 'images/hidden.png', // starting image
+      // see also loadMap in MapViewer, .. default visibilities
+      // which sets remarks to be hidden by default
       // mapname is cell name..
-      onClick : function(image,mapname){ // YH modelName -> mapname
+      onClick : function(image,mapname){
         if (self.viewer.maps[mapname].remarks.length === 0) {
           console.log('no remarks');
           return;
         }
 
-        // it is unclear where params.remarks is defined
-        // it seems it is automatically initialized to false?
-        // whatever it is, bad practice to hard code default values
-        // that depend on each other
-        //self.viewer._toggleRemarks(mapname);
-        //var visible = self.viewer.maps[mapname].params.remarks;
-        //image.src = visible ? 'images/hidden.png' : 'images/visible.png';
-        //self.viewer.maps[mapname].params.remarks = !visible;
-
-        // better to rely directly on the THREE object
         self.viewer._toggleRemarks(mapname);
         var visible = self.viewer.maps[mapname].remarks.visible;
         image.src = visible ? 'images/visible.png' : 'images/hidden.png';
@@ -730,24 +715,6 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       userData : mapname
     }
   };
-
-  // YH rewriting of Remarks
-  //var objRemarksParams = {
-  //  userButton:{
-  //    visible: true,
-  //    onCreate : function(image){
-  //      image.src = 'images/visible.png';
-  //    },
-  //    onClick : function(image,mapname){
-  //      self.viewer._toggleObjRemarks(mapname);
-  //      var visible = self.viewer.maps[mapname].params.remarks;
-  //      image.src = visible ? 'images/hidden.png' : 'images/visible.png';
-  //      self.viewer.maps[mapname].params.remarks = !visible;
-  //    },
-  //    title : 'Show/Hide remarks',
-  //    userData : mapname
-  //  }
-  //};
 
   var infoparams = {
     openCloseButton:{
@@ -808,7 +775,6 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         };
         menuObj.AddSubItem(content,'Color',colorparams);
         menuObj.AddSubItem(content,'Remarks',remarksparams);
-        //menuObj.AddSubItem(content,'Remarks',objRemarksParams);
         if (walink != undefined){
           menuObj.AddSubItem(content,'WormAtlas',infoparams);
         }
