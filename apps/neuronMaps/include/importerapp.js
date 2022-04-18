@@ -220,6 +220,10 @@ ImporterApp.prototype.Init = function ()
   } else {
     this.SetCellSelector();
   };
+
+  document.addEventListener('loadMapComplete', (ev) => {
+    console.log(`${ev.detail} loaded into viewer`);
+  });
 };
 
 // YH
@@ -305,10 +309,10 @@ ImporterApp.prototype.LoadFromFile = function() {
       LoadMapMenuWhenReady(cell);
     }
 
-    // update color (viewer.loadMap sync, ImporterApp.LoadMap async)
+    // update color (ImporterApp.LoadMap is async,
+    // but viewer.loadMap is sync, so this is OK)
     for (const cell in data.mapsSettings) {
-      // seems like the color selector thing is created
-      // when user clicks the button,
+      // color selector thing is created when user clicks button,
       // so we just need to modify the color directly on the object
       obj = main_this.viewer.setColor(
         cell,
@@ -583,6 +587,7 @@ ImporterApp.prototype.ClearMaps = function(mapName)
  * YH
  * modified retrieve_trace_coord.php to return
  * some data about OBJ_Remarks
+ * also added emitting event when loaded
  */
 ImporterApp.prototype.LoadMap = function(db,mapname)
 {
@@ -595,6 +600,9 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
     if (this.readyState == 4 && this.status == 200){
       self.data[mapname] = JSON.parse(this.responseText);
       self.viewer.loadMap(self.data[mapname]);
+      document.dispatchEvent(new CustomEvent('loadMapComplete', {
+        detail: mapname,
+      }));
     }
   };
   xhttp.open("GET",url,true);
@@ -654,10 +662,12 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         // class no CSS, but used below
         colorInput.className = 'colorSelector';
         colorInput.setAttribute('type','text');
-        var obj = self.viewer.maps[mapname].skeleton[0];
-        var r = Math.round(255*obj.material.color.r);
-        var b = Math.round(255*obj.material.color.b);
-        var g = Math.round(255*obj.material.color.g);
+        const {r, g, b} = self.viewer.getColor(mapname);
+        // YH finally got around to changing skeleton to Group
+        //var obj = self.viewer.maps[mapname].skeleton[0];
+        //var r = Math.round(255*obj.material.color.r);
+        //var b = Math.round(255*obj.material.color.b);
+        //var g = Math.round(255*obj.material.color.g);
         var rgb = b | (g << 8) | (r << 16);
         var hex = '#' + rgb.toString(16);
         colorInput.setAttribute('value',hex);
@@ -667,8 +677,9 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
           showInput: true,
           move: function(color){
             var rgb = color.toRgb();
-            for (var i in self.viewer.maps[mapname].skeleton){
-              var obj = self.viewer.maps[mapname].skeleton[i];
+            //for (var i in self.viewer.maps[mapname].skeleton){
+            for (const obj in self.viewer.maps[mapname].skeletonGrp.children){
+              //var obj = self.viewer.maps[mapname].skeleton[i];
               if (!obj.cellBody){
                 obj.material.color.r = rgb.r/255.;
                 obj.material.color.g = rgb.g/255.;
@@ -712,7 +723,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
 
         // better to rely directly on the THREE object
         self.viewer._toggleRemarks(mapname);
-        var visible = self.viewer.maps[mapname].remarks[0].visible;
+        var visible = self.viewer.maps[mapname].remarks.visible;
         image.src = visible ? 'images/visible.png' : 'images/hidden.png';
       },
       title : 'Show/Hide remarks',
@@ -814,12 +825,16 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       //  image.src = 'images/visible.png';
       //},
       onClick: function(image,modelName){
-        var visible = self.viewer.maps[modelName].visible
-        image.src = visible ? 'images/hidden.png' : 'images/visible.png';
-        self.viewer.maps[modelName].visible = !visible;
-        self.viewer.toggleMaps(modelName);
-        self.viewer._toggleAllSynapses(modelName,!visible);
-        self.viewer._toggleRemarks(modelName,bool=false);
+        //var visible = !self.viewer.maps[modelName].visible;
+        const newVisible = !self.viewer.maps[modelName].allGrps.visible;
+        console.log('newVisible: ', newVisible);
+        image.src = newVisible ? 'images/visible.png' : 'images/hidden.png';
+        self.viewer.maps[modelName].visible = newVisible;
+        self.viewer.toggleMaps(modelName, newVisible);
+        // based on old behaviour of toggleMaps:
+        //self.viewer.toggleMaps(modelName, visible);
+        //self.viewer._toggleAllSynapses(modelName,!visible);
+        //self.viewer._toggleRemarks(modelName,bool=false);
       },
       title : 'Show/Hide map',
       userData : mapname
@@ -1102,21 +1117,26 @@ ImporterApp.prototype.GenerateMenu = function()
   function AddSynapseFilter(parent){
     var filterChecks = document.createElement('div');
     filterChecks.id = 'synfiltercheck';
-    var _filters = {
-      'Presynaptic':'Pre.',
-      'Postsynaptic':'Post.',
-      'Gap junction':'Gap'
+    var synTypeLabel = { // used to be _filters
+      pre:'Pre.', // old key is 'Presynaptic'
+      post:'Post.', // old key is 'Postsynaptic'
+      gap:'Gap', // old key is 'Gap junction'
     };
-    for (var i in _filters){
+    var synTypeId = {
+      pre:'Presynaptic',
+      post:'Postsynaptic',
+      gap:'Gap junction',
+    };
+    for (var synType in synTypeId){
       var label = document.createElement('label');
       var chkbx = document.createElement('input');
       chkbx.type = 'checkbox';
       chkbx.className = 'synfilter';
-      chkbx.id = i;
+      chkbx.id = synTypeId[synType];
       
       label.appendChild(chkbx);
-      //label.innerHTML = _filters[i];
-      label.appendChild(document.createTextNode(_filters[i]));
+      //label.innerHTML = synTypeLabel[synType];
+      label.appendChild(document.createTextNode(synTypeLabel[synType]));
       filterChecks.appendChild(label);
     };
     parent.appendChild(filterChecks);
@@ -1140,25 +1160,34 @@ ImporterApp.prototype.GenerateMenu = function()
     filterBtn.innerHTML = 'Filter';
     filterBtn.className = 'filterButton';
     filterBtn.onclick = function(){
-      self.viewer.toggleAllSynapses(false);
-      var cells = document.getElementById('synfiltercells').value
-      if (cells != ""){
-        cells = cells.split(',');
-      } else {
-        cells = null;
+      //self.viewer.toggleAllSynapseTypeHard(false);
+      var cells = document.getElementById('synfiltercells').value;
+      if (cells != '') {
+        cells = cells.replace(' ','').split(',');
+      } else { // all loaded cells by default
+        //cells = null;
+        cells = self.viewer.getLoadedCells();
       }
-      for (var i in _filters){
-        if (document.getElementById(i).checked){
-          self.viewer.toggleSynapseByType(i,bool=true,cells=cells);
+      for (const synType in synTypeId) {
+        const vis = document.getElementById(synTypeId[synType]).checked;
+        for (const cell of cells) {
+          self.viewer.toggleSynapsesByType(cell,synType,visible=vis);
         }
+        //if (document.getElementById(synTypeId[synType]).checked){
+        //  //self.viewer.toggleSynapseByType(i,bool=true,cells=cells);
+        //}
       }
     };
     var restoreBtn = document.createElement('button');
     restoreBtn.innerHTML = 'Restore';
     restoreBtn.className = 'filterButton';
     restoreBtn.onclick = function(){
-      document.getElementById('synfiltercells').value=null;
-      self.viewer.toggleAllSynapses(true);
+      for (const synType in synTypeId) {
+        document.getElementById(synTypeId[synType]).checked = false;
+      }
+      document.getElementById('synfiltercells').value = '';
+      self.viewer.toggleAllSynapseTypeHard(true);
+      //self.viewer.toggleAllSynapses(true);
     };
     parent.appendChild(filterBtn);
     parent.appendChild(restoreBtn); 
