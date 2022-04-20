@@ -69,6 +69,7 @@ ImporterApp = function (params)
     'synweight': '---',
     'synsection': '---',
     'syncontin': '---',
+    'synposition': '---',
   }
 
   // but wait, there's more...
@@ -600,6 +601,11 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
     if (this.readyState == 4 && this.status == 200){
       self.data[mapname] = JSON.parse(this.responseText);
       self.viewer.loadMap(self.data[mapname]);
+
+      // translate maps of this cell
+      self.viewer.translateOneMapsToThisPos(mapname);
+
+      // YH maybe don't need this
       document.dispatchEvent(new CustomEvent('loadMapComplete', {
         detail: mapname,
       }));
@@ -1052,7 +1058,8 @@ ImporterApp.prototype.GenerateMenu = function()
       'syntarget':'Target: ',
       'synweight':'# EM sections: ',
       'synsection':'Sections: ',
-      'syncontin':'Synapse Id/Contin number: '
+      'syncontin':'Synapse Id/Contin number: ',
+      'synposition':'Coordinates: ',
     };
     for (var i in synElems){
       var left = document.createElement('div');
@@ -1207,41 +1214,47 @@ ImporterApp.prototype.GenerateMenu = function()
     parent.appendChild(restoreBtn); 
   };
 
-  function AddMapTranslate(parent,slider,callback){
-    var params = {className:'map-translate',
-            min: -2000,
-            max: 2000,
-            value: 0,
-           callback:callback};
-    var text = {x:'<-Left / Right->',
-          y:'<-Ventral / Dorsal->',
-          z:'<-Anterior / Posterior->'};
-    for (var i in text){
-        var p = document.createElement('p')
-        p.innerHTML = text[i] + ': '
-        parent.appendChild(p);
-        slider(parent,i,params);
-    }
-  };
-
-  function AddSlider(parent,name,params){
-    var self = this;
-    var slider = document.createElement('input');
-    slider.id = name + '-slider';
+  // xyz = 'x', 'y', or 'z'
+  function AddSlider(parent,xyz,params){
+    const slider = document.createElement('input');
+    slider.id = xyz + '-slider';
     slider.className = params.className;
     slider.type ='range';
     slider.min = params.min;
     slider.max = params.max;
     slider.value = params.value;
     slider.onchange = function(){
-      var x = document.getElementById('x-slider').value;
-      var y = document.getElementById('y-slider').value;
-      var z = document.getElementById('z-slider').value;
-      // why negative? probably something to do with EM coords
-      params.callback(-x,-y,-z);
+      const x = parseInt(document.getElementById('x-slider').value);
+      const y = parseInt(document.getElementById('y-slider').value);
+      const z = parseInt(document.getElementById('z-slider').value);
+      params.callback(x,y,z); // used to be negative
     };
+    slider.oninput = slider.onchange;
     parent.appendChild(slider);
   };
+
+  // callback(x,y,z) - updating function when x,y,z-slider
+  function AddMapTranslate(parent,callback){
+    const params = {
+      className:'map-translate',
+      min: -2000,
+      max: 2000,
+      value: 0,
+      callback:callback,
+    };
+    const text = {
+      x: '<-x Left / Right +x>',
+      y: '<-y Ventral / Dorsal +y>',
+      z: '<-z Anterior / Posterior +z>',
+    };
+    for (const i in text){
+      const p = document.createElement('p')
+      p.innerHTML = text[i] + ': '
+      parent.appendChild(p);
+      AddSlider(parent,i,params);
+    }
+  };
+
 
   // callback expects no arguments
   // (usage: application of viewer.toggleRemarks or toggleAxes)
@@ -1283,8 +1296,8 @@ ImporterApp.prototype.GenerateMenu = function()
 
   this.menuGroup['map-translate'] =
       this.menuObj.AddDefaultGroup('Map translate',visible=true);
-  AddMapTranslate(this.menuGroup['map-translate'],AddSlider,
-    function(x,y,z){self.viewer.translateMaps(x,y,z);});
+  AddMapTranslate(this.menuGroup['map-translate'],
+    function(x,y,z){self.viewer.translateMapsTo(x,y,z);});
 
   this.menuGroup['comments'] =
       this.menuObj.AddDefaultGroup('Comments',visible=true);
@@ -1360,6 +1373,8 @@ ImporterApp.prototype.UpdateSynapseInfo = function(info) {
   document.getElementById('synweight').innerHTML = info.synweight;
   document.getElementById('synsection').innerHTML = info.synsection;
   document.getElementById('syncontin').innerHTML = info.syncontin;
+  document.getElementById('synposition').innerHTML =
+    `x: ${info.synposition.x}, y: ${info.synposition.y}, z: ${info.synposition.z}`;
 };
 
 // returns Synapse Info to last clicked synapse

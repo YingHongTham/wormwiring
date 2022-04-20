@@ -57,7 +57,7 @@ MapViewer = function(_canvas,_menu,_debug=false)
   };
   
   // keeps track of movement of skeleton etc by the user (slider)
-  // (see this.translateMaps)
+  // (see this.translateMapsTo)
   // note this is NOT the view origin of the camera,
   // i.e. moving the slider changes this,
   // but the camera and angle stays put, so the skeleton moves
@@ -177,10 +177,6 @@ MapViewer.prototype.initGL = function()
       new THREE.Vector3(1,0,0), origin, length, arrowColor));
   this.axesText.add( new THREE.ArrowHelper(
       new THREE.Vector3(0,-1,0), origin, length, arrowColor));
-  // YH old method of adding axes text
-  //this.addText('Anterior',{x:100,y:50,z:0},this.axesText);
-  //this.addText('Right',{x:150,y:50,z:250,_y:-Math.PI/2},this.axesText);
-  //this.addText('Ventral',{x:100,y:0,z:200,_x:-Math.PI/2},this.axesText);
 };
 
 /*
@@ -195,8 +191,11 @@ MapViewer.prototype.initGL = function()
  *  keys:
  *    x,y,z: position (required)
  *    _x,_y,_z: rotation (optional, default x-y plane)
+ *      rotates by right-hand rule, e.g.
+ *      _x=-pi/2 means turn text from face +z to face +y
  *    font: optional (default "Bold 20px Arial")
  *    color: optional (default this.defaultTextColor)
+ * old:
  * @param {Array} container - contains references to the
  *    THREE mesh/text object created displaying the text
  *    (addText push-es the object into this container)
@@ -204,8 +203,8 @@ MapViewer.prototype.initGL = function()
  * YH modified to also return the THREE object, clearer logic
  * let the caller deal with saving to whatever container they want
  */
-MapViewer.prototype.addText = function(text,params,container=null)
-{
+//MapViewer.prototype.addText = function(text,params,container=null)
+MapViewer.prototype.addText = function(text,params) {
   const textCanvas = document.createElement('canvas');
   const ctx = textCanvas.getContext('2d');
   const font = (params.font != undefined) ?
@@ -251,14 +250,55 @@ MapViewer.prototype.addText = function(text,params,container=null)
   // position is of the center of the canvas
   mesh.position.set(params.x,params.y,params.z);
 
-  if (container !== null) {
-    container.push(mesh);
-  }
-  
-  this.scene.add( mesh );
+  // YH old behaviour, now let caller handle mesh
+  //if (container !== null) {
+  //  container.push(mesh);
+  //}
+  //this.scene.add( mesh );
 
   return mesh;
 }
+
+/*
+ * @param {Object} params - almost same as addText
+ *  but with additional 'offset' key = {x: .., y: .., z: ..}
+ */
+MapViewer.prototype.addTextWithArrow = function(text,params) {
+  // return value
+  const group = new THREE.Group();
+
+  const offset = new THREE.Vector3(
+    params.offset.x,
+    params.offset.y,
+    params.offset.z);
+
+  // make a copy of params for this.addText, and add offset
+  const textParams = {};
+  for (const key in params) {
+    if (key !== 'offset') {
+      textParams[key] = params[key];
+    }
+  }
+  textParams.x += offset.x;
+  textParams.y += offset.y;
+  textParams.z += offset.z;
+
+  console.log('offset: ', offset);
+  console.log('textParams: ', textParams);
+  console.log('params: ', params);
+
+  group.add(this.addText(text,textParams));
+
+  const arrowColor = 0x5500ff;
+  const length = offset.length();
+  offset.normalize();
+  offset.negate();
+  const textPos = new THREE.Vector3(textParams.x, textParams.y, textParams.z);
+
+  group.add(new THREE.ArrowHelper(offset, textPos, length, arrowColor));
+
+  return group;
+};
 
 MapViewer.prototype.clearMaps = function()
 {
@@ -462,30 +502,44 @@ MapViewer.prototype.loadMap = function(map)
   // YH rewrote to follow add_remark_alt (returns ASSOC array)
   // YH also got rid of parseInt, fixed php
   map.remarks.forEach( obj => {
+    //// position on the cell, "actual" position
+    //const pos = this.applyParamsTranslate(new THREE.Vector3(
+    //    obj.x, obj.y, obj.z));
+    //const offset = new THREE.Vector3(200, 200, 0);
+    //const length = offset.length();
+    //// posOffset: where to put the text
+    //const posOffset = new THREE.Vector3(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z);
+    //var params2 = {
+    //  x: posOffset.x, y: posOffset.y, z: posOffset.z,
+    //  color : self.remarksColor,
+    //  font : "Bold 20px Arial",
+    //  visible : true, // visibility handled by remarks Group
+    //};
+    //const arrowColor = 0x5500ff;
+    //offset.normalize();
+    //offset.negate();
+    //const arrow = new THREE.ArrowHelper(offset, posOffset, length, arrowColor);
+    //self.maps[map.name].remarks.add(arrow);
+    //self.maps[map.name].remarks.add(self.addText(obj.remarks,params2));
+
+
     const pos = this.applyParamsTranslate(new THREE.Vector3(
         obj.x, obj.y, obj.z));
-    const offset = new THREE.Vector3(200, 200, 0);
-    const length = offset.length();
-    const posOffset = new THREE.Vector3(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z);
-    console.log('pos: ', pos);
-    console.log('posOffset: ', posOffset);
-    console.log('offset: ', offset);
-    var params2 = {
-      x: posOffset.x, y: posOffset.y, z: posOffset.z,
+    const params2 = {
+      x: pos.x, y: pos.y, z: pos.z,
+      offset: { x: 200, y: 200, z: 0 },
       color : self.remarksColor,
       font : "Bold 20px Arial",
       visible : true, // visibility handled by remarks Group
     };
-    const arrowColor = 0x5500ff;
-    offset.normalize();
-    offset.negate();
-    const arrow = new THREE.ArrowHelper(offset, pos, length, arrowColor);
-    self.maps[map.name].remarks.add(arrow);
-    self.maps[map.name].remarks.add(self.addText(obj.remarks,params2));
+
+    self.maps[map.name].remarks.add(
+        self.addTextWithArrow(obj.remarks, params2));
   });
-    
-  var m = new THREE.Matrix4();
-  m.makeTranslation(-this.position.x,-this.position.y,-this.position.z)
+
+  // let importerapp call overall translation
+  //var m = new THREE.Matrix4();
+  //m.makeTranslation(-this.position.x,-this.position.y,-this.position.z)
   //this.translateSkeleton(this.maps[map.name].skeleton,m);
 };
 
@@ -497,6 +551,8 @@ MapViewer.prototype.getLoadedCells = function() {
 /*
  * @param {Object} vec - Vector3, or object with keys x,y,z
  * @param {Object} params - of form plotParam
+ *
+ * this.translate seems pretty useless
  */
 MapViewer.prototype.applyParamsTranslate = function(vec,params=null) {
   if (params === null) {
@@ -594,10 +650,8 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType,params)
 {
   var self = this;
-  // YH refactored transformation
   var synapsePos = new THREE.Vector3(synapse.x, synapse.y, synapse.z);
   synapsePos = this.applyParamsTranslate(synapsePos, params);
-  //synapsePos.sub(self.position);
   var _radius = synapse['numSections'];
   var radius = Math.min(self.SynMax,synapse['numSections']*self.SynScale);
   var partner = synapse['label'];
@@ -610,32 +664,23 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
   var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
   var sphere = new THREE.Mesh(geometry,sphereMaterial);
   sphere.name = contin;
-  // YH use pos above
-  //sphere.position.set(x-self.position.x,y-self.position.y,z-self.position.z);
   sphere.position.copy(synapsePos);
   sphere.material.transparent = true;
 
-  //self.maps[name].synObjs.add(sphere); // old: .push(sphere)
+  // add sphere to scene via pre/post/gap Group
   self.maps[name][synType].add(sphere);
 
-  // putting synapse objects into the maps[name].synapses
-  // which is just a more organized version
-  // TODO maybe just do the split to facilitate search later..
-  //var _partner = partner.split(',');
-  //for (var j in _partner){
-  //  if (!(_partner[j] in self.maps[name].synapses)){
-  //    self.maps[name].synapses[_partner[j]] = 
-  //      {'Presynaptic':[],'Postsynaptic':[],'Gap junction':[]};
-  //  };
-  //  self.maps[name].synapses[_partner[j]][synType].push(sphere);
-  //};
-
-  // adding text labels next to synapses
-  this.maps[name].synLabels.add(this.addText(partner,{
+  // add text label to scene via synLabels
+  self.maps[name].synLabels.add(this.addTextWithArrow(partner,{
     x: sphere.position.x,
     y: sphere.position.y,
     z: sphere.position.z,
-    _x:-Math.PI/4,
+    offset: {
+      x: 100 * Math.cos( 0.5 * sphere.position.z ),
+      y: 100 * Math.sin( 0.5 * sphere.position.z ),
+      z: 0,
+    },
+    _x:-Math.PI/2,
     font: "20px Arial",
   }));
 
@@ -650,48 +695,28 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
     synweight: _radius,
     synsection: `(${sect1},${sect2})`,
     syncontin: contin,
+    synposition: sphere.getWorldPosition(), // must be updated when emit event
   };
 
   self.domEvents.addEventListener(sphere,'mouseover',function(event){
-    // YH moved updating of html to importerapp,
-    // keep separation of logic clear..
+    sphere.getWorldPosition(info.synposition);
     self.menu.app.UpdateSynapseInfo(info);
-
-    // YH why return this? not even clear it returns any value
-    //return self.renderer.render(self.scene,self.camera);
     self.renderer.render(self.scene,self.camera);
     return;
   });
   self.domEvents.addEventListener(sphere,'mouseout',function(event){
-    //document.getElementById('cellname').innerHTML = params.default;
-    //same for all; params.default was '---'
-    // YH moved updating of html to importerapp,
-    // keep separation of logic clear..
     self.menu.app.RestoreSynapseInfo();
-
     self.renderer.render(self.scene,self.camera);
     return;
   });
 
-  // what were these for again?
-  //var url = '/maps/getImages.php?neuron=' +
-  //  params.neuron + '&db=' + params.db +'&continNum='+contin;
-  //THREEx.Linkify(self.domEvents,sphere,url);      
-  
   // YH change behaviour of clicking;
   // floating dialog now handled by button
   // (see AddSynapseInfo in importerapp.js)
   self.domEvents.addEventListener(sphere,'click',function(event){
+    sphere.getWorldPosition(info.synposition);
     self.menu.app.UpdateClickedSynapseInfo(info);
-
-    // note menu.synClick is really a floatingdialog object
-    // which opens a floating dialog displaying url stuff
-    // (see ../../include/floatingdialog.js)
-    //self.menu.synClick(url,'Synapse viewer');
   });
-
-  // YH already added to synObjs Group
-  //self.scene.add(sphere);
 };
 
 
@@ -703,28 +728,76 @@ MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,p
 };
 
 
-/* translate this.position to given x,y,z
- * 0,0,0 at the beginning
- * The user may adjust with slider
- * all stuff moves with this.position
- * note that this is called with -x,-y,-z in the onchange functions
- * of the sliders
- * probably because of some sign conventions in the EMs..
+/*
+ * translate this.position to given x,y,z
+ * this.position is (0,0,0) at the beginning
+ * maps of each cell relative position to this.position
+ * should be unchanged
+ * this.position is controlled directly by user
+ * through the x/y/z-slider
+ * note that this used to be called with -x,-y,-z
+ * in the onchange functions of the sliders
+ * old code here did delta = old position - new position
  */
-MapViewer.prototype.translateMaps = function(x,y,z)
+MapViewer.prototype.translateMapsTo = function(x,y,z)
 {
-  var posnew = new THREE.Vector3(x,y,z);
-  var delta =  this.position.clone();
-  delta.sub(posnew);
-  this.position = posnew.clone();
+  //var posnew = new THREE.Vector3(x,y,z);
+  //var delta =  this.position.clone();
+  //delta.sub(posnew);
+  //this.position = posnew.clone();
+  const delta = new THREE.Vector3(x,y,z);
+  delta.sub(this.position);
+  this.position.set(x,y,z);
 
-  var m = new THREE.Matrix4()
+  const m = new THREE.Matrix4();
   m.makeTranslation(delta.x,delta.y,delta.z);
   
-  for (var name in this.maps) {
+  for (const name in this.maps) {
     this.transformStuffOneCell(m, name);
-  };
+  }
 };
+
+/*
+ * same as translateMapsTo, but adds, not absolute
+ */
+MapViewer.prototype.translateMapsBy = function(x,y,z) {
+  this.position.x += x;
+  this.position.y += y;
+  this.position.z += z;
+
+  const m = new THREE.Matrix4();
+  m.makeTranslation(x,y,z);
+
+  for (const name in this.maps) {
+    this.transformStuffOneCell(m, name);
+  }
+};
+
+/*
+ * translate one cell (usually when newly loaded)
+ * by this.position to match others
+ * important that all operations here are synchronous
+ * so that if user is sliding, this will complete
+ * before this.position is updated again
+ */
+MapViewer.prototype.translateOneMapsToThisPos = function(cellname) {
+  const m = new THREE.Matrix4();
+  const pos = this.position;
+  m.makeTranslation(pos.x,pos.y,pos.z);
+
+  this.transformStuffOneCell(m, cellname);
+};
+
+/*
+ * translate only one cell
+ */
+MapViewer.prototype.translateOneMapsBy = function(cellname,x,y,z) {
+  const m = new THREE.Matrix4()
+  m.makeTranslation(x,y,z);
+
+  this.transformStuffOneCell(m, cellname);
+};
+
 
 MapViewer.prototype.translateSkeleton = function(skeleton,transMatrix)
 {
