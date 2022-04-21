@@ -161,12 +161,17 @@ MapViewer.prototype.initGL = function()
   // TODO high z is anterior or posterior?
   this.scene.add(this.axesText);
   const axesTextDist = 200;
-  this.axesText.add(
-      this.addText('Anterior (-z)',{x:0,y:0,z:-axesTextDist}));
-  this.axesText.add(
-      this.addText('Right (+x)',{x:axesTextDist,y:0,z:0,_y:-Math.PI/2}));
-  this.axesText.add(
-      this.addText('Ventral (-y)',{x:0,y:-axesTextDist,z:0,_x:-Math.PI/2}));
+  this.axesText.add( this.addText('Anterior (-z)', {
+    pos: new THREE.Vector3(0,0,-axesTextDist),
+  }));
+  this.axesText.add( this.addText('Right (+x)', {
+    pos: new THREE.Vector3(axesTextDist,0,0),
+    rotate: { y: -Math.PI/2 },
+  }));
+  this.axesText.add( this.addText('Ventral (-y)', {
+    pos: new THREE.Vector3(0,-axesTextDist,0),
+    rotate: { x: -Math.PI/2 },
+  }));
   // YH adding arrow for the axesText too
   const origin = new THREE.Vector3(0,0,0);
   const arrowColor = 0x5500ff;
@@ -189,113 +194,154 @@ MapViewer.prototype.initGL = function()
  * @param {string} text
  * @param {Object} params -
  *  keys:
- *    x,y,z: position (required)
- *    _x,_y,_z: rotation (optional, default x-y plane)
+ *    pos: THREE.Vector3 (required)
+ *    rotate: {x,y,z} (optional, default x-y plane)
  *      rotates by right-hand rule, e.g.
- *      _x=-pi/2 means turn text from face +z to face +y
+ *      x=-pi/2 means turn text from face +z to face +y
+ *    scale: {x,y,z} (optional, default {1,1,1})
+ *      (for rotate and scale, allowed to omit some,
+ *        e.g. scale = {x:1})
  *    font: optional (default "Bold 20px Arial")
  *    color: optional (default this.defaultTextColor)
  * old:
  * @param {Array} container - contains references to the
  *    THREE mesh/text object created displaying the text
  *    (addText push-es the object into this container)
+ *
  * 
  * YH modified to also return the THREE object, clearer logic
  * let the caller deal with saving to whatever container they want
  */
 //MapViewer.prototype.addText = function(text,params,container=null)
 MapViewer.prototype.addText = function(text,params) {
+  // some hard-coded values, probably good to change in future
+  const defaultTextFont = "Bold 20px Arial";
+  const textHeight = 30;
+
+  // text is written onto a canvas element,
+  // and somehow THREE creates a texture from it
   const textCanvas = document.createElement('canvas');
   const ctx = textCanvas.getContext('2d');
-  const font = (params.font != undefined) ?
-    params.font : "Bold 20px Arial";
+  ctx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+  const font = ('font' in params) ?
+    params.font : defaultTextFont;
   ctx.font = font;
-  const fillStyle = (params.color != undefined) ?
+  const fillStyle = ('color' in params) ?
     params.color : this.defaultTextColor;
   ctx.fillStyle = fillStyle;
 
   textCanvas.width = ctx.measureText(text).width;
-  textCanvas.height = 30;
+  textCanvas.height = textHeight;
 
   // browser bugs: this is reset to default after measureText!
   ctx.font = font;
   ctx.fillStyle = fillStyle;
 
   ctx.fillText(text, 0, textCanvas.height - 5);
-  //ctx.fillText(text, 0, 50); // 0, 50 relative pos of text in ctx
     
   // textCanvas contents will be used for a texture
-  var texture = new THREE.Texture(textCanvas) 
+  const texture = new THREE.Texture(textCanvas) 
   texture.needsUpdate = true;
 
   // material for the rectangle in which text is written
   // hence set to transparent
-  var material = new THREE.MeshBasicMaterial({
+  const material = new THREE.MeshBasicMaterial({
     map: texture,
     side:THREE.DoubleSide
   });
   material.transparent = true;
 
-  var mesh = new THREE.Mesh(
+  const mesh = new THREE.Mesh(
     new THREE.PlaneGeometry(textCanvas.width, textCanvas.height),
     material
   );
 
-  if (params._x != undefined){mesh.rotateX(params._x)};
-  if (params._y != undefined){mesh.rotateY(params._y)};
-  if (params._z != undefined){mesh.rotateZ(params._z)};
+  // text mesh object created, now do some transformation
 
-  if (params.visible != undefined){mesh.visible = params.visible};
+  // scale the text
+  // text can't go smaller than a certain font size
+  // (would become too blurry)
+  if ('scale' in params) {
+    const m = new THREE.Matrix4();
+    m.makeScale(
+      'x' in params.scale ? params.scale.x : 1,
+      'y' in params.scale ? params.scale.y : 1,
+      'z' in params.scale ? params.scale.z : 1
+    );
+    mesh.applyMatrix(m);
+  }
+
+  // note apparently must scale first;
+  // seems scaling after rotating undoes rotation?
+  if ('rotate' in params) {
+    const rot = params.rotate;
+    if ('x' in rot) { mesh.rotateX(rot.x); }
+    if ('y' in rot) { mesh.rotateY(rot.y); }
+    if ('z' in rot) { mesh.rotateZ(rot.z); }
+  }
+
+  if ('visible' in params) {
+    mesh.visible = params.visible
+  };
 
   // position is of the center of the canvas
-  mesh.position.set(params.x,params.y,params.z);
-
-  // YH old behaviour, now let caller handle mesh
-  //if (container !== null) {
-  //  container.push(mesh);
-  //}
-  //this.scene.add( mesh );
+  mesh.position.set(params.pos.x,params.pos.y,params.pos.z);
 
   return mesh;
 }
 
 /*
  * @param {Object} params - almost same as addText
- *  but with additional 'offset' key = {x: .., y: .., z: ..}
+ *  but with additional keys
+ * @param {Vector3} params.offset - THREE.Vector3 (required)
+ * @param {boolean} params.arrowhead: boolean, if false, use line segment (optional)
+ * @param {Number} params.arrowColor: (optional) default is 0x5500ff
+ *  }
+ *  text object is set to pos + offset
+ *  and arrow points from text object to pos
  */
 MapViewer.prototype.addTextWithArrow = function(text,params) {
   // return value
   const group = new THREE.Group();
 
-  const offset = new THREE.Vector3(
-    params.offset.x,
-    params.offset.y,
-    params.offset.z);
+  const offset = params.offset.clone();
+  const pos = params.pos.clone();
 
-  // make a copy of params for this.addText, and add offset
+  // make a copy of params for this.addText
+  // without offset
   const textParams = {};
   for (const key in params) {
-    if (key !== 'offset') {
+    if (key === 'offset' || key === 'arrowOptions') {
+      continue;
+    }
+    if (['rotate', 'scale'].includes(key)) {
+      textParams[key] = Object.assign({}, params[key]);
+    } else if (key === 'pos') {
+      textParams[key] = params[key].clone();
+    } else {
       textParams[key] = params[key];
     }
   }
-  textParams.x += offset.x;
-  textParams.y += offset.y;
-  textParams.z += offset.z;
-
-  console.log('offset: ', offset);
-  console.log('textParams: ', textParams);
-  console.log('params: ', params);
+  textParams.pos.add(offset);
 
   group.add(this.addText(text,textParams));
 
-  const arrowColor = 0x5500ff;
+  const arrowColor = ('arrowColor' in params) ?
+      params.arrowColor : 0x5500ff;
   const length = offset.length();
   offset.normalize();
   offset.negate();
-  const textPos = new THREE.Vector3(textParams.x, textParams.y, textParams.z);
 
-  group.add(new THREE.ArrowHelper(offset, textPos, length, arrowColor));
+  if (params.arrowhead === false) {
+    const geometry = new THREE.BufferGeometry().setFromPoints(
+        [textParams.pos, pos]);
+    const material = new THREE.LineBasicMaterial({ color: arrowColor });
+    const line = new THREE.Line( geometry, material );
+    group.add(line);
+  }
+  else {
+    group.add(new THREE.ArrowHelper(offset, textParams.pos, length, arrowColor));
+  }
 
   return group;
 };
@@ -490,10 +536,28 @@ MapViewer.prototype.loadMap = function(map)
     }
   }
 
-  //map['..'] here are arrays of 
-  this.addSynapse(map.name,map['preSynapse'],this.preMaterial,'pre',params);
-  this.addSynapse(map.name,map['postSynapse'],this.postMaterial,'post',params);
-  this.addSynapse(map.name,map['gapJunction'],this.gapMaterial,'gap',params);
+  // map['pre..'] is array of objects,
+  // each representing one synapse
+  // each map['pre..'], map['post..'], map['gap..']
+  // is order by z value ascending
+  // we want to add them in ascending order
+  // because of the labeling stuff
+  allSyn = [];
+  allSyn = allSyn.concat(
+    map['preSynapse'].map(syn => [syn.z, 'pre', syn]));
+  allSyn = allSyn.concat(
+    map['postSynapse'].map(syn => [syn.z, 'post', syn]));
+  allSyn = allSyn.concat(
+    map['gapJunction'].map(syn => [syn.z, 'gap', syn]));
+  allSyn.sort((obj1, obj2) => obj1[0] - obj2[0]);
+  for (const obj of allSyn) {
+    const sphereMaterial = this[`${obj[1]}Material`];
+    this.addOneSynapse(map.name,obj[2],sphereMaterial,obj[1],params);
+  }
+
+  //this.addSynapse(map.name,map['preSynapse'],this.preMaterial,'pre',params);
+  //this.addSynapse(map.name,map['postSynapse'],this.postMaterial,'post',params);
+  //this.addSynapse(map.name,map['gapJunction'],this.gapMaterial,'gap',params);
 
   // map.remarks[i] has 5 keys:
   //    x, y, z, series, remark
@@ -502,35 +566,15 @@ MapViewer.prototype.loadMap = function(map)
   // YH rewrote to follow add_remark_alt (returns ASSOC array)
   // YH also got rid of parseInt, fixed php
   map.remarks.forEach( obj => {
-    //// position on the cell, "actual" position
-    //const pos = this.applyParamsTranslate(new THREE.Vector3(
-    //    obj.x, obj.y, obj.z));
-    //const offset = new THREE.Vector3(200, 200, 0);
-    //const length = offset.length();
-    //// posOffset: where to put the text
-    //const posOffset = new THREE.Vector3(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z);
-    //var params2 = {
-    //  x: posOffset.x, y: posOffset.y, z: posOffset.z,
-    //  color : self.remarksColor,
-    //  font : "Bold 20px Arial",
-    //  visible : true, // visibility handled by remarks Group
-    //};
-    //const arrowColor = 0x5500ff;
-    //offset.normalize();
-    //offset.negate();
-    //const arrow = new THREE.ArrowHelper(offset, posOffset, length, arrowColor);
-    //self.maps[map.name].remarks.add(arrow);
-    //self.maps[map.name].remarks.add(self.addText(obj.remarks,params2));
-
-
     const pos = this.applyParamsTranslate(new THREE.Vector3(
         obj.x, obj.y, obj.z));
     const params2 = {
-      x: pos.x, y: pos.y, z: pos.z,
-      offset: { x: 200, y: 200, z: 0 },
-      color : self.remarksColor,
-      font : "Bold 20px Arial",
-      visible : true, // visibility handled by remarks Group
+      pos: pos,
+      offset: new THREE.Vector3(200,200,0),
+      color: self.remarksColor,
+      font: "Bold 20px Arial",
+      visible: true, // visibility handled by remarks Group
+      arrowhead: false,
     };
 
     self.maps[map.name].remarks.add(
@@ -647,9 +691,10 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
  *     remarks : false
  *   }
  */
+
 MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType,params)
 {
-  var self = this;
+  const self = this;
   var synapsePos = new THREE.Vector3(synapse.x, synapse.y, synapse.z);
   synapsePos = this.applyParamsTranslate(synapsePos, params);
   var _radius = synapse['numSections'];
@@ -670,18 +715,30 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
   // add sphere to scene via pre/post/gap Group
   self.maps[name][synType].add(sphere);
 
+  // function for determining the offset based on z coord
+  function offsetx(z) {
+    if (this.count === undefined) {
+      this.count = 0;
+    }
+    console.log(count, sphere.position.z);
+    ++this.count;
+    switch(this.count % 4) {
+      case 0: return -50;// + 10*this.count;
+      case 1: return 25;// + 10*this.count;
+      case 2: return -25;// + 10*this.count;
+      case 3: return 50;// + 10*this.count;
+    }
+  };
+    
   // add text label to scene via synLabels
   self.maps[name].synLabels.add(this.addTextWithArrow(partner,{
-    x: sphere.position.x,
-    y: sphere.position.y,
-    z: sphere.position.z,
-    offset: {
-      x: 100 * Math.cos( 0.5 * sphere.position.z ),
-      y: 100 * Math.sin( 0.5 * sphere.position.z ),
-      z: 0,
-    },
-    _x:-Math.PI/2,
-    font: "20px Arial",
+    pos: sphere.position.clone(),
+    rotate: { x: -Math.PI/3 },
+    scale: { x: 0.2, y: 0.2, z: 0.2 },
+    offset: new THREE.Vector3(
+        offsetx(Math.floor(sphere.position.z)),0,0),
+    font: '20px Arial',
+    arrowhead: false,
   }));
 
 
@@ -722,7 +779,7 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 
 //should be called addSynapseS!
 MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,params) {
-  for (var synapse of synapses) {
+  for (const synapse of synapses) {
     this.addOneSynapse(name,synapse,sphereMaterial,synType,params);
   }
 };

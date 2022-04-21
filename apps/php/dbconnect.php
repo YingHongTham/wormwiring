@@ -200,7 +200,7 @@ class DB {
 			where (pre like '%$continName%' 
 			or post like '%$continName%') 
 			and synapsecombined.type like 'electrical' 
-			order by pre desc,sections desc";
+			order by image.IMG_SectionNumber asc, pre desc,sections desc";
 
     // cast integers
     $data = $this->_return_query_rows_assoc($sql);
@@ -264,12 +264,17 @@ class DB {
     $sql = "
       select
         pre,post,sections,continNum
+        pre,post,sections,continNum,
+        image.IMG_SectionNumber
       from synapsecombined 
 			  join object on
 			    synapsecombined.mid = object.OBJ_Name
+        join image
+          on object.IMG_Number = image.IMG_Number 
 			where pre like '%$continName%' 
 			  and synapsecombined.type like 'chemical' 
-			order by pre desc,sections desc";
+      order by
+        image.IMG_SectionNumber asc, post desc, sections desc";
 
     // cast integers
     $data = $this->_return_query_rows_assoc($sql);
@@ -311,18 +316,22 @@ class DB {
 	}
 
 	function get_post_chemical_synapses($continName){
-		$sql = "select pre,post,sections,continNum,
-			image.IMG_SectionNumber from synapsecombined 
-			join object on
-			synapsecombined.mid = object.OBJ_Name
-			join image on
-			object.IMG_Number = image.IMG_Number 
+    $sql = "
+      select
+        pre,post,sections,continNum,
+        image.IMG_SectionNumber
+      from synapsecombined 
+        join object
+          on synapsecombined.mid = object.OBJ_Name
+        join image
+          on object.IMG_Number = image.IMG_Number 
 			where (post like binary '$continName'
-			or post like binary '%,$continName'
-			or post like binary '$continName,%'
-			or post like binary '%,$continName,%') 
-			and synapsecombined.type like 'chemical' 
-			order by pre desc,sections desc";
+			  or post like binary '%,$continName'
+			  or post like binary '$continName,%'
+			  or post like binary '%,$continName,%') 
+			  and synapsecombined.type like 'chemical' 
+      order by
+        image.IMG_SectionNumber asc, pre desc,sections desc";
 			$sql = str_ireplace('sleep','',$sql);
 		return $this->_return_query_rows($sql);
   }

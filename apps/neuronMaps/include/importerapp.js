@@ -1081,8 +1081,12 @@ ImporterApp.prototype.GenerateMenu = function()
       const db = document.getElementById('series-selector').value;
       const syncontin = document.getElementById('syncontin').innerHTML;
 	    const url = `../synapseViewer/?neuron=${cellname}&db=${db}&continNum=${syncontin}`;
+      const a = document.createElement('a');
+      a.target = '_blank';
+      a.href = url;
+      a.click();
       // note url is relative to floatingdialog.js...
-      self.InfoDialog(url,'Synapse viewer');
+      //self.InfoDialog(url,'Synapse viewer');
     };
     parent.appendChild(synViewerBtn);
   };

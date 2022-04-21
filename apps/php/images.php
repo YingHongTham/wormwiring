@@ -77,7 +77,7 @@ class Image {
       }
 
       function encode(){
-      	       ob_start();
+      	 ob_start();
 	       imagejpeg($this->img,NULL,100);
 	       $rawImageBytes = ob_get_clean();
 	       return base64_encode($rawImageBytes);			
