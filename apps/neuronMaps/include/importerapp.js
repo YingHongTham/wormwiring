@@ -599,11 +599,15 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
   var xhttp = new XMLHttpRequest();    
   xhttp.onreadystatechange = function(){
     if (this.readyState == 4 && this.status == 200){
+      console.time(`LoadMap ${mapname}`);
+
       self.data[mapname] = JSON.parse(this.responseText);
       self.viewer.loadMap(self.data[mapname]);
 
       // translate maps of this cell
       self.viewer.translateOneMapsToThisPos(mapname);
+
+      console.timeEnd(`LoadMap ${mapname}`);
 
       // YH maybe don't need this
       document.dispatchEvent(new CustomEvent('loadMapComplete', {
