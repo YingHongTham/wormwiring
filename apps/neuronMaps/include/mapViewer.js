@@ -113,11 +113,13 @@ MapViewer = function(_canvas,_menu,_debug=false)
   this.gridHelper = null; // defined in initGL
   this.axesText = new THREE.Group(); // also has arrows
 
-  // YH no need anymore
   // YH see toggleRemarks
   // this default value should be same as the value in AddToggleButton
   // (search self.viewer.toggleRemarks in importerapp.js)
   //this.remarksAllVisible = false;
+  // however, for synapse label we need because
+  // we can have them individually and collectively toggled..
+  this.synapseLabelsAllVisible = false;
 };
 
 MapViewer.prototype.initGL = function()
@@ -473,6 +475,14 @@ MapViewer.prototype.loadMap = function(map)
 
 
   /*
+   * this.maps[cellname] is MapViewer's way of storing data about cells
+   *
+   * synLabels is Group of labels for synapses,
+   * the Group's visibility is set to true, toggle visibility individually
+   * because vis responds to mouse events over the synapses
+   * synLabel can be distinguished by the contin id
+   * (synLabel.name; see toggleSynapseLabels)
+   *
    * this.maps[cell] has the key synapses, which is of form:
    *  synapses: { // organized by the name(s) of other cell and type
    *    'RIPR': {
@@ -524,7 +534,8 @@ MapViewer.prototype.loadMap = function(map)
   this.maps[map.name].skeletonGrp.visible = true;
   this.maps[map.name].synObjs.visible = true;
   this.maps[map.name].remarks.visible = false; // see remarksparams
-  this.maps[map.name].synLabels.visible = false;
+  this.maps[map.name].synLabels.visible = true; // toggle individually
+  // because synLabels visibility respond to mouseover events
 
   // series keys like VC, NR etc, and value map[key]
   // comes from NeuronTrace constructor/TraceLocation from dbaux.php
@@ -715,12 +726,12 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
   // add sphere to scene via pre/post/gap Group
   self.maps[name][synType].add(sphere);
 
-  // function for determining the offset based on z coord
-  function offsetx(z) {
+  // function for determining the offset
+  // previously defined based on input z value
+  function offsetx() {
     if (this.count === undefined) {
       this.count = 0;
     }
-    console.log(count, sphere.position.z);
     ++this.count;
     switch(this.count % 4) {
       case 0: return -50;// + 10*this.count;
@@ -731,16 +742,19 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
   };
     
   // add text label to scene via synLabels
-  self.maps[name].synLabels.add(this.addTextWithArrow(partner,{
+  // accessed by this reference in the event listener callback
+  const synLabelObj = this.addTextWithArrow(partner,{
     pos: sphere.position.clone(),
     rotate: { x: -Math.PI/3 },
     scale: { x: 0.2, y: 0.2, z: 0.2 },
-    offset: new THREE.Vector3(
-        offsetx(Math.floor(sphere.position.z)),0,0),
+    offset: new THREE.Vector3(offsetx(),0,0),
+        //offsetx(Math.floor(sphere.position.z)),0,0),
     font: '20px Arial',
     arrowhead: false,
-  }));
-
+  });
+  synLabelObj.name = contin;
+  synLabelObj.visible = false;
+  self.maps[name].synLabels.add(synLabelObj);
 
   // setting up events/listeners to respond to
   // mouse events over synapse in viewer
@@ -757,22 +771,33 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
 
   self.domEvents.addEventListener(sphere,'mouseover',function(event){
     sphere.getWorldPosition(info.synposition);
+    synLabelObj.visible = true;
     self.menu.app.UpdateSynapseInfo(info);
     self.renderer.render(self.scene,self.camera);
-    return;
   });
   self.domEvents.addEventListener(sphere,'mouseout',function(event){
+    if (self.menu.app.GetSynapseInfoContin() !== info.syncontin) {
+      synLabelObj.visible = false;
+    }
     self.menu.app.RestoreSynapseInfo();
     self.renderer.render(self.scene,self.camera);
-    return;
   });
 
   // YH change behaviour of clicking;
   // floating dialog now handled by button
   // (see AddSynapseInfo in importerapp.js)
   self.domEvents.addEventListener(sphere,'click',function(event){
-    sphere.getWorldPosition(info.synposition);
-    self.menu.app.UpdateClickedSynapseInfo(info);
+    if (self.menu.app.GetSynapseInfoContin() === info.syncontin) {
+      synLabelObj.visible = false;
+      self.menu.app.ResetDefaultSynapseInfo();
+    }
+    else {
+      self.toggleSynapseLabels(info.cellname, false);
+      synLabelObj.visible = true;
+      sphere.getWorldPosition(info.synposition);
+      self.menu.app.UpdateClickedSynapseInfo(info);
+    }
+    self.renderer.render(self.scene,self.camera);
   });
 };
 
@@ -1078,9 +1103,17 @@ MapViewer.prototype.toggleAllSynapseLabels = function(bool=null) {
 
 MapViewer.prototype.toggleSynapseLabels = function(name,bool=null) {
   if (typeof(bool) !== 'boolean') {
-    bool = !this.maps[name].synLabels.visible;
+    //bool = !this.maps[name].synLabels.visible;
+    bool = !this.synapseLabelsAllVisible;
   }
-  this.maps[name].synLabels.visible = bool;
+  this.synapseLabelsAllVisible = bool;
+  for (const synLabel of this.maps[name].synLabels.children) {
+    synLabel.visible = bool;
+    if (this.menu.app.GetSynapseInfoContin() === synLabel.name) {
+      synLabel.visible = true;
+    }
+  }
+  //this.maps[name].synLabels.visible = bool;
 };
 
 
@@ -1148,6 +1181,11 @@ MapViewer.prototype.setColor = function(cell, color) {
   }
 };
 
+/*
+ * get skeleton color
+ * note it is out of 1.0
+ * should x 255 and round
+ */
 MapViewer.prototype.getColor = function(cell) {
   for (const obj of this.maps[cell].skeletonGrp.children) {
     if (!obj.cellBody) {
@@ -1182,13 +1220,42 @@ MapViewer.prototype.dumpCameraJSON = function() {
 };
 
 MapViewer.prototype.SetCameraFromJSON = function(cameraSettings) {
-  console.log('cameraSettings: ', cameraSettings);
   this.camera.position.x = cameraSettings.position.x;
   this.camera.position.y = cameraSettings.position.y;
   this.camera.position.z = cameraSettings.position.z;
-  this.cameraTarget.x = cameraSettings.viewOrigin.x;
-  this.cameraTarget.y = cameraSettings.viewOrigin.y;
-  this.cameraTarget.z = cameraSettings.viewOrigin.z;
+  this.SetCameraTarget(cameraSettings.viewOrigin);
   this.updateCamera();
 };
 
+/*
+ * @param {Object} target - THREE.Vector3 or just {x: , y: , z: }
+ */
+MapViewer.prototype.SetCameraTarget = function(target) {
+  this.controls.target.x = target.x;
+  this.controls.target.y = target.y;
+  this.controls.target.z = target.z;
+  this.cameraTarget.x = target.x;
+  this.cameraTarget.y = target.y;
+  this.cameraTarget.z = target.z;
+  this.updateCamera();
+};
+
+// get average position of cell, used for recentering view on LoadMap
+MapViewer.prototype.GetAveragePosition = function(name) {
+  const len = this.maps[name].skeletonGrp.children.length;
+  if (len === 0) {
+    return;
+  }
+  const tot = new THREE.Vector3(0,0,0);
+  for (const line of this.maps[name].skeletonGrp.children) {
+    const [v0, v1] = line.geometry.vertices;
+    tot.add(v0);
+    tot.add(v1);
+  }
+  //tot.scale(0.5 / len); // #vertices = 2*#lines
+  tot.x = tot.x * 0.5 / len;
+  tot.y = tot.y * 0.5 / len;
+  tot.z = tot.z * 0.5 / len;
+  console.log(tot);
+  return tot;
+};

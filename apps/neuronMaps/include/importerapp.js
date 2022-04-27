@@ -61,7 +61,7 @@ ImporterApp = function (params)
   // starting value of the Synapse Info section
   // will be updated when a synapse is clicked
   // see AddSynapseInfo for more
-  this.synapseInfoClicked = {
+  this.defaultSynapseInfo = {
     'cellname': '---',
     'syntype': '---',
     'synsource': '---',
@@ -71,6 +71,7 @@ ImporterApp = function (params)
     'syncontin': '---',
     'synposition': '---',
   }
+  this.synapseInfoClicked = Object.assign({}, this.defaultSynapseInfo);
 
   // but wait, there's more...
   // many more members defined in Init()
@@ -609,6 +610,8 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
 
       console.timeEnd(`LoadMap ${mapname}`);
 
+      self.viewer.SetCameraTarget(self.viewer.GetAveragePosition(mapname));
+
       // YH maybe don't need this
       document.dispatchEvent(new CustomEvent('loadMapComplete', {
         detail: mapname,
@@ -659,12 +662,12 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   // params for sub items under each cell entry in Maps
 
   var colorparams = {
-    openCloseButton:{
-      visible : false,
-      open : 'images/opened.png',
-      close: 'images/closed.png',
-      title: 'Map color',
-      onOpen : function(content,mapName){
+    openCloseButton: {
+      visible: false,
+	    open: 'images/opened.png',//'\u25b2',
+	    close: 'images/closed.png',//'\u25bc',
+      title: 'Skeleton color',
+      onOpen : function(content, mapname) {
         while(content.lastChild){
           content.removeChild(content.lastChild);
         };
@@ -672,12 +675,10 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         // class no CSS, but used below
         colorInput.className = 'colorSelector';
         colorInput.setAttribute('type','text');
-        const {r, g, b} = self.viewer.getColor(mapname);
-        // YH finally got around to changing skeleton to Group
-        //var obj = self.viewer.maps[mapname].skeleton[0];
-        //var r = Math.round(255*obj.material.color.r);
-        //var b = Math.round(255*obj.material.color.b);
-        //var g = Math.round(255*obj.material.color.g);
+        var {r, g, b} = self.viewer.getColor(mapname);
+        var r = Math.round(255*r);
+        var b = Math.round(255*b);
+        var g = Math.round(255*g);
         var rgb = b | (g << 8) | (r << 16);
         var hex = '#' + rgb.toString(16);
         colorInput.setAttribute('value',hex);
@@ -686,16 +687,8 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
           preferredFormat: "rgb",
           showInput: true,
           move: function(color){
-            var rgb = color.toRgb();
-            //for (var i in self.viewer.maps[mapname].skeleton){
-            for (const obj in self.viewer.maps[mapname].skeletonGrp.children){
-              //var obj = self.viewer.maps[mapname].skeleton[i];
-              if (!obj.cellBody){
-                obj.material.color.r = rgb.r/255.;
-                obj.material.color.g = rgb.g/255.;
-                obj.material.color.b = rgb.b/255.;
-              }
-            };
+            const {r, g, b} = color.toRgb();
+            self.viewer.setColor(mapname, {r:r/255., g:g/255., b:b/255.});
           }
         });
       },
@@ -729,8 +722,8 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   var infoparams = {
     openCloseButton:{
       visible : false,
-      open : 'images/info.png',
-      close: 'images/info.png',
+      open : 'images/info.png',//'\u{1F6C8}',
+      close: 'images/info.png',//'\u{1F6C8}',
       title: 'WormAtlas',
       onOpen : function(content,mapName){
         var url = walink;
@@ -1395,4 +1388,14 @@ ImporterApp.prototype.RestoreSynapseInfo = function() {
 ImporterApp.prototype.UpdateClickedSynapseInfo = function(info) {
   Object.assign(this.synapseInfoClicked, info); // copy
   this.UpdateSynapseInfo(info);
-}
+};
+
+// reset synapse info to default
+ImporterApp.prototype.ResetDefaultSynapseInfo = function() {
+  Object.assign(this.synapseInfoClicked, this.defaultSynapseInfo); // copy
+  this.UpdateSynapseInfo(this.defaultSynapseInfo);
+};
+
+ImporterApp.prototype.GetSynapseInfoContin = function() {
+  return this.synapseInfoClicked.syncontin;
+};

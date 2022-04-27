@@ -1,3 +1,7 @@
 image_data
 apps/include/three-latest
+node_modules/
+package-lock.json
+package.json
+sslcert
 apps/neuronVolume/models

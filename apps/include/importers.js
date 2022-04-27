@@ -165,7 +165,7 @@ ImporterMenu = function (parent)
 {
 	this.parent = parent;
 	while (this.parent.lastChild) {
-		this.parent.removeChild (this.parent.lastChild);
+		this.parent.removeChild(this.parent.lastChild);
 	}
   // refer to stuff added by AddDefaultGroup
   //  mainItems['Synapse info'] = {
@@ -203,11 +203,11 @@ ImporterMenu = function (parent)
  *  <parent>
  *    // first item
  *    <div> -- menuItem
+ *      <img> -- openCloseImage
+ *      <img> -- userImage
  *      <div> -- menuText
  *        ${name}
  *      </div>
- *      <img> -- openCloseImage
- *      <img> -- userImage
  *    </div>
  *    <div> -- menuContent
  *    </div>
@@ -228,8 +228,8 @@ ImporterMenu = function (parent)
  *    openCloseButton: {
  *      visible: boolean, // default state, true = open
  *      title: help text,
- *      open: image filepath,
- *      close: image filepath,
+ *      open: image filepath/single unicode character,
+ *      close: image filepath/single unicode character,
  *      onOpen: what to do when button is in open state,
  *    },
  *    // for the visibility button (don't see why they look different)
@@ -288,29 +288,52 @@ ImporterMenu.prototype.AddSubItem = function(parent, name, parameters)
 		menuContent = document.createElement ('div');
 		menuContent.className = 'menugroup';
 		menuContent.style.display = parameters.openCloseButton.visible ? 'block' : 'none';
-		
-		openCloseImage = document.createElement('img');
-		openCloseImage.className = 'menubutton';
-		openCloseImage.title = parameters.openCloseButton.title;
-		openCloseImage.src = parameters.openCloseButton.visible ? parameters.openCloseButton.open : parameters.openCloseButton.close;
+
+    // set button image/character
+    // currently not in use to avoid browser support issues
+    if (parameters.openCloseButton.open.length <= 1) {
+      // unicode character as image (typically arrow)
+      // also asssumes that if using this option (i.e. no image)
+      // then both open and close are like that
+      openCloseImage = document.createElement('div');
+      openCloseImage.style.display = 'inline';
+      openCloseImage.innerHTML = parameters.openCloseButton.visible ?
+          parameters.openCloseButton.open : parameters.openCloseButton.close;
+    }
+    else {
+		  openCloseImage = document.createElement('img');
+		  openCloseImage.className = 'menubutton';
+		  openCloseImage.title = parameters.openCloseButton.title;
+		  openCloseImage.src = parameters.openCloseButton.visible ?
+          parameters.openCloseButton.open : parameters.openCloseButton.close;
+    }
 		openCloseImage.onclick = function () {
 			if (menuContent.style.display == 'none') {
 				menuContent.style.display = 'block';
-				openCloseImage.src = parameters.openCloseButton.open;
+        if (this.nodeName === 'DIV') {
+          this.innerHTML = parameters.openCloseButton.open;
+        } else {
+          this.src = parameters.openCloseButton.open;
+        }
 				if (parameters.openCloseButton.onOpen !== undefined && parameters.openCloseButton.onOpen !== null) {
-					parameters.openCloseButton.onOpen (menuContent, parameters.openCloseButton.userData);
+					parameters.openCloseButton.onOpen(menuContent, parameters.openCloseButton.userData);
 				}
 			} else {
 				menuContent.style.display = 'none';
-				openCloseImage.src = parameters.openCloseButton.close;
+        if (this.nodeName === 'DIV') {
+          this.innerHTML = parameters.openCloseButton.close;
+        } else {
+          this.src = parameters.openCloseButton.close;
+        }
 				if (parameters.openCloseButton.onClose !== undefined && parameters.openCloseButton.onClose !== null) {
-					parameters.openCloseButton.onClose (menuContent, parameters.openCloseButton.userData);
+					parameters.openCloseButton.onClose(menuContent, parameters.openCloseButton.userData);
 				}
 			}
 		};
 		
 		menuText.onclick = openCloseImage.onclick;
 		menuText.style.cursor = 'pointer';
+    menuText.style.display = 'inline';
 	}
 
   if (parameters.hasOwnProperty('userButton')) {
@@ -360,8 +383,8 @@ ImporterMenu.prototype.AddDefaultGroup = function(name, visible=false) {
 	const menuContent = this.AddGroup(name, {
 	  openCloseButton : {
 	    visible : visible,
-	    open : 'images/opened.png',
-	    close : 'images/closed.png',
+	    open : 'images/opened.png',//'\u25b2', avoid support issue
+	    close : 'images/closed.png',//'\u25bc',
 	    title : 'Show/Hide ' + name
 	  }
 	});
