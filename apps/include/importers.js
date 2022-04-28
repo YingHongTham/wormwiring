@@ -221,7 +221,7 @@ ImporterMenu = function (parent)
  *
  * @param {HTMLElement} parent - only function is to contain results
  * @param {String} name - text that heads the item (the 'menuText' div)
- * @param {Object} parameters
+ * @param {Object} parameters - (all keys required unless specified 'optional')
  *  {
  *    // for open/close state, e.g. menu item expand/collapse, info button
  *    // defines the openCloseImage img elem
@@ -230,7 +230,9 @@ ImporterMenu = function (parent)
  *      title: help text,
  *      open: image filepath/single unicode character,
  *      close: image filepath/single unicode character,
- *      onOpen: what to do when button is in open state,
+ *      onOpen: callback(content) what to do when button is in open state,
+ *      // content is HTML element menuContent
+ *      // there is no onClose, but maybe good to have
  *    },
  *    // for the visibility button (don't see why they look different)
  *    // defines the userImage img elem
@@ -238,13 +240,13 @@ ImporterMenu = function (parent)
  *      //visible: boolean, // YH not used but in practice is provided..
  *      title: help text,
  *      imgSrc: image source for button // YH added
- *      userData: name of cell
+ *      userData: in practice is always name of cell
  *      onClick: callback(imgElem, cellname)
  *      onCreate: callback (optional) // YH only used to add image.. :/
  *    },
  *  }
  *
- * YH TODO I think better to return the big div
+ * YH TODO future change: I think better to return the big div
  * containing both the menuItem and menuContent divs
  * and leave it to the user to append the returned div
  */
@@ -287,47 +289,54 @@ ImporterMenu.prototype.AddSubItem = function(parent, name, parameters)
   if (parameters.hasOwnProperty('openCloseButton')) {
 		menuContent = document.createElement ('div');
 		menuContent.className = 'menugroup';
-		menuContent.style.display = parameters.openCloseButton.visible ? 'block' : 'none';
+		menuContent.style.display = parameters.openCloseButton.visible ?
+        'block' : 'none';
 
     // set button image/character
     // currently not in use to avoid browser support issues
-    if (parameters.openCloseButton.open.length <= 1) {
-      // unicode character as image (typically arrow)
-      // also asssumes that if using this option (i.e. no image)
-      // then both open and close are like that
-      openCloseImage = document.createElement('div');
-      openCloseImage.style.display = 'inline';
-      openCloseImage.innerHTML = parameters.openCloseButton.visible ?
-          parameters.openCloseButton.open : parameters.openCloseButton.close;
-    }
-    else {
-		  openCloseImage = document.createElement('img');
-		  openCloseImage.className = 'menubutton';
-		  openCloseImage.title = parameters.openCloseButton.title;
-		  openCloseImage.src = parameters.openCloseButton.visible ?
-          parameters.openCloseButton.open : parameters.openCloseButton.close;
-    }
+    //if (parameters.openCloseButton.open.length <= 1) {
+    //  // unicode character as image (typically arrow)
+    //  // also asssumes that if using this option (i.e. no image)
+    //  // then both open and close are like that
+    //  openCloseImage = document.createElement('div');
+    //  openCloseImage.style.display = 'inline';
+    //  openCloseImage.innerHTML = parameters.openCloseButton.visible ?
+    //      parameters.openCloseButton.open : parameters.openCloseButton.close;
+    //}
+    //else {
+		openCloseImage = document.createElement('img');
+		openCloseImage.className = 'menubutton';
+		openCloseImage.title = parameters.openCloseButton.title;
+		openCloseImage.src = parameters.openCloseButton.visible ?
+        parameters.openCloseButton.open : parameters.openCloseButton.close;
+    //}
 		openCloseImage.onclick = function () {
+      // close to open
 			if (menuContent.style.display == 'none') {
 				menuContent.style.display = 'block';
-        if (this.nodeName === 'DIV') {
-          this.innerHTML = parameters.openCloseButton.open;
-        } else {
-          this.src = parameters.openCloseButton.open;
-        }
-				if (parameters.openCloseButton.onOpen !== undefined && parameters.openCloseButton.onOpen !== null) {
-					parameters.openCloseButton.onOpen(menuContent, parameters.openCloseButton.userData);
+        //if (this.nodeName === 'DIV') { // if use unicode for image
+        //  this.innerHTML = parameters.openCloseButton.open;
+        //} else {
+        this.src = parameters.openCloseButton.open;
+        //}
+				if (parameters.openCloseButton.onOpen !== undefined
+            && parameters.openCloseButton.onOpen !== null) {
+					parameters.openCloseButton.onOpen(menuContent);
+              //parameters.openCloseButton.userData);
 				}
-			} else {
+			} else { // open to close
 				menuContent.style.display = 'none';
-        if (this.nodeName === 'DIV') {
-          this.innerHTML = parameters.openCloseButton.close;
-        } else {
-          this.src = parameters.openCloseButton.close;
-        }
-				if (parameters.openCloseButton.onClose !== undefined && parameters.openCloseButton.onClose !== null) {
-					parameters.openCloseButton.onClose(menuContent, parameters.openCloseButton.userData);
-				}
+        //if (this.nodeName === 'DIV') { // if use unicode for image
+        //  this.innerHTML = parameters.openCloseButton.close;
+        //} else {
+        this.src = parameters.openCloseButton.close;
+        //}
+        //onClose is never used/given in params!
+				//if (parameters.openCloseButton.onClose !== undefined
+        //    && parameters.openCloseButton.onClose !== null) {
+				//	parameters.openCloseButton.onClose(menuContent,
+        //      parameters.openCloseButton.userData);
+				//}
 			}
 		};
 		
@@ -337,6 +346,11 @@ ImporterMenu.prototype.AddSubItem = function(parent, name, parameters)
 	}
 
   if (parameters.hasOwnProperty('userButton')) {
+    if (!parameters.userButton.hasOwnProperty('onClick')
+        || !parameters.userButton.hasOwnProperty('userData')) {
+      console.error('userButton must have onClick and userData');
+    }
+
 		userImage = document.createElement ('img');
 		userImage.className = 'menubutton';
 		userImage.title = parameters.userButton.title;
@@ -344,10 +358,6 @@ ImporterMenu.prototype.AddSubItem = function(parent, name, parameters)
     if (parameters.userButton.hasOwnProperty('onCreate')) {
 			parameters.userButton.onCreate(userImage, parameters.userButton.userData);
 		}
-    if (!parameters.userButton.hasOwnProperty('onClick')
-        || !parameters.userButton.hasOwnProperty('userData')) {
-      console.error('userButton must have onClick and userData');
-    }
     userImage.onclick = function() {
 			parameters.userButton.onClick(userImage, parameters.userButton.userData);
     };

@@ -358,7 +358,8 @@ class NeuronTrace {
 		//store the neuron trace for each part separately
 		//  $this->series['NR'] = trace data for part of neuron in NR
 		$this->series = array();
-		foreach ($this->continNums as $c){
+    foreach ($this->continNums as $c){
+      // get series(regions) that the cell does go through/appear in
 			$series = $_db->get_display2_series($c);
 			foreach ($series as $s){
 				$tmp = $s;
@@ -380,39 +381,41 @@ class NeuronTrace {
     // YH
 	  //stuff copied from retrieve_trace_coord.php
 	  $DISPLAY = 2;
-    //_v is discarded
-    // s is series, NR, VC, etc.
+    // $_v is discarded, only need $s series NR, VC, etc.
 	  foreach ($this->series as $s => $_v){
 	  	if ($DISPLAY == 2){
-	  		$sql = $this->display2_sql($s);
+	  		//$sql = $this->display2_sql($s); //for whatever reason doesn't have z's
+	  		$sql = $this->display2_sql_good($s);
 	  	} elseif ($DISPLAY == 3){
 	  		$sql = $this->display3_sql($s);
-	  	}
+      }
       $val = $_db->_return_query_rows_assoc($sql);
       foreach ($val as $v){
         // v is row in query results, corresponds to one edge
         // position of edges (x1,y1,z1) --- (x2,y2,z2)
         // but first cast to integer, because for some reason
         // MySQL table has string entries for these position values wtf
-        foreach (['x1','y1','x2','y2','objName1','objName2','cellbody']
+        foreach (['x1','y1','z1','x2','y2','z2','objName1','objName2','cellbody']
             as $k) {
           $v[$k] = intval($v[$k]);
         }
 
-	  		$z1 = $_db->get_object_section_number($v['objName1']);
-	  		$z2 = $_db->get_object_section_number($v['objName2']);
+        // slowest part; in display2_sql, doesn't return z1,z2
+	  		//$z1 = $_db->get_object_section_number($v['objName1']);
+	  		//$z2 = $_db->get_object_section_number($v['objName2']);
 
         // add edge
 	  		$this->series[$s]->add_x($v['x1'],$v['x2']);
 	  		$this->series[$s]->add_y($v['y1'],$v['y2']);
-	  		$this->series[$s]->add_z($z1,$z2);
+	  		$this->series[$s]->add_z($v['z1'],$v['z2']);
+	  		//$this->series[$s]->add_z($z1,$z2);
 
         // whether this edge(?) corresponds to a cell body
         // isn't 'cellbody' a property of objects and not relationships?
 	  		$this->series[$s]->add_cb($v['cellbody']);
 
-	  		$this->add_object($v['objName1'],$v['x1'],$v['y1'],$z1);
-	  		$this->add_object($v['objName2'],$v['x2'],$v['y2'],$z2);
+	  		$this->add_object($v['objName1'],$v['x1'],$v['y1'],$v['z1']);
+	  		$this->add_object($v['objName2'],$v['x2'],$v['y2'],$v['z2']);
 
 	  		if ($v['cellbody'] == 1){
 	  			$this->cellBody->add_x($v['x1'],$v['x2']);
@@ -436,7 +439,7 @@ class NeuronTrace {
 	  			$this->add_remark_alt($v['objName2'],$v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
         }
 	  	}
-	  }
+    }
 	}
 
 	function add_object($obj,$x,$y,$z){
@@ -466,6 +469,20 @@ class NeuronTrace {
 		} else {
 			return -1;
 		}
+	}
+
+	function display2_sql_good($series){
+		$continStr = implode(",",$this->continNums);
+    $sql = "select
+        x1,y1,z1,x2,y2,z2,
+        objName1,objName2,
+        cellbody1 as cellbody,
+        remarks1,remarks2 
+			from display2
+			where continNum in ($continStr)
+			  and series1 = '$series'
+			order by z1 asc";
+		return $sql;
 	}
 
 	function display2_sql($series){

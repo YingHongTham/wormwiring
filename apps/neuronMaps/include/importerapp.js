@@ -3,6 +3,9 @@
  * note confusing terminology, series can refer to database N2U etc
  * or also the regions of the worm, VC, NR etc..
  *
+ * expect some libraries:
+ * apps/include/floatingdialog.js - for FloatingDialog class
+ *
  *
  * note to self: viewer must be initialized after GenerateMenu()
  * because it needs references to the menu items...
@@ -260,22 +263,21 @@ ImporterApp.prototype.AddLoadSave = function() {
  * with 
  */
 ImporterApp.prototype.LoadFromFile = function() {
+  const main_this = this;
+
   const input = document.getElementById('LoadFromFileInput');
   const file = new FileReader();
   if (input === null)
     return;
   file.readAsText(input.files[0]);
 
-  const main_this = this;
   file.onloadend = function(ev) {
     // read data is in this.result
     const data = JSON.parse(this.result);
 
     // update the series selector in menu
-    const dbEl = document.getElementById('series-selector');
-    const sexEl = document.getElementById('sex-selector');
-    dbEl.value = data.db;
-    sexEl.value = data.sex;
+    main_this.SetSeriesToHTML(data.db);
+    main_this.SetSexToHTML(data.sex);
 
     // wait for selectedNeurons[group][cell] to have the attributes:
     // -walink
@@ -285,41 +287,33 @@ ImporterApp.prototype.LoadFromFile = function() {
       if (!main_this.selectedNeurons.Neurons.hasOwnProperty(cell)
         && !main_this.selectedNeurons.Muscles.hasOwnProperty(cell)) {
         setTimeout(() => LoadMapMenuWhenReady(cell), 200);
+        return;
       }
-      else {
-        var group = 'Neurons';
-        if (!main_this.selectedNeurons[group].hasOwnProperty(cell)) {
-          group = 'Muscles';
-        }
-        if (!main_this.selectedNeurons[group][cell].hasOwnProperty('walink')
-          || !main_this.selectedNeurons[group][cell].hasOwnProperty('visible')
-          || !main_this.selectedNeurons[group][cell].hasOwnProperty('plotted')) {
-          setTimeout(() => LoadMapMenuWhenReady(cell), 200);
-        }
-        else {
-          main_this.LoadMapMenu(cell, main_this.selectedNeurons[group][cell].walink);
-          main_this.selectedNeurons[group][cell].visible = 1;
-          main_this.selectedNeurons[group][cell].plotted = 1;
-        }
+      var group = 'Neurons';
+      if (!main_this.selectedNeurons[group].hasOwnProperty(cell)) {
+        group = 'Muscles';
       }
+      if (!main_this.selectedNeurons[group][cell].hasOwnProperty('walink')
+        || !main_this.selectedNeurons[group][cell].hasOwnProperty('visible')
+        || !main_this.selectedNeurons[group][cell].hasOwnProperty('plotted')) {
+        setTimeout(() => LoadMapMenuWhenReady(cell), 200);
+        return;
+      }
+      main_this.LoadMapMenu(cell, main_this.selectedNeurons[group][cell].walink);
+      main_this.selectedNeurons[group][cell].visible = 1;
+      main_this.selectedNeurons[group][cell].plotted = 1;
     }
 
+    // expect data.sqlData and data.mapsSettings have same keys
     for (const cell in data.sqlData) {
-      console.log('loadmap ', cell);
       main_this.data[cell] = data.sqlData[cell];
       main_this.viewer.loadMap(main_this.data[cell]);
-      LoadMapMenuWhenReady(cell);
-    }
-
-    // update color (ImporterApp.LoadMap is async,
-    // but viewer.loadMap is sync, so this is OK)
-    for (const cell in data.mapsSettings) {
-      // color selector thing is created when user clicks button,
-      // so we just need to modify the color directly on the object
-      obj = main_this.viewer.setColor(
+      // update color (viewer.loadMap is sync, so this is OK)
+      main_this.viewer.setColor(
         cell,
         data.mapsSettings[cell].color
       );
+      LoadMapMenuWhenReady(cell);
     }
 
     // ideally use some async methods..
@@ -357,36 +351,36 @@ ImporterApp.prototype.SaveToFile = function() {
   a.click();
 };
 
-ImporterApp.prototype.SetCellColor = function(cell, r,g,b) {
-
-};
-
 ImporterApp.prototype.PreloadParamsLoaded = function() {
-  return "cell" in this.params
-    && "db" in this.params
-    && "sex" in this.params;
-  //if ("cell" in this.params && "db" in this.params && "sex" in this.params){ return true; } else { return false; };
+  return 'cell' in this.params
+      && 'db' in this.params
+      && 'sex' in this.params;
 };
 
+// TODO CONTINUE hmm remarks are off again
 ImporterApp.prototype.PreloadCells = function()
 {
   var self = this;
   this.LoadMap(this.params.db,this.params.cell);
-  document.getElementById('sex-selector').value = this.params.sex
-  var sex = document.getElementById('sex-selector').value;
-  var series = document.getElementById('series-selector')
-  while(series.length > 0){
-    series.remove(series.length-1);
-  };
-  for (var i=0;i<self.series[sex].length;i++){
-    var opt = document.createElement('option');
-    opt.value = self.series[sex][i].value;
-    opt.innerHTML = self.series[sex][i].text;
-    series.appendChild(opt);
-  };
-  document.getElementById('series-selector').value = this.params.db
-  var xhttp = new XMLHttpRequest();    
-  var url = '../php/selectorCells.php?sex='+this.params.sex+'&db='+this.params.db;
+
+  // update the series selector in menu
+  self.SetSeriesToHTML(this.params.db);
+  self.SetSexToHTML(this.params.sex);
+
+  // YH don't really see why this is needed..
+  //var sex = document.getElementById('sex-selector').value;
+  //var series = document.getElementById('series-selector')
+  //while(series.length > 0){
+  //  series.remove(series.length-1);
+  //};
+  //for (var i=0;i<self.series[sex].length;i++){
+  //  var opt = document.createElement('option');
+  //  opt.value = self.series[sex][i].value;
+  //  opt.innerHTML = self.series[sex][i].text;
+  //  series.appendChild(opt);
+  //};
+  const xhttp = new XMLHttpRequest();    
+  const url = `../php/selectorCells.php?sex=${this.params.sex}&db=${this.params.db}`;
   console.log(`PreloadCell getting selectorCells from url ${url}`);
   xhttp.onreadystatechange = function(){
     if (this.readyState == 4 && this.status == 200){
@@ -425,7 +419,8 @@ ImporterApp.prototype.HelpDialog = function()
         callback : function (dialog) {
           dialog.Close();
         }
-      }   ]
+      }
+    ],
   });
     
   var container = document.getElementsByClassName('container')[0];
@@ -509,12 +504,8 @@ ImporterApp.prototype.InfoDialog = function(url,title)
  */
 ImporterApp.prototype.NeuronSelectorDialog = function()
 {
-  var self = this;
-  var dialogText = [
-    '<div class="selectordialog">',
-    //this.NeuronSelector (),
-    '</div>',
-  ].join ('');
+  const self = this;
+  const dialogText = '<div class="selectordialog"></div>';
   this.dialog.Open({
     className: 'cell-selector',
     title : 'Cell Selector',
@@ -522,8 +513,7 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
     buttons : [{
       text : 'ok',
       callback : function (dialog) {
-        var sex = document.getElementById('sex-selector').value;
-        var series = document.getElementById('series-selector').value;
+        const series = self.GetSeriesFromHTML();
         for (var group in self.selectedNeurons){
           for (var i in self.selectedNeurons[group]){
             if (self.selectedNeurons[group][i].visible == 1
@@ -554,8 +544,7 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
   console.log(self.selectedNeurons);
 };
 
-ImporterApp.prototype.ClearMaps = function(mapName)
-{
+ImporterApp.prototype.ClearMaps = function() {
   //const menuMaps = this.menuGroup['maps'];
   const menuMaps = this.menuObj.mainItems['Maps'].content;
   while(menuMaps.lastChild){
@@ -563,13 +552,15 @@ ImporterApp.prototype.ClearMaps = function(mapName)
   };
   this.viewer.clearMaps();
 
+  this.data = {};
+
   for (var group in this.selectedNeurons){
     for (var i in this.selectedNeurons[group]){
-      if (this.selectedNeurons[group][i].visible==1){
-        this.selectedNeurons[group][i].visible=0;
-      }
-    };
-  }; 
+      //if (this.selectedNeurons[group][i].visible == 1){
+      this.selectedNeurons[group][i].visible = 0;
+      //}
+    }
+  }
 }
 
 /*
@@ -585,6 +576,8 @@ ImporterApp.prototype.ClearMaps = function(mapName)
  * are stored twice, once in ImporterApp (.data)
  * and another time in mapViewer.
  * Store it once!
+ *
+ * after loadMap into viewer, center view on neuron
  *
  * YH
  * modified retrieve_trace_coord.php to return
@@ -651,7 +644,11 @@ ImporterApp.prototype.LoadMapCallback = function(db, mapname, callback)
 }
 
 
-
+/*
+ * loads menu entry for cell in 'Maps'
+ * @param {String} mapname - name of cell
+ * @param {String} walink - WormAtlas link address for this cell
+ */
 ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
 {
   var self = this;
@@ -659,15 +656,17 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
   //var menuGroup = this.menuGroup.maps;    
   const mapsMenuItem = this.menuObj.mainItems['Maps'].content;
 
-  // params for sub items under each cell entry in Maps
+  // define params for sub items under each cell entry in Maps
+  // the action happens at the end
 
-  var colorparams = {
+  const colorparams = {
     openCloseButton: {
       visible: false,
 	    open: 'images/opened.png',//'\u25b2',
 	    close: 'images/closed.png',//'\u25bc',
       title: 'Skeleton color',
-      onOpen : function(content, mapname) {
+      //onOpen : function(content, mapname) {
+      onOpen : function(content) {
         while(content.lastChild){
           content.removeChild(content.lastChild);
         };
@@ -692,13 +691,13 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
           }
         });
       },
-      userData : mapname // userDate originally lol
+      userData: mapname,
     }
   };
 
   // for the eye icon next to "Remarks" in Maps
   // (after clicking on a loaded cell)
-  var remarksparams = {
+  const remarksparams = {
     userButton:{
       imgSrc: 'images/hidden.png', // starting image
       // see also loadMap in MapViewer, .. default visibilities
@@ -715,54 +714,54 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         image.src = visible ? 'images/visible.png' : 'images/hidden.png';
       },
       title : 'Show/Hide remarks',
-      userData : mapname
+      userData: mapname
     }
   };
 
-  var infoparams = {
+  const infoparams = {
     openCloseButton:{
       visible : false,
       open : 'images/info.png',//'\u{1F6C8}',
       close: 'images/info.png',//'\u{1F6C8}',
       title: 'WormAtlas',
-      onOpen : function(content,mapName){
+      //onOpen : function(content,mapName){
+      onOpen : function(content) {
         var url = walink;
         self.InfoDialog(url,'WormAtlas');
       },
-      userDate : mapname
+      userData: mapname,
     }
   };  
 
-  var partnerListparams = {
+  const partnerListparams = {
     openCloseButton:{
       visible : false,
       open : 'images/info.png',
       close: 'images/info.png',
       title: 'Synaptic partners',
-      onOpen : function(content,mapName){
-        var sexSelect = document.getElementById('sex-selector').value;
-        var seriesSelect = document.getElementById('series-selector').value;
-        var url = '../partnerList/?continName='+mapname+'&series='+seriesSelect;
-        console.log('url: ' + url); 
+      //onOpen : function(content,mapName){
+      onOpen : function(content) {
+        const series = self.GetSeriesFromHTML();
+        const url = `../partnerList/?continName=${mapname}&series=${series}`;
         self.InfoDialog(url,'Synaptic partners');
       },
-      userDate : mapname
+      userData: mapname,
     }
   }; 
 
-  var synapseListparams = {
+  const synapseListparams = {
     openCloseButton:{
       visible : false,
       open : 'images/info.png',
       close: 'images/info.png',
       title: 'Synapes',
-      onOpen : function(content,mapName){
-        var sexSelect = document.getElementById('sex-selector').value;
-        var seriesSelect = document.getElementById('series-selector').value;
-        var url = '../synapseList/?continName='+mapname+'&series='+seriesSelect;
+      //onOpen : function(content,mapname){
+      onOpen : function(content) {
+        const series = self.GetSeriesFromHTML();
+        const url = `../synapseList/?continName=${mapname}&series=${series}`;
         self.InfoDialog(url,'Synapse list');
       },
-      userDate : mapname
+      userData: mapname,
     }
   };
 
@@ -772,7 +771,9 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       visible : false,
       open: 'images/info.png',
       close: 'images/info.png',
-      onOpen : function(content,mapName){
+      //onOpen : function(content,mapName){
+      onOpen : function(content) {
+        // perhaps it's good to have onClose to clear stuff instead of here
         while(content.lastChild){
           content.removeChild(content.lastChild);
         };
@@ -785,7 +786,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         menuObj.AddSubItem(content,'Synapse list',synapseListparams);
       },
       title : 'Show/Hide Information',
-      userData : mapname
+      userData : mapname,
     },
     userButton : {
       //visible : true, // is not even used..
@@ -806,24 +807,17 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         //self.viewer._toggleRemarks(modelName,bool=false);
       },
       title : 'Show/Hide map',
-      userData : mapname
+      userData : mapname,
     }
   });
 }
 
+/*
+ * retrieves cells of given series/db from selectorCells.php
+ * and stores in this.selectedNeurons
+ */
 ImporterApp.prototype.SetCellSelector = function()
 {
-  /*
-   * js <-> php is structured as a callback
-   * we send the request by xhttp.send()
-   * but configure the request (via .open("GET",url))
-   * xhttp.onready...nge waits until php is done
-   * returning the value in the xhttp object as its
-   * responseText attribute
-   * then performs the callback fn we assign,
-   * in this case simply parsing and saving the data
-   * in self.selectedNeurons
-   */
   var self = this;
   var sex = document.getElementById('sex-selector').value
   var db = document.getElementById('series-selector').value;  
@@ -845,19 +839,19 @@ ImporterApp.prototype.SetCellSelector = function()
  * name = Neurons or Muscles
  * called by NeuronSelectorDialog, i.e. when click on 'Select neuron'
  */
-ImporterApp.prototype.AddSelectPanel = function(parent,name)
+ImporterApp.prototype.AddSelectPanel = function(parent,celltype)
 {
   var self = this;
   var header = document.createElement('button');
   header.className = 'panel-header';
   header.setAttribute('type','button');
   header.setAttribute('data-toggle','collapse');
-  header.setAttribute('data-target','#'+name);
-  header.innerHTML = name
+  header.setAttribute('data-target','#'+celltype);
+  header.innerHTML = celltype;
   var panel = document.createElement('div');
-  panel.id = name;
+  panel.id = celltype;
   panel.className = 'collapse';
-  for (var i in this.selectedNeurons[name]){
+  for (var i in this.selectedNeurons[celltype]){
     var div = document.createElement('div');
     div.className = 'selectCell';//for entries in selector dialog
     div.id = i;
@@ -867,14 +861,13 @@ ImporterApp.prototype.AddSelectPanel = function(parent,name)
   parent.appendChild(header);
   parent.appendChild(panel);
 
-  // name is Neurons or Muscles, not cell name..
   // 'select' class adds highlighting to cell entry
-  //const myDiv = document.getElementById(name)
+  //const myDiv = document.getElementById(celltype)
   //                      .querySelector('.selectCell');
   //myDiv.click(function () {
-  $("div#"+name+" > .selectCell").click(function () {
-    self.selectedNeurons[name][this.id].visible = 
-      (self.selectedNeurons[name][this.id].visible==1)?0:1;
+  $(`div#${celltype} > .selectCell`).click(() => {
+    self.selectedNeurons[celltype][this.id].visible = 
+      (self.selectedNeurons[celltype][this.id].visible==1)?0:1;
     $(this).toggleClass("select");
   });
 
@@ -882,8 +875,8 @@ ImporterApp.prototype.AddSelectPanel = function(parent,name)
   // bad because if switch to different series and back,
   // this info would disappear
   // should use this.data as well!
-  for (var i in this.selectedNeurons[name]){
-    if ( this.selectedNeurons[name][i].visible == 1
+  for (var i in this.selectedNeurons[celltype]){
+    if ( this.selectedNeurons[celltype][i].visible == 1
         || this.data.hasOwnProperty(i) ) {
       $("div#"+i).toggleClass("select", true);
     }
@@ -1398,4 +1391,20 @@ ImporterApp.prototype.ResetDefaultSynapseInfo = function() {
 
 ImporterApp.prototype.GetSynapseInfoContin = function() {
   return this.synapseInfoClicked.syncontin;
+};
+
+// series/sex get/set from/to HTML
+ImporterApp.prototype.GetSeriesFromHTML = function() {
+  return document.getElementById('series-selector').value;
+};
+ImporterApp.prototype.SetSeriesToHTML = function(db) {
+  const dbEl = document.getElementById('series-selector');
+  dbEl.value = db;
+};
+ImporterApp.prototype.GetSexFromHTML = function() {
+  return document.getElementById('sex-selector').value;
+};
+ImporterApp.prototype.SetSexToHTML = function(sex) {
+  const sexEl = document.getElementById('sex-selector');
+  sexEl.value = sex;
 };

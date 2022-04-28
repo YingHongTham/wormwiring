@@ -614,7 +614,7 @@ class DB {
 	}
 
 	//copying above because WTF display2 should call display2 not 3
-	//returns array of series that contains given contin
+	//returns array of series(region) that contains given contin
 	function get_display2_series($continNum){
 		$sql = "select distinct(series1) 
 			from display2

@@ -11,6 +11,20 @@
  * essentially it truncates the cellname, but there's not one obvious rule
  * multiple rules, shouldn't be hard to find the rules
  *
+ * returns JSON object of the form:
+ *  {
+ *    Neurons: {
+ *      'ADAL': {
+ *        value: 'ADAL',
+ *        visible: 0,
+ *        plotted: 0,
+ *        walink: WormAtlas link
+ *      },
+ *      ...
+ *    },
+ *    Muscles:
+ *  }
+ *
  * TODO database name capitalize issue (url makes it caps)
  */
 include('dbaux.php');

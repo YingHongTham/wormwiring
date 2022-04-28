@@ -1171,6 +1171,8 @@ MapViewer.prototype.dumpJSON = function() {
 
 // color: {r: 0.2, g: 0.4, b: 0.7} values are between 0 and 1
 // (usual RGB color / 255)
+// note: color selector thing is created when user clicks button,
+// so we just need to modify the color directly on the object
 MapViewer.prototype.setColor = function(cell, color) {
   for (const obj of this.maps[cell].skeletonGrp.children) {
     if (!obj.cellBody) {

@@ -2,11 +2,11 @@
 include_once('./dbconnect.php');
 include_once('dbaux.php');
 
+$start = microtime(TRUE);
+
 $TEST = False;
 //is DISPLAY=3 ever used in production??
 $DISPLAY = 2;
-
-$start = microtime(TRUE);
 
 //initialize $db = database, and $cell
 //get them from the url (see importerapp.js
@@ -23,21 +23,11 @@ if ($TEST) {
 //see dbconnect.php
 $_db = new DB();
 $_db->connect($db);
-$end_db = microtime(TRUE);
-$time = $end_db - $start;
-//echo "db connect in $time \n";
-
-//print_r($_db->get_display2_series(113));
-
 
 //get trace of neuron from display2
 //NeuronTrace from dbaux.php
 
-$start_skeleton = microtime(TRUE);
 $nt = new NeuronTrace($_db,$cell);
-$end_skeleton = microtime(TRUE);
-$time = $end_skeleton - $start_skeleton;
-//echo "Skeleton time $time \n";
 
 // YH sent this stuff to initialization of NeuronTrace
 //$nt->retrieve_traces_maybe();
@@ -196,15 +186,11 @@ if ($DISPLAY == 2){
 	$nt->load_map3_params($_db);  
 }
 
-$start_compile = microtime(TRUE);
 $data = $nt->compile_data();
-$end_compile = microtime(TRUE);
-$time = $end_compile - $start_compile;
-//echo "Compile time $time \n";
 echo json_encode($data);
 
 
-//$time = microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"];
+//$time = microtime(true) - $start;
 //echo "Did stuff in $time seconds\n";
-//about 5.34 seconds for ADAL, N2U
+//about 1.5 seconds for ADAL, N2U
 ?>

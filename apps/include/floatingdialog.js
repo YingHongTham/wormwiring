@@ -7,8 +7,7 @@ FloatingDialog = function ()
 FloatingDialog.prototype.Open = function (parameters)
 {
   window.dispatchEvent(new Event('resize'));
-	function AddButton (dialog, parent, button)
-	{
+	function AddButton(dialog, parent, button) {
 		var buttonDiv = document.createElement ('div');
 		buttonDiv.className = 'dialogbutton';
 		buttonDiv.innerHTML = button.text;
@@ -39,9 +38,10 @@ FloatingDialog.prototype.Open = function (parameters)
 	buttonsDiv.className = 'dialogbuttons';
 	this.dialogDiv.appendChild (buttonsDiv);
 
-	var i, button;
-	for (i = 0; i < parameters.buttons.length; i++) {
-		button = parameters.buttons[i];
+	//var i, button;
+	//for (i = 0; i < parameters.buttons.length; i++) {
+  for (const button of parameters.buttons) {
+		//button = parameters.buttons[i];
 		AddButton (this, buttonsDiv, button);
 	}
 
