@@ -25,6 +25,9 @@ window.onload = function(){
 	//};
 	//console.log(params);
 
+  console.log('got this new lamborghini');
+
+
 	const params = {};
   const urlParams = new URLSearchParams(document.location.search);
   for (const pair of urlParams.entries()) {
@@ -64,3 +67,4 @@ window.onload = function(){
   // access importerApp in the console (used to be window.aa)
 	window.importerApp = importerApp;
 };
+

@@ -579,6 +579,8 @@ MapViewer.prototype.loadMap = function(map)
   map.remarks.forEach( obj => {
     const pos = this.applyParamsTranslate(new THREE.Vector3(
         obj.x, obj.y, obj.z));
+    console.log('pos: ', pos.x, pos.y, pos.z);
+    console.log('obj: ', obj.x, obj.y, obj.z);
     const params2 = {
       pos: pos,
       offset: new THREE.Vector3(200,200,0),

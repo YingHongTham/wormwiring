@@ -68,6 +68,7 @@ div.infoFrame
     width: 950px;
 }
 
+/*
 div.cell-selector
 {
     color : #222222;
@@ -81,10 +82,12 @@ div.cell-selector
     overflow:auto;
 }
 
+/*
 div.cell-selector .dialogcontent
 {
     height:420px;
 }
+*/
 
 div.selectordialog
 {
@@ -107,9 +110,15 @@ div.selectordialog
     margin: 5px;
 }
 
+/******************************************
+ * selectCell, select replaced with
+ * cellDiv, cellDivSelected in /css/importer.css
+ ************************************************/
+
+/*
 .selectCell
 {
-    background: #ffffff;
+    background-color: #ffffff;
     cursor: pointer;
     padding: 3px;
     float:left;
@@ -119,13 +128,10 @@ div.selectordialog
     font-weight: bold;
     margin: 1%;
     width: 9%;    
-
 }
-
-.selectCell.select
+.select
 {
-    background-color: #00cc00;
-    color:#ffffff;
+    background-color: '#00cc00';
+    color:#0000ff;
 }
-
-		     
+*/

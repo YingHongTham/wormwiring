@@ -193,3 +193,29 @@ a:hover
 {
     font-size:14px;
 }
+
+
+/*********************************
+ * for cell selector dialog
+ *********************************/
+
+/* entry in cell list, default apearance */
+.cellDiv
+{
+    background-color:#ffffff;
+    cursor: pointer;
+    padding: 3px;
+    float:left;
+    height: 24px;
+    text-align:left;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 1%;
+    width: 9%;    
+}
+
+/* entry in cell list, after clicked/cell had loaded */
+.cellDivSelected
+{
+    background-color:#00cc00;
+}

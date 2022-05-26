@@ -11,6 +11,11 @@
  * because it needs references to the menu items...
  */
 
+// TODO there are a bunch of places where a class is assigned
+// to an element by div.className = ...
+// apparently this doens't work (anymore?)
+// change to div.classList.add(...);
+
 ImporterApp = function (params)
 {
   //params are obtained from the url
@@ -50,6 +55,10 @@ ImporterApp = function (params)
   this.menuGroup = {};
   
   // selectedNeurons are cells to appear in the cell selector dialog
+  // terrible name
+  // they're selected in the sense that
+  // the user selected a series and these are the cells
+  // but they're not the individual cells selected by user
   // reloaded each time different series is selected
   // this gives rise to a small problem:
   // the cell selector dialog highlights cells that are selected,
@@ -59,6 +68,11 @@ ImporterApp = function (params)
   // often run through loop: selectedNeurons[group][i]
   //  group = 'Neurons' or 'Muscles'
   //  i = the cell name e.g. 'ADAL'
+  // and selectedNeuron[group][i] is itself an object,
+  // with three properties 'visible', 'plotted', 'walink'
+  // visible = 1 if we should highlight it
+  // plotted = 1 if we have already loaded cell
+  // walink = WormAtlas link
   this.selectedNeurons = {};
 
   // starting value of the Synapse Info section
@@ -178,8 +192,7 @@ ImporterApp.prototype.Init = function ()
   importerButtons.AddLogo('Select neuron',()=>{self.NeuronSelectorDialog();});
   importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
 
-  //the small window in which help/selector is shown
-  //and also when you click synapse (synClick)
+  //the small window in which help/selector/synapseviewer is shown
   this.dialog = new FloatingDialog();
   
   // can't have two callbacks for one event..
@@ -404,15 +417,14 @@ ImporterApp.prototype.PreloadCells = function()
 
 ImporterApp.prototype.HelpDialog = function()
 {
-  var self = this;
-  var dialogText = [
-    '<div class="container">',
-    '</div>',
-    ].join ('');
+  //var dialogText = [
+  //  '<div class="container">',
+  //  '</div>',
+  //  ].join ('');
   this.dialog.Open({
     className: 'dialog',
     title : 'Help',
-    text : dialogText,
+    //text : dialogText,
     buttons : [
       {
         text : 'close',
@@ -422,15 +434,18 @@ ImporterApp.prototype.HelpDialog = function()
       }
     ],
   });
+
+  const contentDiv = this.dialog.GetContentDiv();
     
-  var container = document.getElementsByClassName('container')[0];
+  //var container = document.getElementsByClassName('container')[0];
   var panelGroup = document.createElement('div');
   panelGroup.id = 'accordion';
   panelGroup.className = 'panel-group';
-  for (var i = 0; i < this.helpParams.length; i++){
-    this.AddHelpPanel(panelGroup,this.helpParams[i]);
+  for (const helpItem of this.helpParams) {
+    this.AddHelpPanel(panelGroup,helpItem);
   }
-  container.appendChild(panelGroup);
+  //container.appendChild(panelGroup);
+  contentDiv.appendChild(panelGroup);
 }
 
 ImporterApp.prototype.AddHelpPanel = function(parent,params)
@@ -474,18 +489,17 @@ ImporterApp.prototype.AddHelpPanel = function(parent,params)
 ImporterApp.prototype.InfoDialog = function(url,title)
 {
   console.log(`opening info dialog for ${url}`);
-  var self = this;
-  var dialogText = [
-    '<div class="importerdialog">',
-    '<iframe src="'+url+'"',
-    'id="infoFrame"></iframe>',
-    '</div>',
-    ].join ('');
-  dialog = new FloatingDialog ();
-  dialog.Open ({
+  //var dialogText = [
+  //  '<div class="importerdialog">',
+  //  '<iframe src="'+url+'"',
+  //  'id="infoFrame"></iframe>',
+  //  '</div>',
+  //  ].join ('');
+  //dialog = new FloatingDialog ();
+  this.dialog.Open ({
     className: 'infoFrame',
     title : title,
-    text : dialogText,
+    //text : dialogText,
     buttons : [{
         text : 'close',
         callback : function (dialog) {
@@ -493,6 +507,12 @@ ImporterApp.prototype.InfoDialog = function(url,title)
         }
     }]
   });
+
+  const iframe = document.createElement('iframe');
+  iframe.src = url;
+  iframe.id = 'infoFrame';
+  const contentDiv = this.dialog.GetContentDiv();
+  contentDiv.appendChild(iframe);
 }
 
 
@@ -509,9 +529,10 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
   this.dialog.Open({
     className: 'cell-selector',
     title : 'Cell Selector',
-    text : dialogText,
+    //text : dialogText,
     buttons : [{
-      text : 'ok',
+      // loads selected cells (indicated by visible=1,plotted=0)
+      text : 'load',
       callback : function (dialog) {
         const series = self.GetSeriesFromHTML();
         for (var group in self.selectedNeurons){
@@ -524,24 +545,25 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
             }
           }
         }
-        dialog.Close();
+        self.dialog.Close();
       }
     }, {
       text : 'close',
       callback : function (dialog) {
-        dialog.Close();
+        self.dialog.Close();
       }
     }
     ]
   });
 
-  //this.SetCellSelector();
-  //adds cells from selected database to the selector dialog
-  var selector = document.getElementsByClassName('selectordialog')[0];
-  for (var group in this.selectedNeurons){ // Neurons/Muscles
-    this.AddSelectPanel(selector,group);
-  };
-  console.log(self.selectedNeurons);
+  //this.SetCellSelector(); // what was this for again??
+  //adds cells from selected database to the dialog after created
+  //const selector = document.getElementsByClassName('selectordialog')[0];
+  const contentDiv = this.dialog.GetContentDiv();
+  for (const celltype in this.selectedNeurons){ // Neurons/Muscles
+    //this.AddSelectPanel(selector,group);
+    contentDiv.appendChild(this.AddSelectPanel(celltype));
+  }
 };
 
 ImporterApp.prototype.ClearMaps = function() {
@@ -835,52 +857,64 @@ ImporterApp.prototype.SetCellSelector = function()
 };
 
 /*
- * adds the Neuron and Muscles entries in the Cell Selector Dialog
- * name = Neurons or Muscles
+ * adds the entries in the Cell Selector Dialog
+ * celltype = Neurons or Muscles
  * called by NeuronSelectorDialog, i.e. when click on 'Select neuron'
+ * html structure (celltype='Neurons'):
+ *  <div> // bigDiv
+ *    <button> // header
+ *      Neurons
+ *    </button>
+ *    <div> // panel
+ *    </div>
+ *  </div>
  */
-ImporterApp.prototype.AddSelectPanel = function(parent,celltype)
-{
-  var self = this;
-  var header = document.createElement('button');
+//ImporterApp.prototype.AddSelectPanel = function(parent,celltype) {
+ImporterApp.prototype.AddSelectPanel = function(celltype) {
+  console.log('in addselectpanel', celltype);
+  const self = this;
+
+  const bigDiv = document.createElement('div');
+
+  // large button, click to expand/collapse list
+  const header = document.createElement('button');
   header.className = 'panel-header';
   header.setAttribute('type','button');
   header.setAttribute('data-toggle','collapse');
   header.setAttribute('data-target','#'+celltype);
   header.innerHTML = celltype;
-  var panel = document.createElement('div');
+
+  // div containing the cell entries
+  const panel = document.createElement('div');
   panel.id = celltype;
   panel.className = 'collapse';
-  for (var i in this.selectedNeurons[celltype]){
-    var div = document.createElement('div');
-    div.className = 'selectCell';//for entries in selector dialog
-    div.id = i;
-    div.innerHTML = i;
-    panel.appendChild(div);
-  };
-  parent.appendChild(header);
-  parent.appendChild(panel);
+  // add cell entries to panel div
+  for (const cell in this.selectedNeurons[celltype]){
+    const cellDiv = document.createElement('div');
+    cellDiv.classList.add('cellDiv');
+    //cellDiv.id = cell;
+    cellDiv.innerHTML = cell;
+    panel.appendChild(cellDiv);
 
-  // 'select' class adds highlighting to cell entry
-  //const myDiv = document.getElementById(celltype)
-  //                      .querySelector('.selectCell');
-  //myDiv.click(function () {
-  $(`div#${celltype} > .selectCell`).click(() => {
-    self.selectedNeurons[celltype][this.id].visible = 
-      (self.selectedNeurons[celltype][this.id].visible==1)?0:1;
-    $(this).toggleClass("select");
-  });
-
-  // used when cell loaded from urlParams..
-  // bad because if switch to different series and back,
-  // this info would disappear
-  // should use this.data as well!
-  for (var i in this.selectedNeurons[celltype]){
-    if ( this.selectedNeurons[celltype][i].visible == 1
-        || this.data.hasOwnProperty(i) ) {
-      $("div#"+i).toggleClass("select", true);
+    // highlight if previously selected/loaded this cell
+    if ( this.selectedNeurons[celltype][cell].visible == 1
+        || this.data.hasOwnProperty(cell) ) {
+      cellDiv.classList.add('cellDivSelected');
     }
-  }
+
+    // toggle selectedness
+    cellDiv.onclick = () => {
+      self.selectedNeurons[celltype][cell].visible = 
+        !self.selectedNeurons[celltype][cell].visible;
+      cellDiv.classList.toggle('cellDivSelected');
+    };
+
+  };
+
+  bigDiv.appendChild(header);
+  bigDiv.appendChild(panel);
+
+  return bigDiv;
 };
 
 ImporterApp.prototype.SetDB = function(_db)
@@ -895,16 +929,16 @@ ImporterApp.prototype.SetCell = function(_cell)
 
 ImporterApp.prototype.HelpButton = function()
 {
-    var HelpText = [
-  '<div class="btn-group">',
-  '<button type="button" class="btn btn-danger">Action</button>',
-  '<button type="button" class="btn btn-danger" data-toggle="collapse" data-target="#demo">',
-  '<span class="glyphicon glyphicon-minus"></span>',
-  '</button>',
-  '</div>',
-        '<div id="demo" class="collapse in">Some dummy text in here.</div>'
-    ].join('');
-    return HelpText;
+  var HelpText = [
+    '<div class="btn-group">',
+    '<button type="button" class="btn btn-danger">Action</button>',
+    '<button type="button" class="btn btn-danger" data-toggle="collapse" data-target="#demo">',
+    '<span class="glyphicon glyphicon-minus"></span>',
+    '</button>',
+    '</div>',
+    '<div id="demo" class="collapse in">Some dummy text in here.</div>'
+  ].join('');
+  return HelpText;
 }
 
 
@@ -1054,8 +1088,8 @@ ImporterApp.prototype.GenerateMenu = function()
     for (var i in synElems){
       var left = document.createElement('div');
       var right = document.createElement('div');
-      left.className = 'synLeft';
-      right.className = 'synRight';
+      left.classList.add('synLeft');
+      right.classList.add('synRight');
       right.innerHTML = '---';  
       left.innerHTML = synElems[i];
       right.id = i;

@@ -1,26 +1,43 @@
-div.dialog
-{
-	color : #222222;
-	background : #ffffff;
-	position : absolute;
-	top : 0px;
-	left : 0px;
-	box-shadow: 0px 0px 5px #000000;
+/********************************************************
+ * div that's put on top of everything to make it dark
+ * modal means user must address the dialog
+ * (like the save dialog in other applications)
+ ***************************************************/
+.modal-background {
+  display: inline-block;
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: black;
+  opacity: 0.2;
 }
 
-div.dialogtitle
-{
-	color : #ffffff;
-	background : linear-gradient(#333333, #111111) #222222;
-	padding : 10px;
-	overflow : auto;
+/* Modal Content */
+.modal-content {
+	z-index: 2;
 }
 
-div.dialogcontent
-{
-	padding : 10px;
-	overflow : auto;
+
+/*****************************
+ * for floating dialog
+ *******************************/
+.floatingDialog {
+  display: inline-block;
+  position: fixed; /* Stay in place */
+  z-index: 2; /* Sit on top */
+  left: 10%;
+  top: 10%;
+  margin: 0px auto;
+  width: 80%; /* Full width */
+  height: 80%; /* Full height */
+  color : #222222;
+  background : #ffffff;
 }
+
 
 div.dialogbuttons
 {
@@ -30,10 +47,51 @@ div.dialogbuttons
 div.dialogbutton
 {
 	color : #ffffff;
-	background : linear-gradient(#333333, #111111) #222222;
-	margin : 5px 5px 5px 0px;
-	padding : 5px 10px;
+  background-color: #666666;
+	/*background : linear-gradient(#333333, #111111) #222222;*/
+	margin : 2px 2px 2px 0px;
+	padding : 2px 7px;
 	cursor : pointer;
 	border-radius : 3px;
 	float : right;
 }
+
+/*
+ * replaced by .floatingDialog
+div.dialog
+{
+	color : #222222;
+	background : #ffffff;
+	position : absolute;
+	top : 0px;
+	left : 0px;
+	box-shadow: 0px 0px 5px #000000;
+}
+*/
+
+.dialogtitlespan
+{
+  display: inline-block;
+  margin-top: 5px;
+}
+
+div.dialogtitle
+{
+	color : #ffffff;
+	background : linear-gradient(#333333, #111111) #222222;
+	padding : 5px;
+	overflow : auto;
+  font-size: 15px;
+}
+
+div.dialogcontent
+{
+	padding : 10px;
+	overflow : scroll;
+  /* need to set height for scroll to work,
+   * but we want it to depend on the floatingDialog
+   * implement in js
+   * see floatingdialog.js, 
+   */
+}
+

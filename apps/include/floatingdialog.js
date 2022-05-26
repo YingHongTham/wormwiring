@@ -1,75 +1,130 @@
+/*
+ * CSS in /css/floatingdialog.css, /css/importer.css
+ * and maybe also /css/neuronMaps/css/neuronmaps.css
+ */
+
+
 FloatingDialog = function ()
 {
-	this.dialogDiv = null;
-	this.mouseClick = this.MouseClick.bind (this);
+  this.modalDiv = null; // blocks everything and closes div when clicked
+	this.dialogDiv = null; // keep ref for resizing
+  this.contentDiv = null; // keep ref for user to access and modify
+	this.mouseClick = this.MouseClick.bind(this);
 };
 
-FloatingDialog.prototype.Open = function (parameters)
+/*
+ * the actual HTML and stuff is created on Open, and destroyed on Close
+ *
+ * structure of HTML of floating dialog:
+ *  <div> // this.modalDiv
+ *  </div>
+ *  <div> // this.dialogDiv
+ *    <div> // titleDiv
+ *      Cell Selector
+ *      <div>close</div> // button
+ *      <div>load</div> // button
+ *    </div>
+ *    <div> // contentDiv
+ *      <div> // panel
+ *        Neurons
+ *      </div>
+ *        Muscles
+ *      <div> // panel
+ *      </div>
+ *    </div>
+ *    <!-- used to be buttonsDiv here -->
+ *  </div>
+ *
+ * @param {Object} parameters - keys, all required:
+ *  className: 'dialog',
+ *  title : 'Help',
+ *  text : dialogText,
+ *  buttons : [
+ *    {
+ *      text : 'close',
+ *      callback : function (dialog) {
+ *        dialog.Close();
+ *      }
+ *    },
+ *    ...
+ *  ],
+ */
+FloatingDialog.prototype.Open = function(parameters)
 {
   window.dispatchEvent(new Event('resize'));
-	function AddButton(dialog, parent, button) {
-		var buttonDiv = document.createElement ('div');
-		buttonDiv.className = 'dialogbutton';
-		buttonDiv.innerHTML = button.text;
-		buttonDiv.onclick = function () {
-			button.callback (dialog);
-		};
-		parent.appendChild (buttonDiv);	
+	if (this.dialogDiv !== null) {
+		this.dialogDiv.Close();
 	}
 
-	if (this.dialogDiv !== null) {
-		this.dialogDiv.Close ();
-	}
+  const main_this = this;
+
+  // prepare and add modal background
+  this.modalDiv = document.createElement('div');
+  this.modalDiv.classList.add('modal-background'); // css/importer.css
+  this.modalDiv.onclick = () => {
+    main_this.Close();
+  };
+	document.body.appendChild(this.modalDiv);
+
 
 	this.dialogDiv = document.createElement ('div');
-	this.dialogDiv.className = parameters.className;
+	this.dialogDiv.classList.add(parameters.className);
+	//this.dialogDiv.classList.add('modal-content');
+	this.dialogDiv.classList.add('floatingDialog');
+  console.log(this.dialogDiv);
 	
-	var titleDiv = document.createElement ('div');
-	titleDiv.className = 'dialogtitle';
-	titleDiv.innerHTML = parameters.title;
-	this.dialogDiv.appendChild (titleDiv);
-	
-	var contentDiv = document.createElement ('div');
-	contentDiv.className = 'dialogcontent';
-	contentDiv.innerHTML = parameters.text;
-	this.dialogDiv.appendChild (contentDiv);
+	const titleDiv = document.createElement('div');
+	titleDiv.classList.add('dialogtitle');
+	this.dialogDiv.appendChild(titleDiv);
 
-	var buttonsDiv = document.createElement ('div');
-	buttonsDiv.className = 'dialogbuttons';
-	this.dialogDiv.appendChild (buttonsDiv);
+  const titleSpan = document.createElement('span');
+	titleSpan.classList.add('dialogtitlespan');
+	titleSpan.innerHTML = parameters.title;
+  titleDiv.appendChild(titleSpan);
 
-	//var i, button;
-	//for (i = 0; i < parameters.buttons.length; i++) {
-  for (const button of parameters.buttons) {
-		//button = parameters.buttons[i];
-		AddButton (this, buttonsDiv, button);
+  // add buttons to other side of title bar
+  for (const buttonParam of parameters.buttons) {
+		const buttonDiv = document.createElement('div');
+		buttonDiv.classList.add('dialogbutton');
+		buttonDiv.innerHTML = buttonParam.text;
+		buttonDiv.onclick = function () {
+			buttonParam.callback(main_this);
+		};
+		//buttonsDiv.appendChild(buttonDiv);
+		titleDiv.appendChild(buttonDiv);
 	}
 
-  // YH
-  //const canvas = document.getElementById ('meshviewer');
-  const left = document.getElementById ('left');
-  this.dialogDiv.style.width = (window.innerWidth - 200) + 'px';
-  this.dialogDiv.style.height = (left.offsetHeight - 50) + 'px';
-  this.dialogDiv.style.overflow = 'auto';
-  contentDiv.style.width = (this.dialogDiv.offsetWidth - 200) + 'px';
-  contentDiv.style.height = (this.dialogDiv.offsetHeight - 200) + 'px';
-  contentDiv.style.overflow = 'auto';
+
+  const contentDiv = document.createElement ('div');
+	this.contentDiv = contentDiv;
+	contentDiv.classList.add('dialogcontent');
+  if (parameters.hasOwnProperty('text')) {
+    contentDiv.innerHTML = parameters.text; // keeping this for backward comp
+  }
+	this.dialogDiv.appendChild(contentDiv);
+
+	//const buttonsDiv = document.createElement('div');
+	//buttonsDiv.classList.add('dialogbuttons');
+	//this.dialogDiv.appendChild(buttonsDiv);
 
 	document.body.appendChild(this.dialogDiv);
 
-	document.addEventListener ('click', this.mouseClick, true);
 	this.Resize();
 };
 
 FloatingDialog.prototype.Close = function ()
 {
-	if (this.dialogDiv === null) {
+	//if (this.dialogDiv === null) {
+	if (this.modalDiv === null) {
 		return;
 	}
 	
-	document.body.removeChild (this.dialogDiv);
-	document.removeEventListener ('click', this.mouseClick, true);
+	document.body.removeChild(this.dialogDiv);
+	document.body.removeChild(this.modalDiv);
+	document.removeEventListener('click', this.mouseClick, true);
+	this.modalDiv = null;
 	this.dialogDiv = null;
+  this.contentDiv = null;
 };
 
 // should this be called reposition??
@@ -78,11 +133,16 @@ FloatingDialog.prototype.Resize = function ()
 	if (this.dialogDiv === null) {
 		return;
 	}
-	
-	//this.dialogDiv.style.left = ((document.body.clientWidth - this.dialogDiv.clientWidth) / 2.0) + 'px';
-	//this.dialogDiv.style.top = ((document.body.clientHeight - this.dialogDiv.clientHeight) / 3.0) + 'px';
-	this.dialogDiv.style.left = ((window.innerWidth - this.dialogDiv.offsetWidth) / 2.0) + 'px';
-	this.dialogDiv.style.top = ((window.innerHeight - this.dialogDiv.offsetHeight) / 2.0) + 'px';
+
+  const titleDiv = this.dialogDiv.querySelector('.dialogtitle');
+
+  this.contentDiv.style.height = 
+    (this.dialogDiv.clientHeight 
+    - titleDiv.clientHeight) + 'px';
+};
+
+FloatingDialog.prototype.GetContentDiv = function() {
+  return this.contentDiv;
 };
 
 FloatingDialog.prototype.MouseClick = function (clickEvent)
