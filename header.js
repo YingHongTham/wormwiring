@@ -1,6 +1,10 @@
-//writes the header for every page
-//(the "Connectomics" and Home, Literature etc links)
-//(not to be confused with the head)
+/*
+ * writes the header for every page
+ * (the "Connectomics" and Home, Literature etc links)
+ * (not to be confused with the head of HTML)
+ *
+ * use /css/homecss
+ */
 
 //end part of url to name of page
 const urlToName = {

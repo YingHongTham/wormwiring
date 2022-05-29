@@ -176,3 +176,27 @@ table, th, td {
 	padding:8px 10px;
   }
 }
+
+
+/* classes for the navigation items in the header-nav */
+
+.nav-home a.navitem-home,
+.nav-lit a.navitem-lit,
+.nav-sftwr a.navitem-sftwr,
+.nav-ctct a.navitem-ctct {
+  background-color: #3C7DB9;
+}
+
+/* button to collapse the header and navigation bar */
+#collapse-header-nav {
+  height: 20px;
+  width: 100%;
+}
+
+.collapsed-state {
+  background-color: #888888;
+}
+
+#collapse-header-nav:hover {
+  background-color: #555555;
+}

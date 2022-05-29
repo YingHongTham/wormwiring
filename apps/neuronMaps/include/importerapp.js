@@ -9,12 +9,13 @@
  *
  * note to self: viewer must be initialized after GenerateMenu()
  * because it needs references to the menu items...
+ *
+ *
+ * Resizing:
+ * we added an event listener for 'resizeAll' to document
+ * which calls the Reisze method
+ * e.g. used by navigation collapsing
  */
-
-// TODO there are a bunch of places where a class is assigned
-// to an element by div.className = ...
-// apparently this doens't work (anymore?)
-// change to div.classList.add(...);
 
 ImporterApp = function (params)
 {
@@ -188,7 +189,7 @@ ImporterApp.prototype.Init = function ()
   //set up the Help, selector, clear menu
   var top = document.getElementById ('top');
   var importerButtons = new ImporterButtons (top);
-  importerButtons.AddLogo('Help',()=>{self.HelpDialog();});
+  importerButtons.AddLogo('Help',()=>{self.OpenHelpDialog();});
   importerButtons.AddLogo('Select neuron',()=>{self.NeuronSelectorDialog();});
   importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
 
@@ -208,7 +209,7 @@ ImporterApp.prototype.Init = function ()
     // YH don't think these two are actually used by viewer
     //menuObj: this.menuObj, // apps/include/importers.js
     //menuGroup: this.menuGroup,
-    synClick: this.InfoDialog, // is a FUNCTION that spawns dialog
+    synClick: this.OpenInfoDialog, // is a FUNCTION that spawns dialog
     app: this, // YH so viewer can refer back
   });
   this.viewer = viewer;
@@ -218,7 +219,6 @@ ImporterApp.prototype.Init = function ()
   };
     
   var render = function(){
-    // TODO commenting for testing
     requestAnimationFrame(render);
     // TODO make animating/pausing part of MapViewer class
     self.viewer.render();
@@ -241,6 +241,10 @@ ImporterApp.prototype.Init = function ()
 
   document.addEventListener('loadMapComplete', (ev) => {
     console.log(`${ev.detail} loaded into viewer`);
+  });
+
+  document.addEventListener('resizeAll', (ev) => {
+    self.Resize();
   });
 };
 
@@ -371,6 +375,8 @@ ImporterApp.prototype.PreloadParamsLoaded = function() {
 };
 
 // TODO CONTINUE hmm remarks are off again
+// TODO also, if show remarks was on already,
+// and then you load, it'll only toggle
 ImporterApp.prototype.PreloadCells = function()
 {
   var self = this;
@@ -415,7 +421,7 @@ ImporterApp.prototype.PreloadCells = function()
 
 
 
-ImporterApp.prototype.HelpDialog = function()
+ImporterApp.prototype.OpenHelpDialog = function()
 {
   //var dialogText = [
   //  '<div class="container">',
@@ -437,41 +443,64 @@ ImporterApp.prototype.HelpDialog = function()
 
   const contentDiv = this.dialog.GetContentDiv();
     
-  //var container = document.getElementsByClassName('container')[0];
-  var panelGroup = document.createElement('div');
-  panelGroup.id = 'accordion';
-  panelGroup.className = 'panel-group';
+  const panelGroup = document.createElement('div');
+  //panelGroup.id = 'accordion'; where used?
+  panelGroup.classList.add('panel-group');
+  // panel-group is from bootstrap.css
   for (const helpItem of this.helpParams) {
     this.AddHelpPanel(panelGroup,helpItem);
   }
-  //container.appendChild(panelGroup);
   contentDiv.appendChild(panelGroup);
 }
 
+/*
+ * adds a help entry defined by params
+ * to the 'parent' element
+ * HTML:
+ *  <div> // panel --> added to parent by appendChild
+ *    <div> // panelHeader
+ *      <div> // panelTitle
+ *        <div> // panelA
+ *          params.title (e.g. Quick Start)
+ *        </div>
+ *      </div>
+ *    </div>
+ *    <div> // panelCollapse, the main content
+ *      <div> // panelBody - text
+ *      </div>
+ *      <iframe> // panelIFrame - for video
+ *      </iframe>
+ *    </div>
+ *  </div>
+ */
 ImporterApp.prototype.AddHelpPanel = function(parent,params)
 {
-  var self = this;
   var panel = document.createElement('div');
-  panel.className = 'panel panel-default';
+  panel.classList.add('panel','panel-default');
+
   var panelHeader = document.createElement('div');
-  panelHeader.className = 'panel-heading';
+  panelHeader.classList.add('panel-heading');
+
   var panelTitle = document.createElement('h4');
-  panelTitle.className = 'panel-title';
+  panelTitle.classList.add('panel-title');
+
   var panelA = document.createElement('a');
-  panelA.className = 'accordion-toggle';
+  panelA.classList.add('accordion-toggle');
   panelA.setAttribute('data-toggle','collapse');
   panelA.setAttribute('data-parent','#accordion');
   panelA.href = '#' + params.name;
   panelA.innerHTML = params.title;
+
   panelTitle.appendChild(panelA);
   panelHeader.appendChild(panelTitle);
   panel.appendChild(panelHeader);
+
   var panelCollapse = document.createElement('div');
-  panelCollapse.id = params.name;
-  panelCollapse.className = 'panel-collapse collapse';
+  //panelCollapse.id = params.name;
+  panelCollapse.classList.add('panel-collapse','collapse');
   if (typeof params.text !== "undefined"){
     var panelBody = document.createElement('div');
-    panelBody.className = 'panel-body';
+    panelBody.classList.add('panel-body');
     panelBody.innerHTML = params.text;
     panelCollapse.appendChild(panelBody);
   };
@@ -486,7 +515,7 @@ ImporterApp.prototype.AddHelpPanel = function(parent,params)
   parent.appendChild(panel);
 }
 
-ImporterApp.prototype.InfoDialog = function(url,title)
+ImporterApp.prototype.OpenInfoDialog = function(url,title)
 {
   console.log(`opening info dialog for ${url}`);
   //var dialogText = [
@@ -613,9 +642,11 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
   var url = '../php/retrieve_trace_coord.php?neuron='+mapname+'&db='+db;
   console.log('retrieving skeleton map via '+url);
   var xhttp = new XMLHttpRequest();    
+  console.time(`Retrieve ${mapname}`);
   xhttp.onreadystatechange = function(){
     if (this.readyState == 4 && this.status == 200){
-      console.time(`LoadMap ${mapname}`);
+      console.timeEnd(`Retrieve ${mapname}`);
+      console.time(`Load to viewer ${mapname}`);
 
       self.data[mapname] = JSON.parse(this.responseText);
       self.viewer.loadMap(self.data[mapname]);
@@ -623,7 +654,7 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
       // translate maps of this cell
       self.viewer.translateOneMapsToThisPos(mapname);
 
-      console.timeEnd(`LoadMap ${mapname}`);
+      console.timeEnd(`Load to viewer ${mapname}`);
 
       self.viewer.SetCameraTarget(self.viewer.GetAveragePosition(mapname));
 
@@ -694,7 +725,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         };
         colorInput = document.createElement('input');
         // class no CSS, but used below
-        colorInput.className = 'colorSelector';
+        colorInput.classList.add('colorSelector');
         colorInput.setAttribute('type','text');
         var {r, g, b} = self.viewer.getColor(mapname);
         var r = Math.round(255*r);
@@ -749,7 +780,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       //onOpen : function(content,mapName){
       onOpen : function(content) {
         var url = walink;
-        self.InfoDialog(url,'WormAtlas');
+        self.OpenInfoDialog(url,'WormAtlas');
       },
       userData: mapname,
     }
@@ -765,7 +796,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       onOpen : function(content) {
         const series = self.GetSeriesFromHTML();
         const url = `../partnerList/?continName=${mapname}&series=${series}`;
-        self.InfoDialog(url,'Synaptic partners');
+        self.OpenInfoDialog(url,'Synaptic partners');
       },
       userData: mapname,
     }
@@ -781,7 +812,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       onOpen : function(content) {
         const series = self.GetSeriesFromHTML();
         const url = `../synapseList/?continName=${mapname}&series=${series}`;
-        self.InfoDialog(url,'Synapse list');
+        self.OpenInfoDialog(url,'Synapse list');
       },
       userData: mapname,
     }
@@ -878,7 +909,7 @@ ImporterApp.prototype.AddSelectPanel = function(celltype) {
 
   // large button, click to expand/collapse list
   const header = document.createElement('button');
-  header.className = 'panel-header';
+  header.classList.add('panel-header');
   header.setAttribute('type','button');
   header.setAttribute('data-toggle','collapse');
   header.setAttribute('data-target','#'+celltype);
@@ -887,7 +918,7 @@ ImporterApp.prototype.AddSelectPanel = function(celltype) {
   // div containing the cell entries
   const panel = document.createElement('div');
   panel.id = celltype;
-  panel.className = 'collapse';
+  panel.classList.add('collapse');
   // add cell entries to panel div
   for (const cell in this.selectedNeurons[celltype]){
     const cellDiv = document.createElement('div');
@@ -1110,7 +1141,7 @@ ImporterApp.prototype.GenerateMenu = function()
       a.href = url;
       a.click();
       // note url is relative to floatingdialog.js...
-      //self.InfoDialog(url,'Synapse viewer');
+      //self.OpenInfoDialog(url,'Synapse viewer');
     };
     parent.appendChild(synViewerBtn);
   };
@@ -1132,7 +1163,7 @@ ImporterApp.prototype.GenerateMenu = function()
       var label = document.createElement('label');
       var chkbx = document.createElement('input');
       chkbx.type = 'checkbox';
-      chkbx.className = 'synfilter';
+      chkbx.classList.add('synfilter');
       chkbx.id = synTypeId[synType];
       
       label.appendChild(chkbx);
@@ -1159,7 +1190,7 @@ ImporterApp.prototype.GenerateMenu = function()
     // buttons for filtering by cells
     var filterBtn = document.createElement('button');
     filterBtn.innerHTML = 'Filter';
-    filterBtn.className = 'filterButton';
+    filterBtn.classList.add('filterButton');
     filterBtn.onclick = function(){
       //self.viewer.toggleAllSynapseTypeHard(false);
       var cells = document.getElementById('synfiltercells').value;
@@ -1181,7 +1212,7 @@ ImporterApp.prototype.GenerateMenu = function()
     };
     var restoreBtn = document.createElement('button');
     restoreBtn.innerHTML = 'Restore';
-    restoreBtn.className = 'filterButton';
+    restoreBtn.classList.add('filterButton');
     restoreBtn.onclick = function(){
       for (const synType in synTypeId) {
         document.getElementById(synTypeId[synType]).checked = false;
@@ -1210,7 +1241,7 @@ ImporterApp.prototype.GenerateMenu = function()
     // buttons for filtering by synapse ids
     var filterBtn = document.createElement('button');
     filterBtn.innerHTML = 'Filter';
-    filterBtn.className = 'filterContinButton';
+    filterBtn.classList.add('filterContinButton');
     filterBtn.onclick = function(){
       self.viewer.toggleAllSynapses(false);
       const contins = document.getElementById('synfiltercontins').value;
@@ -1233,7 +1264,7 @@ ImporterApp.prototype.GenerateMenu = function()
     };
     var restoreBtn = document.createElement('button');
     restoreBtn.innerHTML = 'Restore';
-    restoreBtn.className = 'filterContinButton';
+    restoreBtn.classList.add('filterContinButton');
     restoreBtn.onclick = function(){
         document.getElementById('synfiltercontins').value=null;
         self.viewer.toggleAllSynapses(true);
@@ -1246,7 +1277,7 @@ ImporterApp.prototype.GenerateMenu = function()
   function AddSlider(parent,xyz,params){
     const slider = document.createElement('input');
     slider.id = xyz + '-slider';
-    slider.className = params.className;
+    slider.classList.add(params.className);
     slider.type ='range';
     slider.min = params.min;
     slider.max = params.max;
@@ -1290,7 +1321,7 @@ ImporterApp.prototype.GenerateMenu = function()
     var remarkBtn = document.createElement('button');
     remarkBtn.innerHTML = isOn ? onText : offText;
     remarkBtn.value = isOn;
-    remarkBtn.className = 'filterbutton';
+    remarkBtn.classList.add('filterbutton');
     //remarkBtn.id = 'remarkBtn';
     remarkBtn.onclick = function() {
       isOn = !isOn;

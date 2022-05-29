@@ -44,7 +44,7 @@ MapViewer = function(_canvas,_menu,_debug=false)
   // plotParam as returned in map object by retrieve_trace_coord
   // is the same for all cells in a given db
   // this is updated each time a cell is retrieved,
-  // better to only update when db changes
+  // TODO better to only update when db changes
   // regardless, makes more sense to be an attribute here
   // rather than passed around for this.applyParamsTranslate(..)
   this.plotParam = {
@@ -458,6 +458,7 @@ MapViewer.prototype.loadMap = function(map)
   this.plotParam.ymax = Math.max(this.maxY, map.plotParam.yScaleMax);
   this.plotParam.zmid = 0.5*(map.plotParam.zScaleMin + map.plotParam.zScaleMax);
   this.plotParam.zmin = map.plotParam.zScaleMin;
+
   var params = {
     neuron: map.name,
     db: map.db,
@@ -607,7 +608,7 @@ MapViewer.prototype.getLoadedCells = function() {
 
 /*
  * @param {Object} vec - Vector3, or object with keys x,y,z
- * @param {Object} params - of form plotParam
+ * @param {Object} params - default value is this.plotParam
  *
  * this.translate seems pretty useless
  */
@@ -1050,20 +1051,6 @@ MapViewer.prototype._toggleRemarks = function(name,bool=null)
   } else {
     this.maps[name].remarks.visible = !this.maps[name].remarks.visible;
   }
-  // YH old code when remarks was an Array
-  //for (var i in this.maps[name].remarks) {
-  //  if (typeof(bool) === 'boolean') {
-  //  //if (bool != null){
-  //    this.maps[name].remarks[i].visible = bool;
-  //  } else {
-  //    //this.maps[name].remarks[i].visible = (this.maps[name].remarks[i].visible==true)?false:true;
-  //    if (typeof(this.maps[name].remarks[i].visible) !== 'boolean') {
-  //      this.maps[name].remarks[i].visible = false;
-  //    } else {
-  //      this.maps[name].remarks[i].visible = !this.maps[name].remarks[i].visible;
-  //    }
-  //  }
-  //}
 };
 
 /*

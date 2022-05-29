@@ -420,7 +420,8 @@ class NeuronTrace {
 	  		if ($v['cellbody'] == 1){
 	  			$this->cellBody->add_x($v['x1'],$v['x2']);
 	  			$this->cellBody->add_y($v['y1'],$v['y2']);
-	  			$this->cellBody->add_z($z1,$z2);
+	  			$this->cellBody->add_y($v['z1'],$v['z2']);
+	  			//$this->cellBody->add_z($z1,$z2);
         }
         // rather strange that the NULL values automatically become ''
 	  		//if ($v['remarks1'] != ''){
@@ -433,10 +434,10 @@ class NeuronTrace {
         // and keep the object number so no repeats
         // TODO
 	  		if ($v['remarks1'] != ''){
-	  			$this->add_remark_alt($v['objName1'],$v['x1'],$v['y1'],$z1,$s,$v['remarks1']);
+	  			$this->add_remark_alt($v['objName1'],$v['x1'],$v['y1'],$v['z1'],$s,$v['remarks1']);
 	  		}
 	  		if ($v['remarks2'] != ''){
-	  			$this->add_remark_alt($v['objName2'],$v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
+	  			$this->add_remark_alt($v['objName2'],$v['x2'],$v['y2'],$v['z2'],$s,$v['remarks2']);
         }
 	  	}
     }
