@@ -16,12 +16,24 @@ function toggleHeaderNav() {
   headerNav.style.display = collapsed ? 'block' : 'none';
 
   const btn = document.getElementById('collapse-header-nav');
+  btn.style.display = collapsed ? 'none' : 'block';
   btn.classList.toggle('collapsed-state', !collapsed);
-  btn.innerHTML = collapsed ? 'Hide Navigation' : 'Show Navigation';
+  btn.innerHTML = 'Show Navigation';
   document.dispatchEvent(new Event('resizeAll'));
 };
 
+
+// tiny button on the right to hide
+const navbar = headerNav.querySelector('#nav');
+let span = document.createElement('span');
+span.onclick = toggleHeaderNav;
+span.innerHTML = 'Hide X';
+span.classList.add('hide-nav');
+navbar.appendChild(span);
+
+
 const btn = document.getElementById('collapse-header-nav');
-btn.innerHTML = 'Hide Navigation';
+btn.style.display = 'none';
+btn.innerHTML = 'Show Navigation';
 btn.onclick = toggleHeaderNav;
 

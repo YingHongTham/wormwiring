@@ -36,7 +36,8 @@ var headerhtml =
 "  </a>"+
 "</div>"+
 ""+
-"<div id='nav' style='font-size: 0px'>"+
+//"<div id='nav' style='font-size: 0px'>"+
+"<div id='nav' style='font-size:0px'>"+
 "  <ul style='font-size: 16px'><b>"+
 "  <li><a class='navitem-home' href='/index.html'>HOME</a></li>"+
 "  <li><a class='navitem-lit' href='/pages/literature.html'>LITERATURE</a></li>"+
@@ -45,6 +46,9 @@ var headerhtml =
 "  </b></ul>"+
 "</div>"
 ;
+
+// for some reason the font-size:0px is needed to make
+// the 'nav' the right height
 
 
 const headerNav = document.getElementById('header-nav');
