@@ -1023,17 +1023,27 @@ ImporterApp.prototype.Resize = function ()
     elem.style.height = value + 'px';
   }
 
-  var headerimage = document.getElementById ('headerimage');
-  var nav = document.getElementById ('nav');
-  var top = document.getElementById ('top');
-  //why left and not just do the menu
-  var left = document.getElementById ('left');
-  var canvas = document.getElementById ('meshviewer');
-  // YH; subtracting the nav/image heights too
-  var height = window.innerHeight - top.offsetHeight - headerimage.offsetHeight - nav.offsetHeight - 10;
+  let headerNav = document.getElementById ('header-nav');
+  let headerNavCollapse = document.getElementById ('collapse-header-nav');
+
+  // now both of these are under headerNav
+  //var headerimage = document.getElementById ('headerimage');
+  //var nav = document.getElementById ('nav');
+
+  console.log('headerNav: ', headerNav.offsetHeight);
+  console.log('headerimage: ', headerimage.offsetHeight);
+  console.log('nav: ', nav.offsetHeight);
+
+  let top = document.getElementById ('top'); // 'Help' etc
+  let left = document.getElementById ('left');
+  let canvas = document.getElementById ('meshviewer');
+
+  let height = window.innerHeight - top.offsetHeight - headerNav.offsetHeight - headerNavCollapse.offsetHeight - 10;
+ 
+  //var height = window.innerHeight - top.offsetHeight - headerimage.offsetHeight - nav.offsetHeight - 10;
 
   SetHeight (canvas, 0);
-  //SetWidth (canvas, 0);
+  //SetWidth (canvas, 0); ??
 
   SetHeight (left, height);
 

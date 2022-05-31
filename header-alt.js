@@ -4,7 +4,7 @@
  * (not to be confused with the head of HTML)
  *
  * same as header.js but here we write to the innerHTML
- * of a div with id = 'header-nav'
+ * of a div already in the html with id = 'header-nav'
  *
  * also we use CSS trick instead of JS to implement
  * the highlighting of navigation item of current page
@@ -36,7 +36,6 @@ var headerhtml =
 "  </a>"+
 "</div>"+
 ""+
-//"<div id='nav' style='font-size: 0px'>"+
 "<div id='nav' style='font-size:0px'>"+
 "  <ul style='font-size: 16px'><b>"+
 "  <li><a class='navitem-home' href='/index.html'>HOME</a></li>"+

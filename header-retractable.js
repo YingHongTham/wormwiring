@@ -19,7 +19,8 @@ function toggleHeaderNav() {
   btn.style.display = collapsed ? 'none' : 'block';
   btn.classList.toggle('collapsed-state', !collapsed);
   btn.innerHTML = 'Show Navigation';
-  document.dispatchEvent(new Event('resizeAll'));
+  setTimeout(() => document.dispatchEvent(new Event('resizeAll'))
+    , 10);
 };
 
 
