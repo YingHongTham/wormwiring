@@ -344,29 +344,37 @@ class CellSyn {
 
 
 class NeuronTrace {
-	//$continName should be $cell?
+	//$continName should be $cell = cellname?
 	//that's how it's invoked in retrieve...php..
-	function __construct($_db,$continName){
-		$this->db = $_db->db; //just the name of db, not the object
-		$this->db_obj = $_db; //gonna try to store the whole object too
-		$this->continName = $continName;
+  function __construct($_db,$continName){
+		$this->db = $_db->db; // just the name of db, not the object
+		$this->db_obj = $_db; // store the whole object too
+    $this->continName = $continName;
 		
-		//cell is recorded in several contins; get those contin numbers
-		$this->continNums = $_db->get_contin_numbers($continName);
+		//cell is recorded in several contins
+    $this->continNums = $_db->get_contin_numbers($continName);
+
+    // initialize some empty containers
 
 		//cell also goes through several parts of worm e.g. NR, VC etc
 		//store the neuron trace for each part separately
 		//  $this->series['NR'] = trace data for part of neuron in NR
-		$this->series = array();
+    $this->series = array();
+    // YH new; store skeleton by object numbers;
+    // coordinates stored separately, once for each object
+    // each entry is itself an array of pairs:
+    // $thi->skeletonObjs['NR'] = array([351,89],[89,1841],...)
+    $this->skeletonObjs = array();
     foreach ($this->continNums as $c){
       // get series(regions) that the cell does go through/appear in
-			$series = $_db->get_display2_series($c);
+      $series = $_db->get_display2_series($c);
 			foreach ($series as $s){
 				$tmp = $s;
 				if (strcmp('Ventral Cord',$s) == 0 or strcmp('Ventral Cord 2',$s) == 0) {
 					$tmp = 'VC'; 
 				} 
-				$this->series[$tmp] = new TraceLocation();
+        $this->series[$tmp] = new TraceLocation();
+        $this->skeletonObjs[$tmp] = array(); // YH new
 			}
 		}
 		$this->cellBody = new TraceLocation();
@@ -375,76 +383,123 @@ class NeuronTrace {
 		$this->gapJunction = new TraceSynapse();
 		$this->remarks = array();
 		$this->plotParam = array();
-		$this->objects = array();
+    $this->objects = array(); // no longer in use
+    $this->objCoord = array(); // replaces $this->objects
+    $this->cbObjs = array(); // just store objNum of cellbody
 
+    $sql = $this->display2_sql_better();
+    $query_results = $_db->_return_query_rows_assoc($sql);
+    foreach ($query_results as $v){
+      // v is row in query results, corresponds to one edge
 
-    // YH
-	  //stuff copied from retrieve_trace_coord.php
-	  $DISPLAY = 2;
-    // $_v is discarded, only need $s series NR, VC, etc.
-	  foreach ($this->series as $s => $_v){
-	  	if ($DISPLAY == 2){
-	  		//$sql = $this->display2_sql($s); //for whatever reason doesn't have z's
-	  		$sql = $this->display2_sql_good($s);
-	  	} elseif ($DISPLAY == 3){
-	  		$sql = $this->display3_sql($s);
+      // cast to integer, because for some reason
+      // MySQL table has string entries for these position values wtf
+      foreach (['x1','y1','z1','x2','y2','z2','objNum1','objNum2','cellbody','continNum'] as $k) {
+        $v[$k] = intval($v[$k]);
       }
-      $val = $_db->_return_query_rows_assoc($sql);
-      foreach ($val as $v){
-        // v is row in query results, corresponds to one edge
-        // position of edges (x1,y1,z1) --- (x2,y2,z2)
-        // but first cast to integer, because for some reason
-        // MySQL table has string entries for these position values wtf
-        foreach (['x1','y1','z1','x2','y2','z2','objName1','objName2','cellbody']
-            as $k) {
-          $v[$k] = intval($v[$k]);
-        }
 
-        // slowest part; in old display2_sql, doesn't return z1,z2
-	  		//$z1 = $_db->get_object_section_number($v['objName1']);
-	  		//$z2 = $_db->get_object_section_number($v['objName2']);
+      $s = $v['series'];
+      
+      // add edge
+      $this->series[$s]->add_segment($v['x1'],$v['y1'],$v['z1'],$v['x2'],$v['y2'],$v['z2'],$v['cellbody']);
+      //$this->skeletonObjs[$s][] = array($v['objNum1'],$v['objNum2']);
 
-        // add edge
-	  		$this->series[$s]->add_x($v['x1'],$v['x2']);
-	  		$this->series[$s]->add_y($v['y1'],$v['y2']);
-	  		$this->series[$s]->add_z($v['z1'],$v['z2']);
-	  		//$this->series[$s]->add_z($z1,$z2);
+      // for whatever fucking reason, the old code has
+      // makes x negative (see add_x)
+	  	//$this->objCoord[$v['objNum1']][] = array(-$v['x1'],$v['y1'],$v['z1']);
+      //$this->objCoord[$v['objNum1']][] = array(-$v['x2'],$v['y1'],$v['z1']);
+      
+	  	$this->add_object($v['objName1'],$v['x1'],$v['y1'],$v['z1']);
+	  	$this->add_object($v['objName2'],$v['x2'],$v['y2'],$v['z2']);
 
-        // whether this edge(?) corresponds to a cell body
-        // isn't 'cellbody' a property of objects and not relationships?
-	  		$this->series[$s]->add_cb($v['cellbody']);
+      if ($v['cellbody'] == 1){
+        //$this->cbObjs[] = $v['objNum1']; // may duplicate
+        //$this->cbObjs[] = $v['objNum2']; // make unique later
+        $this->cellBody->add_x($v['x1'],$v['x2']);
+	  		$this->cellBody->add_y($v['y1'],$v['y2']);
+	  		$this->cellBody->add_y($v['z1'],$v['z2']);
+      }
 
-	  		$this->add_object($v['objName1'],$v['x1'],$v['y1'],$v['z1']);
-	  		$this->add_object($v['objName2'],$v['x2'],$v['y2'],$v['z2']);
-
-	  		if ($v['cellbody'] == 1){
-	  			$this->cellBody->add_x($v['x1'],$v['x2']);
-	  			$this->cellBody->add_y($v['y1'],$v['y2']);
-	  			$this->cellBody->add_y($v['z1'],$v['z2']);
-	  			//$this->cellBody->add_z($z1,$z2);
-        }
-        // rather strange that the NULL values automatically become ''
-	  		//if ($v['remarks1'] != ''){
-	  		//	$this->add_remark($v['x1'],$v['y1'],$z1,$s,$v['remarks1']);
-	  		//}
-	  		//if ($v['remarks2'] != ''){
-	  		//	$this->add_remark($v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
-        //}
-        // YH basically same as above, just we use assoc array
-        // and keep the object number so no repeats
-	  		if ($v['remarks1'] != ''){
-	  			$this->add_remark_alt($v['objName1'],$v['x1'],$v['y1'],$v['z1'],$s,$v['remarks1']);
-	  		}
-	  		if ($v['remarks2'] != ''){
-	  			$this->add_remark_alt($v['objName2'],$v['x2'],$v['y2'],$v['z2'],$s,$v['remarks2']);
-        }
+      // remarks now assoc array
+      if ($v['remarks1'] != ''){
+        //$this->remarks[$v['objNum1']] = $v['remarks1'];
+	  	  $this->add_remark_alt($v['objName1'],$v['x1'],$v['y1'],$v['z1'],$s,$v['remarks1']);
 	  	}
+	  	if ($v['remarks2'] != ''){
+        //$this->remarks[$v['objNum2']] = $v['remarks2'];
+	  	  $this->add_remark_alt($v['objName2'],$v['x2'],$v['y2'],$v['z2'],$s,$v['remarks2']);
+      }
     }
-	}
+    $this->cbObjs = array_unique($this->cbObjs);
 
+    // YH; stuff copied from retrieve_trace_coord.php
+    // old method; this queries series separately; inefficient
+	  //$DISPLAY = 2;
+    //// $_v is discarded, only need $s series NR, VC, etc.
+	  //foreach ($this->series as $s => $_v){
+	  //	if ($DISPLAY == 2){
+	  //		//$sql = $this->display2_sql($s); //for whatever reason doesn't have z's
+	  //		$sql = $this->display2_sql_good($s);
+	  //	} elseif ($DISPLAY == 3){
+	  //		$sql = $this->display3_sql($s);
+    //  }
+    //  $val = $_db->_return_query_rows_assoc($sql);
+    //  foreach ($val as $v){
+    //    // v is row in query results, corresponds to one edge
+    //    // position of edges (x1,y1,z1) --- (x2,y2,z2)
+    //    // but first cast to integer, because for some reason
+    //    // MySQL table has string entries for these position values wtf
+    //    foreach (['x1','y1','z1','x2','y2','z2','objName1','objName2','cellbody']
+    //        as $k) {
+    //      $v[$k] = intval($v[$k]);
+    //    }
+
+    //    // slowest part; in old display2_sql, doesn't return z1,z2
+    //    // so had to go query again; solved with display2_sql_good
+	  //		//$z1 = $_db->get_object_section_number($v['objName1']);
+	  //		//$z2 = $_db->get_object_section_number($v['objName2']);
+
+    //    // add edge
+    //    $this->series[$s]->add_segment($v['x1'],$v['y1'],$v['z1'],$v['x2'],$v['y2'],$v['z2'],$v['cellbody']);
+	  //		//$this->series[$s]->add_x($v['x1'],$v['x2']);
+	  //		//$this->series[$s]->add_y($v['y1'],$v['y2']);
+	  //		//$this->series[$s]->add_z($v['z1'],$v['z2']);
+	  //		//$this->series[$s]->add_cb($v['cellbody']);
+
+	  //		$this->add_object($v['objName1'],$v['x1'],$v['y1'],$v['z1']);
+	  //		$this->add_object($v['objName2'],$v['x2'],$v['y2'],$v['z2']);
+
+	  //		if ($v['cellbody'] == 1){
+	  //			$this->cellBody->add_x($v['x1'],$v['x2']);
+	  //			$this->cellBody->add_y($v['y1'],$v['y2']);
+	  //			$this->cellBody->add_y($v['z1'],$v['z2']);
+	  //			//$this->cellBody->add_z($z1,$z2);
+    //    }
+
+    //    // rather strange that the NULL values automatically become ''
+	  //		//if ($v['remarks1'] != ''){
+	  //		//	$this->add_remark($v['x1'],$v['y1'],$z1,$s,$v['remarks1']);
+	  //		//}
+	  //		//if ($v['remarks2'] != ''){
+	  //		//	$this->add_remark($v['x2'],$v['y2'],$z2,$s,$v['remarks2']);
+    //    //}
+    //    // YH basically same as above, just we use assoc array
+    //    // and keep the object number so no repeats
+	  //		if ($v['remarks1'] != ''){
+	  //			$this->add_remark_alt($v['objName1'],$v['x1'],$v['y1'],$v['z1'],$s,$v['remarks1']);
+	  //		}
+	  //		if ($v['remarks2'] != ''){
+	  //			$this->add_remark_alt($v['objName2'],$v['x2'],$v['y2'],$v['z2'],$s,$v['remarks2']);
+    //    }
+	  //	}
+    //}
+  }
+
+
+  // record the coordinates of object given object number
 	function add_object($obj,$x,$y,$z){
 		$this->objects[$obj] = array( 
-			'x' => $x,
+			'x' => $x, // should this be negative?? fuck me
 			'y' => $y,
 			'z' => $z
 		);
@@ -469,6 +524,25 @@ class NeuronTrace {
 		} else {
 			return -1;
 		}
+  }
+
+  // return all segments in $this->continName
+  // display2_sql_good queries each $series separately
+  // more efficient to query all, and then just use
+  // the series1 value to add to appropriate $this->series
+	function display2_sql_better(){
+		$continStr = implode(",",$this->continNums);
+    $sql = "select
+        x1,y1,z1,x2,y2,z2,
+        objName1 as objNum1,
+        objName2 as objNum2,
+        cellbody1 as cellbody,
+        remarks1,remarks2,
+        continNum, series1 as series
+			from display2
+			where continNum in ($continStr)
+			order by z1 asc";
+		return $sql;
 	}
 
 	function display2_sql_good($series){
@@ -589,16 +663,20 @@ class NeuronTrace {
 		$this->plotParam['xScaleMax'] = -$this->plotParam['xScaleMax'];
 	}
 
+  // converts all the results of queries,
+  // as stored in $this, e.g. $this->preSynapse
+  // into form that's ready to send back to JS
 	function compile_data(){
 		$data = array();
 		$data['name'] = $this->continName;
 		$data['series'] = $this->db; // big brain
 		$data['db'] = $this->db; // YH
-		$data['cellBody'] = $this->cellBody->get_data();
+    $data['cellBody'] = $this->cellBody->get_data();
+    //$data['cbObjs'] = $this->cbObjs;
 		$data['preSynapse'] = $this->preSynapse->get_synapses();
 		$data['postSynapse'] = $this->postSynapse->get_synapses();
 		$data['gapJunction'] = $this->gapJunction->get_synapses();
-    $data['nmj'] = array();
+    $data['nmj'] = array(); // wtf this is always empty??
 		$data['remarks'] = $this->remarks;
     $data['plotParam'] = $this->plotParam;
 
@@ -611,10 +689,16 @@ class NeuronTrace {
 		//foreach($this->series as $s => $v){
 		//	$data[$s] = $this->series[$s]->get_data();
     //}
+    //
+    // keeping this; we develop the better way
+    // in retrieve_trace_coord_alt.php
     $data['skeleton'] = array();
-		foreach($this->series as $s => $v){
-			$data['skeleton'][$s] = $this->series[$s]->get_data();
+		foreach($this->series as $s => $_v){
+      $data['skeleton'][$s] = $this->series[$s]->get_data();
     }
+    //// YH further improve, only send obj numbers
+    //$data['skeletonObjs'] = $this->skeletonObjs;
+    //$data['objCoord'] = $this->objCoord;
 		return $data;     
 	}
 
@@ -627,7 +711,7 @@ class NeuronTrace {
  * so that you should draw a line segment
  * from (x[n][0],y[n][0],z[n][0])
  * to (x[n][1],y[n][1],z[n][1])
- * not sure what cb does, should stand for cell body
+ * cb: 0 or 1, whether it's cellbody
  */
 class TraceLocation {
 	function __construct(){
@@ -635,7 +719,14 @@ class TraceLocation {
 		$this->y = array();
 		$this->z = array();
 		$this->cb = array(); //cb = cell body?
-	}
+  }
+
+  function add_segment($x1,$y1,$z1,$x2,$y2,$z2,$cb) {
+    $this->add_x($x1,$x2);
+    $this->add_y($y1,$y2);
+    $this->add_z($z1,$z2);
+    $this->add_cb($cb);
+  }
       
 	function add_x($x1,$x2){
 		$this->x[] = array(-$x1,-$x2);

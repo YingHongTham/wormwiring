@@ -7,6 +7,16 @@
  * this used to be handled by the javascript on client side code
  * but I (YH) think that's terrible practice
  * also in the first place, shouldn't these values be integers anyway?
+ *
+ * some notes on the sql tables/queries:
+ * on synapsecombined:
+ * each row is one synapse;
+ * conceptually, the synapse is identified with one "middle"
+ * object in its contin, the 'mid' field in synapsecombined
+ * is its object number;
+ * it is a marked point in between the relevant cells.
+ * then the other object numbers (preobj, postobj1, etc)
+ * are those of the relevant cells in the same section
  */
 
 //TODO make database initialize in constructor e.g. DB($db)?
@@ -263,7 +273,6 @@ class DB {
 		//    object.IMG_Number = image.IMG_Number 
     $sql = "
       select
-        pre,post,sections,continNum
         pre,post,sections,continNum,
         image.IMG_SectionNumber
       from synapsecombined 
@@ -275,6 +284,31 @@ class DB {
 			  and synapsecombined.type like 'chemical' 
       order by
         image.IMG_SectionNumber asc, post desc, sections desc";
+    // cast integers
+    $data = $this->_return_query_rows_assoc($sql);
+    print_r($data);
+    foreach ($data as $d) {
+      $d['sections'] = intval($d['sections']);
+      $d['continNum'] = intval($d['continNum']);
+    }
+
+		return $data;
+	}
+
+  // YH
+  // similar to get_pre_chemical_synapses_assoc,
+  // but we don't return coordinates, just obj numbers
+	function get_pre_chemical_synapses_objnums($continName){
+    $sql = "
+      select
+        pre,post,sections,continNum,
+        preobj, postobj1, postobj2, postobj3, postobj4,
+        mid
+      from synapsecombined 
+			where pre like '%$continName%' 
+			  and synapsecombined.type like 'chemical' 
+      order by
+        post asc, sections desc";
 
     // cast integers
     $data = $this->_return_query_rows_assoc($sql);
@@ -285,6 +319,7 @@ class DB {
 
 		return $data;
 	}
+
 
 	function get_post_chemical_partners($continName){
 		$sql = "select pre,count(*),sum(sections) as sects 
@@ -481,7 +516,10 @@ class DB {
 		}
 	}
 
-	//cell object = the contin number?
+  //cell object = the contin number?
+  // returns an assoc array ("dict")
+  // where keys are names of cells involved in this synapse
+  // and values are their object numbers
 	function get_synapse_cell_object_dict($continNum){
 		$sql = "select pre,post1,post2,post3,post4,
 			preobj,postobj1,postobj2,postobj3,postobj4
