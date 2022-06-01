@@ -73,6 +73,7 @@ add a save function
 
 
 TODO:
--position neuron at center
--make pointing of remarks clear
 -add volumetric data from n2y and harvard group
+-related: in apps/neuronMaps/include/mapViewer.js,
+  check that parameters like this.XYScale = 0.05
+  is correct, make proper documentation

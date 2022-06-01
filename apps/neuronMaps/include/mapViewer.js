@@ -66,11 +66,17 @@ MapViewer = function(_canvas,_menu,_debug=false)
   // (i.e. this.position.x = doc.get..Id('x-slider').value
   this.position = new THREE.Vector3(100,0,0);
       
-  this.non_series_keys = ["plotParam","cellBody",
-    "preSynapse","postSynapse",
-    "gapJunction","remarks","nmj",
-    "name","series",
-    "objRemarks","db"]; // YH added
+  // no need anymore!
+  // in old php, returns $data object,
+  // with keys for the series/regions, like 'NR' and 'VC',
+  // and keys not for skeleton, like 'preSynapse' etc.
+  // but YH changed php so the series/region keys are
+  // put into its own key $data['skeleton']
+  //this.non_series_keys = ["plotParam","cellBody",
+  //  "preSynapse","postSynapse",
+  //  "gapJunction","remarks","nmj",
+  //  "name","series",
+  //  "objRemarks","db"]; // YH added
   
   // redundant as each skeleton will need its own Material
   // (which allows individual color change)
@@ -462,15 +468,17 @@ MapViewer.prototype.loadMap = function(map)
   var params = {
     neuron: map.name,
     db: map.db,
-    xmid: 0.5*(map.plotParam.xScaleMin + map.plotParam.xScaleMax),
-    xmin: Math.min(this.minX,map.plotParam.xScaleMin),
-    ymid: 0.5*(map.plotParam.yScaleMin + map.plotParam.yScaleMax),
-    ymax: Math.max(this.maxY, map.plotParam.yScaleMax),
-    zmid: 0.5*(map.plotParam.zScaleMin + map.plotParam.zScaleMax),
-    zmin: map.plotParam.zScaleMin,
+    // changed from 0.5*(map.plotParam ....
+    xmid: this.plotParam.xmid,
+    xmin: this.plotParam.xmin,
+    ymid: this.plotParam.ymid,
+    ymax: this.plotParam.ymax,
+    zmid: this.plotParam.zmid,
+    zmin: this.plotParam.zmin,
     default: '---',
     remarks: false
   };
+  // linewidth actually no longer supported
   var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor,
     linewidth: this.SkelWidth});
 
@@ -540,12 +548,14 @@ MapViewer.prototype.loadMap = function(map)
 
   // series keys like VC, NR etc, and value map[key]
   // comes from NeuronTrace constructor/TraceLocation from dbaux.php
-  for (const key in map) {
-    // TODO bad; should check for inclusion, not exclusion
-    // or even better, put the skeleton in its own key
-    if (this.non_series_keys.indexOf(key) == -1){
-      this.addSkeleton(map.name,map[key],params);     
-    }
+  // TBH I don't understand why series was kept,
+  // I think I will use it for the 2D view
+  // but it wasn't utilized at all before
+  // it used to give me such a headache
+  for (const key in map.skeleton) {
+    // no longer need to check!
+    //if (this.non_series_keys.indexOf(key) == -1){
+    this.addSkeleton(map.name,map.skeleton[key],params);     
   }
 
   // map['pre..'] is array of objects,
@@ -627,7 +637,7 @@ MapViewer.prototype.applyParamsTranslate = function(vec,params=null) {
  * add the neuron skeleton to THREE scene
  * called by loadMap:
  *    this.addSkeleton(map.name,map[key],params);     
- * pass skeleton (=map[key]) as object with keys x,y,z,cb:
+ * pass skeleton (=map.skeleton[key]) as object with keys x,y,z,cb:
  * (see loadMap comments above)
  *  {
  *    x: [ [-1588, -1612], ... ],

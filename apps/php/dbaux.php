@@ -400,7 +400,7 @@ class NeuronTrace {
           $v[$k] = intval($v[$k]);
         }
 
-        // slowest part; in display2_sql, doesn't return z1,z2
+        // slowest part; in old display2_sql, doesn't return z1,z2
 	  		//$z1 = $_db->get_object_section_number($v['objName1']);
 	  		//$z2 = $_db->get_object_section_number($v['objName2']);
 
@@ -432,7 +432,6 @@ class NeuronTrace {
         //}
         // YH basically same as above, just we use assoc array
         // and keep the object number so no repeats
-        // TODO
 	  		if ($v['remarks1'] != ''){
 	  			$this->add_remark_alt($v['objName1'],$v['x1'],$v['y1'],$v['z1'],$s,$v['remarks1']);
 	  		}
@@ -601,11 +600,21 @@ class NeuronTrace {
 		$data['gapJunction'] = $this->gapJunction->get_synapses();
     $data['nmj'] = array();
 		$data['remarks'] = $this->remarks;
-    //$data['objRemarks'] = $this->objRemarks; // YH
-		foreach($this->series as $s => $v){
-			$data[$s] = $this->series[$s]->get_data();
-		}
     $data['plotParam'] = $this->plotParam;
+
+    // YH old $data['NR'] = array of edges
+    // now we do $data['skeleton']['NR'] = array of edges
+    // it's very unpleasant to have to hard code
+    // the 'non_series_keys' down the line (e.g. in mapViewer.js)
+    // this avoids having to know that; just iterate through
+    // $data['skeleton']
+		//foreach($this->series as $s => $v){
+		//	$data[$s] = $this->series[$s]->get_data();
+    //}
+    $data['skeleton'] = array();
+		foreach($this->series as $s => $v){
+			$data['skeleton'][$s] = $this->series[$s]->get_data();
+    }
 		return $data;     
 	}
 
