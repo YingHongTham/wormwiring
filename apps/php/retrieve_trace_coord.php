@@ -155,7 +155,9 @@ foreach($data as $d){
 
 $data = $_db->get_post_chemical_synapses($nt->continName);
 foreach($data as $d){
-	$c = $d[3];
+  $c = $d[3];
+  // quite bad, some synapses have post to same cells twice,
+  // e.g. AVAR -> DB02,DB02,hyp
 	$dict = $_db->get_synapse_cell_object_dict($c);
 	if (!array_key_exists($nt->continName,$dict)){
 		continue;

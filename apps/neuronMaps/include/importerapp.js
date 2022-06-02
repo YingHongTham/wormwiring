@@ -380,7 +380,7 @@ ImporterApp.prototype.PreloadParamsLoaded = function() {
 ImporterApp.prototype.PreloadCells = function()
 {
   var self = this;
-  this.LoadMap(this.params.db,this.params.cell);
+  this.LoadMap2(this.params.db,this.params.cell);
 
   // update the series selector in menu
   self.SetSeriesToHTML(this.params.db);
@@ -664,6 +664,50 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
       document.dispatchEvent(new CustomEvent('loadMapComplete', {
         detail: mapname,
       }));
+    }
+  };
+  xhttp.open("GET",url,true);
+  xhttp.send();
+}
+
+
+/*
+ * better version of LoadMap
+ * calls retrieve_trace_coord_alt.php
+ * which returns data in terms of object numbers
+ *
+ * @param {String} db - name of database
+ * @param {String} cell - name of cell
+ */
+ImporterApp.prototype.LoadMap2 = function(db,cell)
+{
+  const main_this = this;
+  const url = `../php/retrieve_trace_coord_alt.php?db=${db}&cell=${cell}`;
+  console.log('retrieving skeleton map via '+url);
+  const xhttp = new XMLHttpRequest();    
+  console.time(`Retrieve ${cell}`);
+  xhttp.onreadystatechange = function(){
+    if (this.readyState == 4 && this.status == 200){
+      //console.timeEnd(`Retrieve ${cell}`);
+      //console.time(`Load to viewer ${cell}`);
+
+      console.log(this.responseText);
+      const result = JSON.parse(this.responseText);
+
+      //main_this.data[cell] = JSON.parse(this.responseText);
+      //main_this.viewer.loadMap(main_this.data[cell]);
+
+      //// translate maps of this cell
+      //main_this.viewer.translateOneMapsToThisPos(cell);
+
+      //console.timeEnd(`Load to viewer ${cell}`);
+
+      //main_this.viewer.SetCameraTarget(main_this.viewer.GetAveragePosition(cell));
+
+      //// YH maybe don't need this
+      //document.dispatchEvent(new CustomEvent('loadMapComplete', {
+      //  detail: cell,
+      //}));
     }
   };
   xhttp.open("GET",url,true);

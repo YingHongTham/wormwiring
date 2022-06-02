@@ -573,6 +573,7 @@ MapViewer.prototype.loadMap = function(map)
     map['gapJunction'].map(syn => [syn.z, 'gap', syn]));
   allSyn.sort((obj1, obj2) => obj1[0] - obj2[0]);
   for (const obj of allSyn) {
+    // obj = [z-coord, type, syn object]
     const sphereMaterial = this[`${obj[1]}Material`];
     this.addOneSynapse(map.name,obj[2],sphereMaterial,obj[1],params);
   }
