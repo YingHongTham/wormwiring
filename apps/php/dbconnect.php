@@ -286,7 +286,6 @@ class DB {
         image.IMG_SectionNumber asc, post desc, sections desc";
     // cast integers
     $data = $this->_return_query_rows_assoc($sql);
-    print_r($data);
     foreach ($data as $d) {
       $d['sections'] = intval($d['sections']);
       $d['continNum'] = intval($d['continNum']);

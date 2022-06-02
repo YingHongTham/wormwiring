@@ -132,14 +132,10 @@ $time = $end_gap - $start_gap;
 // but we include for ordering purposes..)
 $data = $_db->get_pre_chemical_synapses_assoc($nt->continName);
 //$data = $_db->get_pre_chemical_synapses($nt->continName);
-
 foreach($data as $d){
   $c = $d['continNum'];
-  $dict = $_db->get_synapse_cell_object_dict($c);
-  print_r($dict);
-  if (!array_key_exists($nt->continName,$dict)){
-    // would this EVER happen? seems tautologically true,
-    // given how $dict is defined...
+	$dict = $_db->get_synapse_cell_object_dict($c);
+	if (!array_key_exists($nt->continName,$dict)){
 		continue;
 	}
 	//$xyz = $_db->get_object_xyz($dict[$nt->continName]);
@@ -154,10 +150,6 @@ foreach($data as $d){
 			$zrange['sectionNum2'],$c,$d['pre'],$d['post']);
 	}
 }
-
-//$presynapses = $_db->get_pre_chemical_synapses_objnums($nt->continName);
-//foreach($presynapses as $syn) {
-//}
 
 
 
@@ -196,6 +188,7 @@ if ($DISPLAY == 2){
 
 $data = $nt->compile_data();
 echo json_encode($data);
+
 
 //$time = microtime(true) - $start;
 //echo "Did stuff in $time seconds\n";

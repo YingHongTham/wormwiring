@@ -648,6 +648,8 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
       console.timeEnd(`Retrieve ${mapname}`);
       console.time(`Load to viewer ${mapname}`);
 
+      console.log(this.responseText);
+
       self.data[mapname] = JSON.parse(this.responseText);
       self.viewer.loadMap(self.data[mapname]);
 
