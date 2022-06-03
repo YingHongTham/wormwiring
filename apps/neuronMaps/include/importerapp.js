@@ -690,13 +690,13 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
 
       self.data[mapname] = JSON.parse(this.responseText);
       self.viewer.loadMap(self.data[mapname]);
+      // (also translates cell by slider data)
 
-      // translate maps of this cell
-      self.viewer.translateOneMapsToThisPos(mapname);
+      // put these into loadMap since that's sync
+      //self.viewer.translateOneMapsToThisPos(mapname);
+      //self.viewer.SetCameraTarget(self.viewer.GetAveragePosition(mapname));
 
       console.timeEnd(`Load to viewer ${mapname}`);
-
-      self.viewer.SetCameraTarget(self.viewer.GetAveragePosition(mapname));
 
       // YH maybe don't need this
       document.dispatchEvent(new CustomEvent('loadMapComplete', {

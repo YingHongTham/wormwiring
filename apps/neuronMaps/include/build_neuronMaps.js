@@ -25,8 +25,6 @@ window.onload = function(){
 	//};
 	//console.log(params);
 
-  console.log('got this new lamborghini');
-
 
 	const params = {};
   const urlParams = new URLSearchParams(document.location.search);

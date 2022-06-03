@@ -193,6 +193,8 @@ MapViewer.prototype.initGL = function()
       new THREE.Vector3(1,0,0), origin, length, arrowColor));
   this.axesText.add( new THREE.ArrowHelper(
       new THREE.Vector3(0,-1,0), origin, length, arrowColor));
+
+  // put event listener for cell loaded here?
 };
 
 /*
@@ -620,10 +622,9 @@ MapViewer.prototype.loadMap = function(map)
         self.addTextWithArrow(obj.remarks, params2));
   });
 
-  // let importerapp call overall translation
-  //var m = new THREE.Matrix4();
-  //m.makeTranslation(-this.position.x,-this.position.y,-this.position.z)
-  //this.translateSkeleton(this.maps[map.name].skeleton,m);
+  this.translateOneMapsToThisPos(map.name);
+  this.SetCameraTarget(this.GetAveragePosition(map.name));
+  // TODO camera may be too far or too near
 };
 
 // TODO? pass cellType as optional value
@@ -885,7 +886,7 @@ MapViewer.prototype.translateMapsBy = function(x,y,z) {
 
 /*
  * translate one cell (usually when newly loaded)
- * by this.position to match others
+ * by this.position (ThisPos) to match others
  * important that all operations here are synchronous
  * so that if user is sliding, this will complete
  * before this.position is updated again
@@ -1273,5 +1274,14 @@ MapViewer.prototype.GetAveragePosition = function(name) {
   tot.y = tot.y * 0.5 / len;
   tot.z = tot.z * 0.5 / len;
   console.log(tot);
+
+  // translate by whatever allGrps was hit
+  // (by translateOneMapsToThisPos only affects the allGrps
+  // the parent group containing the skeleton)
+  allGrpsPos = this.maps[name].allGrps.position;
+  tot.x += allGrpsPos.x;
+  tot.y += allGrpsPos.y;
+  tot.z += allGrpsPos.z;
+
   return tot;
 };
