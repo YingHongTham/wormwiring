@@ -6,10 +6,17 @@
  * (extract by $_GET["sex"], $_GET["db"]
  * php returns the value requested by echo-ing
  *
- * lmao the wa in wa_link stands for WormAtlas
+ * wa in wa_link stands for WormAtlas
  * the wa file helps to get a wormatlas page from a cellname
  * essentially it truncates the cellname, but there's not one obvious rule
  * multiple rules, shouldn't be hard to find the rules
+ *
+ * fun exercise: check that the stems (the shortening of these
+ * cell names, like VB09 -> VB) do not contain one another,
+ * and if that's true, can use a prefix tree to implement
+ * the shortening
+ * But it's probably not worth the effort,
+ * and probably more efficient to just create a lookup table
  *
  * returns JSON object of the form:
  *  {
@@ -72,6 +79,10 @@ foreach ($contins as $i => $c){
 
 $neurons = array_intersect($neurons,$contins);
 $muscles = array_intersect($muscles,$contins);
+
+
+//==========================
+// get wormatlas links
 
 $walinks = get_csv($wafile);
 

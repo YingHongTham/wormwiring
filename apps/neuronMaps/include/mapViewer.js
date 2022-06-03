@@ -15,6 +15,9 @@
  *    app: this,
  * });
  */
+
+// requires plotParams.js (and probably more)
+
 MapViewer = function(_canvas,_menu,_debug=false)
 {
   //Parameters
@@ -457,13 +460,24 @@ MapViewer.prototype.clearMaps = function()
  */
 MapViewer.prototype.loadMap = function(map)
 {
-  var self = this;
-  this.plotParam.xmid = 0.5*(map.plotParam.xScaleMin + map.plotParam.xScaleMax);
-  this.plotParam.xmin = Math.min(this.minX,map.plotParam.xScaleMin);
-  this.plotParam.ymid = 0.5*(map.plotParam.yScaleMin + map.plotParam.yScaleMax);
-  this.plotParam.ymax = Math.max(this.maxY, map.plotParam.yScaleMax);
-  this.plotParam.zmid = 0.5*(map.plotParam.zScaleMin + map.plotParam.zScaleMax);
-  this.plotParam.zmin = map.plotParam.zScaleMin;
+  const self = this;
+
+  const plotMinMax = plotMinMaxValues[map.db];
+
+  this.plotParam.xmid = 0.5*(plotMinMax.xMin + plotMinMax.xMax);
+  this.plotParam.xmin = Math.min(this.minX,plotMinMax.xMin);
+  this.plotParam.ymid = 0.5*(plotMinMax.yMin + plotMinMax.yMax);
+  this.plotParam.ymax = Math.max(this.maxY, plotMinMax.yMax);
+  this.plotParam.zmid = 0.5*(plotMinMax.zMin + plotMinMax.zMax);
+  this.plotParam.zmin = plotMinMax.zMin;
+
+  // old method
+  //this.plotParam.xmid = 0.5*(map.plotParam.xScaleMin + map.plotParam.xScaleMax);
+  //this.plotParam.xmin = Math.min(this.minX,map.plotParam.xScaleMin);
+  //this.plotParam.ymid = 0.5*(map.plotParam.yScaleMin + map.plotParam.yScaleMax);
+  //this.plotParam.ymax = Math.max(this.maxY, map.plotParam.yScaleMax);
+  //this.plotParam.zmid = 0.5*(map.plotParam.zScaleMin + map.plotParam.zScaleMax);
+  //this.plotParam.zmin = map.plotParam.zScaleMin;
 
   var params = {
     neuron: map.name,

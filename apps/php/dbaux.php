@@ -551,7 +551,12 @@ class NeuronTrace {
   }
 
 	function load_map2_params($_db){
-		$continStr = implode(",",$this->continNums);
+    $continStr = implode(",",$this->continNums);
+    // for x, min and max are swapped because of the negative shit
+    // also, why not just one query like
+    // select max(x1), min(x1), min(y1), max(y1), min(z1), max(z1) from display2;
+    // whatever, no point fixing this since I'm just going to
+    // write a JS file recording all these
 		$query = array(
 			'xScaleMin' => "select max(x1) as val from display2",
 			'xScaleMax' => "select min(x1) as val from display2",
@@ -559,7 +564,7 @@ class NeuronTrace {
 			'yScaleMax' => "select max(y1) as val from display2",
 			'zScaleMin' => "select min(z1) as val from display3",
 			'zScaleMax' => "select max(z1) as val from display3"
-		);
+		); // wtf why display3
 		foreach($query as $k => $q){
 			$val = $_db->_return_value_assoc($q,'val');
 			$this->plotParam[$k] = intval($val); // YH convert here not js

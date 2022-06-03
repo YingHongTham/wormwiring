@@ -10,18 +10,22 @@
  * note to self: viewer must be initialized after GenerateMenu()
  * because it needs references to the menu items...
  *
+ * @param {Object} params - stuff from url
+ * (e.g. when clicking on neuron from the Interactive Diagram,
+ * opens the link https://wormwiring.org/apps/neuronMaps/?cell=RMDDR&sex=herm&db=N2U )
+ *  this was preprocessed in build_neuronMaps.js
+ *
  *
  * Resizing:
  * we added an event listener for 'resizeAll' to document
  * which calls the Reisze method
  * e.g. used by navigation collapsing
+ *
+ * TODO one day change selectedNeurons to something else
  */
 
 ImporterApp = function (params)
 {
-  //params are obtained from the url
-  //(e.g. when clicking on neuron from the Interactive Diagram)
-  //https://wormwiring.org/apps/neuronMaps/?cell=RMDDR&sex=herm&db=N2U 
   this.params = params;
   this.db = 'N2U'; // not updated, only used as default for loading..
   this.selectedCell = '';
@@ -232,9 +236,8 @@ ImporterApp.prototype.Init = function ()
   this.viewer.resizeDisplayGL();
   render();
   
-  //
   if (this.PreloadParamsLoaded()){
-    this.PreloadCells();
+    this.PreloadCells2();
   } else {
     this.SetCellSelector();
   };
@@ -368,19 +371,54 @@ ImporterApp.prototype.SaveToFile = function() {
   a.click();
 };
 
+// recall that the params here are a bit different from
+// those given in url;
+// see build_neuronMaps.js for how it was preprocessed
 ImporterApp.prototype.PreloadParamsLoaded = function() {
   return 'cell' in this.params
       && 'db' in this.params
       && 'sex' in this.params;
 };
 
-// TODO CONTINUE hmm remarks are off again
-// TODO also, if show remarks was on already,
+// loads cell given in url
+// new method, gets cell lists from a JS file
+//
+// TODO if show remarks was on already,
 // and then you load, it'll only toggle
+ImporterApp.prototype.PreloadCells2 = function()
+{
+  const db = this.params.db;
+  const cell = this.params.cell;
+  const sex = this.params.sex;
+
+  this.LoadMap(db,cell);
+
+  // update the series selector in menu
+  this.SetSeriesToHTML(db);
+  this.SetSexToHTML(sex);
+
+  // ideally make a deep copy.. or no?
+  // if not deep copy, the values of visible/plotted
+  // would be persistent even if user changes the db
+  this.selectedNeurons = celllistForSelector[db];
+
+  for (const celltype in this.selectedNeurons){
+    if (cell in this.selectedNeurons[celltype]){
+      this.selectedNeurons[celltype][cell].visible = 1;
+      this.selectedNeurons[celltype][cell].plotted = 1;
+      this.LoadMapMenu(cell,
+        this.selectedNeurons[celltype][cell].walink);
+      break;
+    }
+  }
+};
+
+
+// old method of preloading cell
 ImporterApp.prototype.PreloadCells = function()
 {
   var self = this;
-  this.LoadMap2(this.params.db,this.params.cell);
+  this.LoadMap(this.params.db,this.params.cell);
 
   // update the series selector in menu
   self.SetSeriesToHTML(this.params.db);
@@ -1151,7 +1189,10 @@ ImporterApp.prototype.GenerateMenu = function()
   function AddSeriesSelector(menu,menuGrp,name){
     menu.AddSelector(menuGrp,name,{
       options:self.series.herm,
-      onChange: () => self.SetCellSelector(),
+      onChange: () => {
+        document.dispatchEvent(new Event('dbChange'));
+        self.SetCellSelector();
+      },
       id : 'series-selector'
     });
   };

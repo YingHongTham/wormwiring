@@ -62,6 +62,8 @@ window.onload = function(){
     window.dispatchEvent(new Event('resize'));
   });
 
+  // params, if url does have enough query data,
+  // will have keys db,sex,cell
 	const importerApp = new ImporterApp(params);
 	importerApp.Init();
   // access importerApp in the console (used to be window.aa)
