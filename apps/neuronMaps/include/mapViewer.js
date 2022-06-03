@@ -571,7 +571,7 @@ MapViewer.prototype.loadMap = function(map)
   for (const key in map.skeleton) {
     // no longer need to check!
     //if (this.non_series_keys.indexOf(key) == -1){
-    this.addSkeleton(map.name,map.skeleton[key],params);     
+    this.addSkeleton(map.name,map.skeleton[key],params);
   }
 
   // map['pre..'] is array of objects,
@@ -622,9 +622,15 @@ MapViewer.prototype.loadMap = function(map)
         self.addTextWithArrow(obj.remarks, params2));
   });
 
+  // translate cell by the slider values
+  // and update camera
   this.translateOneMapsToThisPos(map.name);
-  this.SetCameraTarget(this.GetAveragePosition(map.name));
-  // TODO camera may be too far or too near
+  const avePos = this.GetAveragePosition(map.name);
+  this.SetCameraTarget(avePos);
+  this.camera.position.x = avePos.x;
+  this.camera.position.y = avePos.y + 1000;
+  this.camera.position.z = avePos.z;
+  this.updateCamera();
 };
 
 // TODO? pass cellType as optional value
@@ -661,6 +667,8 @@ MapViewer.prototype.applyParamsTranslate = function(vec,params=null) {
  *    z: [ [60, 61], ... ],
  *    cb: [ 0, ... ],
  *  }
+ *
+ *  TODO shouldn't this always use this.plotParam??
  */
 MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 { 
