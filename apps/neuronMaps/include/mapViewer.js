@@ -18,6 +18,11 @@
 
 // requires plotParams.js (and probably more)
 
+if (plotMinMaxValues === undefined) {
+  console.err('require /apps/include/plotParams.js');
+}
+
+
 MapViewer = function(_canvas,_menu,_debug=false)
 {
   //Parameters
@@ -597,6 +602,231 @@ MapViewer.prototype.loadMap = function(map)
   //this.addSynapse(map.name,map['preSynapse'],this.preMaterial,'pre',params);
   //this.addSynapse(map.name,map['postSynapse'],this.postMaterial,'post',params);
   //this.addSynapse(map.name,map['gapJunction'],this.gapMaterial,'gap',params);
+
+  // map.remarks[i] has 5 keys:
+  //    x, y, z, series, remark
+  // note that for some reason the x is -x...
+  // see dbaux.php add_remark(..)
+  // YH rewrote to follow add_remark_alt (returns ASSOC array)
+  // YH also got rid of parseInt, fixed php
+  map.remarks.forEach( obj => {
+    const pos = this.applyParamsTranslate(new THREE.Vector3(
+        obj.x, obj.y, obj.z));
+    console.log('pos: ', pos.x, pos.y, pos.z);
+    console.log('obj: ', obj.x, obj.y, obj.z);
+    const params2 = {
+      pos: pos,
+      offset: new THREE.Vector3(200,200,0),
+      color: self.remarksColor,
+      font: "Bold 20px Arial",
+      visible: true, // visibility handled by remarks Group
+      arrowhead: false,
+    };
+
+    self.maps[map.name].remarks.add(
+        self.addTextWithArrow(obj.remarks, params2));
+  });
+
+  // translate cell by the slider values
+  // and update camera
+  this.translateOneMapsToThisPos(map.name);
+  const avePos = this.GetAveragePosition(map.name);
+  this.SetCameraTarget(avePos);
+  this.camera.position.x = avePos.x;
+  this.camera.position.y = avePos.y + 1000;
+  this.camera.position.z = avePos.z;
+  this.updateCamera();
+};
+
+
+/*
+ * new version of loadMap,
+ * to be compatible w/ LoadMap2 in importerapp.js
+ * and retrieve_trace_coord_alt.php,
+ * where object numbers are used effectively
+ *
+ * expect format of @param map:
+ *  {
+ *    db: database name,
+ *    name: cell name,
+ *    skeleton: [
+ *      // edges between objects that make up skeleton
+ *      [43946,43945],[43945,43944],...
+ *    ],
+ *    objCoord: {
+ *      // object number: x,y,z coord's
+ *      '43946': [-1529,701,61],
+ *      ...
+ *    },
+ *    objSeries: {
+ *      '43946': 'NR',
+ *      '98874': 'VC',
+ *      ...
+ *    }
+ *    pre: {
+ *      TODO
+ *    },
+ *    post: {
+ *      TODO
+ *    },
+ *    gap: {
+ *      '63063': {
+ *        pre: 'ADAR',
+ *        post: 'ADAL',
+ *        sections: 3,
+ *        continNum: 4881,
+ *        mid: 63063,
+ *        preObj: 14814,
+ *        postObj: 43945,
+ *      },
+ *    },
+ *    cellbody: [ obj nums in cell body ],
+ *    remarks: {
+ *      '43946': 'end',
+ *      '94628': 'start RVG commissure',
+ *      ...
+ *    },
+ *  }
+ *
+ */
+MapViewer.prototype.loadMap2 = function(data)
+{
+  const main_this = this;
+
+  console.log('db: ', data.db);
+  const plotMinMax = plotMinMaxValues[data.db];
+  console.log(plotMinMax);
+  this.plotParam.xmid = 0.5*(plotMinMax.xMin+plotMinMax.xMax);
+  this.plotParam.xmin = Math.min(this.minX,plotMinMax.xMin);
+  this.plotParam.ymid = 0.5*(plotMinMax.yMin+plotMinMax.yMax);
+  this.plotParam.ymax = Math.max(this.maxY,plotMinMax.yMax);
+  this.plotParam.zmid = 0.5*(plotMinMax.zMin+plotMinMax.zMax);
+  this.plotParam.zmin = plotMinMax.zMin;
+
+  // seems useless
+  var params = {
+    cell: data.name,
+    db: data.db,
+    //xmid: this.plotParam.xmid,
+    //xmin: this.plotParam.xmin,
+    //ymid: this.plotParam.ymid,
+    //ymax: this.plotParam.ymax,
+    //zmid: this.plotParam.zmid,
+    //zmin: this.plotParam.zmin,
+    default: '---',
+    remarks: false
+  };
+  // linewidth actually no longer supported
+  var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor,
+    linewidth: this.SkelWidth});
+
+
+  /*
+   * this.maps[cellname] is MapViewer's way of
+   * storing data about cells
+   * it is an object, with keys as seen in the initialization
+   * here are some notes on the meaning/uses of
+   * some of these keys:
+   *
+   * -synLabels: THREE.Group of labels for synapses,
+   * the Group's visibility is set to true, toggle visibility individually
+   * because want visibility to respond to mouse events
+   * (want it to appear when mouse over the synapses)
+   * synLabel can be distinguished by the contin id
+   * (synLabel.name; see toggleSynapseLabels)
+   *
+   * -allGrps: THREE.Group that contains all the
+   *  THREE objects relevant to the cell
+   *  makes it convenient to apply any transformations
+   *  in the viewer on the entire cell,
+   *  e.g. translations
+   *
+   * -synObjs: THREE.Group of sphere objects of synapses
+   *  -organized by type, that is, it contains 3 THREE.Group's
+   *  pre,post,gap (also keys of this.maps[..])
+   *
+   * -synapses: another way to organize the synapses,
+   *  this time by the name(s) of the other cell;
+   *  further subdivide into arrays by type:
+   *  synapses: {
+   *    RIPR: {
+   *      Presynaptic: [ THREE.Sphere objects ],
+   *      Postsynaptic: [ THREE.Sphere objects ],
+   *      'Gap junction': [ THREE.Sphere objects ],
+   *    },
+   *    ...
+   *  }
+   *
+   *  when doing concrete things like deleting from viewer,
+   *  e.g. in clearMaps, or toggleAllSynapses
+   *  only need to do on synObjs (which is more convenient to go through)
+   *
+   *  TODO add region?
+   */
+  this.maps[data.name] = {
+    visible : true,
+    allGrps: new THREE.Group(),
+    skeleton : [], // should be obsolete
+    skeletonGraph: {},
+    skelMaterial : skelMaterial,
+    skeletonGrp: new THREE.Group(),
+    synObjs: new THREE.Group(),
+    pre: new THREE.Group(),
+    post: new THREE.Group(),
+    gap: new THREE.Group(),
+    synapses : {},
+    synLabels : new THREE.Group(),
+    remarks : new THREE.Group(),
+    //params : params,
+  };
+  // continued initialization of maps
+  const map = this.maps[data.name];
+  this.scene.add(map.allGrps);
+  map.allGrps.add(map.skeletonGrp);
+  map.allGrps.add(map.synObjs);
+  map.allGrps.add(map.synLabels);
+  map.allGrps.add(map.remarks);
+  map.synObjs.add(map.pre);
+  map.synObjs.add(map.post);
+  map.synObjs.add(map.gap);
+  
+  // default visibilities
+  // see use of AddToggleButton in importerapp.js,
+  // which should have the same default values
+  map.skeletonGrp.visible = true;
+  map.synObjs.visible = true;
+  map.remarks.visible = false; // see remarksparams
+  map.synLabels.visible = true;
+
+
+  // process skeleton data
+  map.skeletonGraph =
+      buildGraphFromEdgeList(data.skeleton);
+  map.skeletonLines = 
+      breakGraphIntoLineSubgraphs(map.skeletonGraph);
+  for (const line of map.skeletonLines) {
+    // TODO load line into viewer
+  }
+
+  // map['pre..'] is array of objects,
+  // each representing one synapse
+  // each map['pre..'], map['post..'], map['gap..']
+  // is order by z value ascending
+  // we want to add them in ascending order
+  // because of the labeling stuff
+  allSyn = [];
+  allSyn = allSyn.concat(
+    map['preSynapse'].map(syn => [syn.z, 'pre', syn]));
+  allSyn = allSyn.concat(
+    map['postSynapse'].map(syn => [syn.z, 'post', syn]));
+  allSyn = allSyn.concat(
+    map['gapJunction'].map(syn => [syn.z, 'gap', syn]));
+  allSyn.sort((obj1, obj2) => obj1[0] - obj2[0]);
+  for (const obj of allSyn) {
+    // obj = [z-coord, type, syn object]
+    const sphereMaterial = this[`${obj[1]}Material`];
+    this.addOneSynapse(map.name,obj[2],sphereMaterial,obj[1],params);
+  }
 
   // map.remarks[i] has 5 keys:
   //    x, y, z, series, remark
@@ -1293,3 +1523,36 @@ MapViewer.prototype.GetAveragePosition = function(name) {
 
   return tot;
 };
+
+
+/*
+ * convert edgelist into neighbor list
+ * returned object should have one key for each node,
+ * and value is an array consisting of its neighbors
+ * remove multiedges
+ * possible self-edge
+ *
+ * @param {Array} edges - array of two-elem arrays
+ *    whose entries are the nodes that are connected edge
+ *    nodes can be anything, String or Number,
+ *    but in our use case expected numbers
+ */
+function buildGraphFromEdgeList(edges) {
+  // return object
+  const graph = {};
+  for (const edge of edges) {
+    if (!graph.hasOwnProperty(edge[0])) {
+      graph[edge[0]] = [];
+    }
+    if (!graph.hasOwnProperty(edge[1])) {
+      graph[edge[1]] = [];
+    }
+    graph[edge[0]].push(edge[1]);
+    graph[edge[1]].push(edge[0]);
+  }
+  // clean up multiedges
+  for (const v in graph) {
+    graph[v] = [... new Set(graph[v])];
+  };
+  return graph;
+}

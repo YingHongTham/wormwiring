@@ -1,23 +1,33 @@
 <?php
-// redoing retrieve_trace_coord.php
-// main changes are
-// - blazingly fast
-// - most data is relayed via object numbers
-//    and the object coordinates relayed in its own table
-//    (previously e.g. skeleton was given as pairs of points
-//    given by their coordinates directly)
-// - series1 may not equal series2 in display2
-//    we store edges that go between series(regions)
-//    in its own subarray of skeleton
-//    (previously this was ignored, series1 was used as
-//    the series, ignoring series2)
-//    this is useful to distinguish for the 2D view,
-//    where we want to (have option to) show regions separately
-// - cellbody is now a collection of objects
-//    (previously edges had property cb = 0/1)
-// 
-// note: some query fields returned as string but should be num
-// make sure to cast
+/* redoing retrieve_trace_coord.php
+ * main changes are
+ * - blazingly fast
+ * - most data is relayed via object numbers
+ *    and the object coordinates relayed in its own table
+ *    (previously e.g. skeleton was given as pairs of points
+ *    given by their coordinates directly)
+ * - series1 may not equal series2 in display2
+ *    this issue seems to have been ignored in the past
+ *    we change how we deal with series:
+ *    skeleton now records all edges in one array
+ *    have an assoc array 'objSeries' to give the series
+ *    of an object
+ *    this is useful to distinguish for the 2D view,
+ *    where we want to (have option to) show regions separately
+ * - cellbody is now a collection of objects
+ *    (previously edges had property cb = 0/1)
+ * 
+ * note: some query fields returned as string, but should be
+ * number; make sure to cast
+ *
+ * sends back the assoc array $data,
+ * which has keys:
+ *  'db', 'name',
+ *  'skeleton', 'objCoord', 'objSeries', 'pre', 'post', 'gap',
+ *  'cellbody', 'remarks'
+ * see loadMap2 in /apps/neuronMaps/include/mapviewer.js
+ * for what the expected JS object should be/meanings
+ */
 
 include_once('./dbconnect.php');
 
@@ -45,6 +55,9 @@ $data = array();
 // initializing the subarrays in $data,
 // also helps organize code/explain
 
+$data['db'] = $db;
+$data['name'] = $cell;
+
 // we store other data by the object numbers of objects involved,
 // this is the only place the coordinates are given
 // hmm maybe also want to put the series(region) and cb
@@ -55,22 +68,23 @@ $data['objCoord'] = array();
 // record skeleton by these parts
 // each part is itself an array of pairs(array of two elems):
 // $data['skeleton']['NR'] = array([351,89],[89,1841],...)
+// we don't do that anymore?
 $data['skeleton'] = array();
 
-// further initialization of subarrays of skeleton
-foreach ($continNums as $c){
-  // get series(regions) that the cell does go through/appear in
-  $series = $dbcon->get_display2_series($c);
-	foreach ($series as $s){
-		$tmp = $s;
-		if (strcmp('Ventral Cord',$s) == 0 or strcmp('Ventral Cord 2',$s) == 0) {
-			$tmp = 'VC'; 
-    } 
-    $data['skeleton'][$tmp] = array();
-	}
-}
-// some edges go between series(regions)
-$data['skeleton']['in_between'] = array();
+//// further initialization of subarrays of skeleton
+//foreach ($continNums as $c){
+//  // get series(regions) that the cell does go through/appear in
+//  $series = $dbcon->get_display2_series($c);
+//	foreach ($series as $s){
+//		$tmp = $s;
+//		if (strcmp('Ventral Cord',$s) == 0 or strcmp('Ventral Cord 2',$s) == 0) {
+//			$tmp = 'VC'; 
+//    } 
+//    $data['skeleton'][$tmp] = array();
+//	}
+//}
+//// some edges go between series(regions)
+//$data['skeleton']['in_between'] = array();
 
 // synapses
 $data['pre'] = array();
@@ -118,16 +132,22 @@ foreach ($query_results as $v) {
     $v[$k] = intval($v[$k]);
   }
 
+  // add edge to skeleton
+  // no longer separate by series
+  $data['skeleton'][] = array($v['objNum1'],$v['objNum2']);
+  //// add edge
+  //if ($s1 == $s2) {
+  //  $data['skeleton'][$s1][] = array($v['objNum1'],$v['objNum2']);
+  //}
+  //else {
+  //  $data['skeleton']['in_between'][] = array($v['objNum1'],$v['objNum2']);
+  //}
+
   $s1 = $v['series1'];
   $s2 = $v['series2'];
-  
-  // add edge
-  if ($s1 == $s2) {
-    $data['skeleton'][$s1][] = array($v['objNum1'],$v['objNum2']);
-  }
-  else {
-    $data['skeleton']['in_between'][] = array($v['objNum1'],$v['objNum2']);
-  }
+
+  $data['objSeries'][$v['objNum1']] = $s1;
+  $data['objSeries'][$v['objNum2']] = $s2;
 
   // for whatever fucking reason, the old code has
   // makes x negative (see add_x)
@@ -221,7 +241,7 @@ $sql = "select
 $query_results = $dbcon->_return_query_rows_assoc($sql);
 foreach ($query_results as $v) {
   // cast to integer
-  foreach (['continNum','preObj','postObj'] as $k) {
+  foreach (['sections','continNum','mid','preObj','postObj'] as $k) {
     $v[$k] = intval($v[$k]);
   }
   // clean cell names
@@ -229,7 +249,7 @@ foreach ($query_results as $v) {
     $v[$k] = alphanumeric($v[$k]);
   }
 
-  $data[$v['mid']] = $v;
+  $data['gap'][$v['mid']] = $v;
 }
 
 echo json_encode($data);
