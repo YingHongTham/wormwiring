@@ -391,6 +391,7 @@ ImporterApp.prototype.PreloadCells2 = function()
   const cell = this.params.cell;
   const sex = this.params.sex;
 
+  //this.LoadMap(db,cell);
   this.LoadMap2(db,cell);
 
   // update the series selector in menu
@@ -730,8 +731,12 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
       //console.time(`Load to viewer ${cell}`);
 
       //console.log(this.responseText);
-      const data = JSON.parse(this.responseText);
+      let data = JSON.parse(this.responseText);
       main_this.viewer.loadMap2(data);
+      data = {};
+      // some of loadMap2 might take stuff
+      // from data by reference,
+      // so set to {} to avoid affecting that
 
       //main_this.data[cell] = JSON.parse(this.responseText);
       //main_this.viewer.loadMap(main_this.data[cell]);

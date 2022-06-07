@@ -703,19 +703,6 @@ MapViewer.prototype.loadMap2 = function(data)
   this.plotParam.zmid = 0.5*(plotMinMax.zMin+plotMinMax.zMax);
   this.plotParam.zmin = plotMinMax.zMin;
 
-  // seems useless
-  var params = {
-    cell: data.name,
-    db: data.db,
-    //xmid: this.plotParam.xmid,
-    //xmin: this.plotParam.xmin,
-    //ymid: this.plotParam.ymid,
-    //ymax: this.plotParam.ymax,
-    //zmid: this.plotParam.zmid,
-    //zmin: this.plotParam.zmin,
-    default: '---',
-    remarks: false
-  };
   // linewidth actually no longer supported
   var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor,
     linewidth: this.SkelWidth});
@@ -764,12 +751,14 @@ MapViewer.prototype.loadMap2 = function(data)
    *  TODO add region?
    */
   this.maps[data.name] = {
-    visible : true,
+    name: data.name,
     allGrps: new THREE.Group(),
-    skeleton : [], // should be obsolete
+    objCoord: {}, // need to apply transform
+    objSeries: data.objSeries,
     skeletonGraph: {},
-    skelMaterial : skelMaterial,
+    skeletonLines: [],
     skeletonGrp: new THREE.Group(),
+    skelMaterial : skelMaterial,
     synObjs: new THREE.Group(),
     pre: new THREE.Group(),
     post: new THREE.Group(),
@@ -777,7 +766,6 @@ MapViewer.prototype.loadMap2 = function(data)
     synapses : {},
     synLabels : new THREE.Group(),
     remarks : new THREE.Group(),
-    //params : params,
   };
   // continued initialization of maps
   const map = this.maps[data.name];
@@ -798,59 +786,68 @@ MapViewer.prototype.loadMap2 = function(data)
   map.remarks.visible = false; // see remarksparams
   map.synLabels.visible = true;
 
+  // set object coordinates, apply transformation
+  for (const obj in data.objCoord) {
+    map.objCoord[obj] = 
+      this.applyParamsTranslate(new THREE.Vector3(
+        data.objCoord[obj][0],
+        data.objCoord[obj][1],
+        data.objCoord[obj][2]
+      ));
+  }
 
   // process skeleton data
   map.skeletonGraph =
       buildGraphFromEdgeList(data.skeleton);
   map.skeletonLines = 
       breakGraphIntoLineSubgraphs(map.skeletonGraph);
-  for (const line of map.skeletonLines) {
-    // TODO load line into viewer
-  }
+  this.loadSkeletonIntoViewer(map.name);
 
-  // map['pre..'] is array of objects,
-  // each representing one synapse
-  // each map['pre..'], map['post..'], map['gap..']
-  // is order by z value ascending
-  // we want to add them in ascending order
-  // because of the labeling stuff
-  allSyn = [];
-  allSyn = allSyn.concat(
-    map['preSynapse'].map(syn => [syn.z, 'pre', syn]));
-  allSyn = allSyn.concat(
-    map['postSynapse'].map(syn => [syn.z, 'post', syn]));
-  allSyn = allSyn.concat(
-    map['gapJunction'].map(syn => [syn.z, 'gap', syn]));
-  allSyn.sort((obj1, obj2) => obj1[0] - obj2[0]);
-  for (const obj of allSyn) {
-    // obj = [z-coord, type, syn object]
-    const sphereMaterial = this[`${obj[1]}Material`];
-    this.addOneSynapse(map.name,obj[2],sphereMaterial,obj[1],params);
-  }
+  //TODO next do synapses, uncomment following
 
-  // map.remarks[i] has 5 keys:
-  //    x, y, z, series, remark
-  // note that for some reason the x is -x...
-  // see dbaux.php add_remark(..)
-  // YH rewrote to follow add_remark_alt (returns ASSOC array)
-  // YH also got rid of parseInt, fixed php
-  map.remarks.forEach( obj => {
-    const pos = this.applyParamsTranslate(new THREE.Vector3(
-        obj.x, obj.y, obj.z));
-    console.log('pos: ', pos.x, pos.y, pos.z);
-    console.log('obj: ', obj.x, obj.y, obj.z);
-    const params2 = {
-      pos: pos,
-      offset: new THREE.Vector3(200,200,0),
-      color: self.remarksColor,
-      font: "Bold 20px Arial",
-      visible: true, // visibility handled by remarks Group
-      arrowhead: false,
-    };
+  //// map['pre..'] is array of objects,
+  //// each representing one synapse
+  //// each map['pre..'], map['post..'], map['gap..']
+  //// is order by z value ascending
+  //// we want to add them in ascending order
+  //// because of the labeling stuff
+  //allSyn = [];
+  //allSyn = allSyn.concat(
+  //  map['preSynapse'].map(syn => [syn.z, 'pre', syn]));
+  //allSyn = allSyn.concat(
+  //  map['postSynapse'].map(syn => [syn.z, 'post', syn]));
+  //allSyn = allSyn.concat(
+  //  map['gapJunction'].map(syn => [syn.z, 'gap', syn]));
+  //allSyn.sort((obj1, obj2) => obj1[0] - obj2[0]);
+  //for (const obj of allSyn) {
+  //  // obj = [z-coord, type, syn object]
+  //  const sphereMaterial = this[`${obj[1]}Material`];
+  //  this.addOneSynapse(map.name,obj[2],sphereMaterial,obj[1],params);
+  //}
 
-    self.maps[map.name].remarks.add(
-        self.addTextWithArrow(obj.remarks, params2));
-  });
+  //// map.remarks[i] has 5 keys:
+  ////    x, y, z, series, remark
+  //// note that for some reason the x is -x...
+  //// see dbaux.php add_remark(..)
+  //// YH rewrote to follow add_remark_alt (returns ASSOC array)
+  //// YH also got rid of parseInt, fixed php
+  //map.remarks.forEach( obj => {
+  //  const pos = this.applyParamsTranslate(new THREE.Vector3(
+  //      obj.x, obj.y, obj.z));
+  //  console.log('pos: ', pos.x, pos.y, pos.z);
+  //  console.log('obj: ', obj.x, obj.y, obj.z);
+  //  const params2 = {
+  //    pos: pos,
+  //    offset: new THREE.Vector3(200,200,0),
+  //    color: self.remarksColor,
+  //    font: "Bold 20px Arial",
+  //    visible: true, // visibility handled by remarks Group
+  //    arrowhead: false,
+  //  };
+
+  //  self.maps[map.name].remarks.add(
+  //      self.addTextWithArrow(obj.remarks, params2));
+  //});
 
   // translate cell by the slider values
   // and update camera
@@ -929,6 +926,30 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
       line.cellBody = false;
     }
     this.maps[name].skeletonGrp.add(line);
+  }
+};
+
+
+/*
+ * add the cell skeleton to THREE scene
+ * assume this.maps[name].skeletonLines
+ * has been properly computed;
+ * e.g. see invoked in loadMap2
+ *
+ * takes the place of this.addSkeleton(..)
+ *
+ * for now, ignoring series(region)
+ *
+ * @param {String} name - cell name
+ */
+MapViewer.prototype.loadSkeletonIntoViewer = function(name) { 
+  console.log(name);
+  for (const line of this.maps[name].skeletonLines) {
+    const points = line.map(obj => this.maps[name].objCoord[obj]);
+    const material = this.skelMaterial;
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const l = new THREE.Line(geometry, material);
+    this.maps[name].skeletonGrp.add(l);
   }
 };
 
@@ -1529,8 +1550,12 @@ MapViewer.prototype.GetAveragePosition = function(name) {
  * convert edgelist into neighbor list
  * returned object should have one key for each node,
  * and value is an array consisting of its neighbors
- * remove multiedges
- * possible self-edge
+ *  
+ *  graph = {
+ *    43945: [43946,43944],
+ *    ...
+ *  }
+ * remove multiedges, possible self-edge
  *
  * @param {Array} edges - array of two-elem arrays
  *    whose entries are the nodes that are connected edge
@@ -1555,4 +1580,99 @@ function buildGraphFromEdgeList(edges) {
     graph[v] = [... new Set(graph[v])];
   };
   return graph;
+}
+
+/*
+ * given graph (in neighbor list format)
+ * return an Array of lines (line = Array of nodes)
+ * whose union make up the graph,
+ * and no edges are repeated
+ */
+function breakGraphIntoLineSubgraphs(graph) {
+  // first make a copy,
+  // but in the form of "weighted graph" (just 0/1)
+  // to keep track of whether we've visited an edge
+  const G = {};
+  for (const v in graph) {
+    G[v] = {};
+    for (const w of graph[v]) {
+      G[v][w] = 0;
+    }
+  }
+
+  // return value
+  const lines = [];
+
+  // the main strategy is to start at an edge
+  // and attempt to travel as far as possible
+  // in either direction (choosing random next step
+  // if there are more than one option,
+  // so actually not guarantee longest, but doesn't matter)
+  // 
+  // in order to avoid searching through edges we've
+  // encountered each time we finish performing
+  // the main strategry,
+  // we simply systematically go through all possible
+  // starting edges;
+  // if we indeed have encountered the edge,
+  // then we just continue and attempt the next edge
+  for (const v in G) {
+    for (const w in G) {
+      if (G[v][w] !== 0) {
+        continue;
+      }
+
+      // v,w is our starting edge; mark as visited
+      G[v][w] = 1;
+      G[w][v] = 1;
+
+      // our lines; starting at v, going in each direction
+      // final result would be reverse(l1) + l2
+      const l1 = [w];
+      const l2 = [v];
+
+      let a = w; // the frontier vertex
+      while (true) {
+        let b = null; // attempt to find next vertex
+        for (const c in G[a]) {
+          if (G[a][c] !== 1) {
+            b = c;
+            break;
+          }
+        }
+        if (b === null) {
+          break; // end travel
+        }
+        
+        G[a][b] = 1; // mark visit
+        G[b][a] = 1;
+        l1.push(b); // add to line
+        a = b; // b is new frontier vertex
+      }
+
+      // same as above, just in the other direction
+      a = v; // the frontier vertex
+      while (true) {
+        let b = null; // attempt to find next vertex
+        for (const c in G[a]) {
+          if (G[a][c] !== 1) {
+            b = c;
+            break;
+          }
+        }
+        if (b === null) {
+          break; // end travel
+        }
+        
+        G[a][b] = 1; // mark visit
+        G[b][a] = 1;
+        l2.push(b); // add to line
+        a = b; // b is new frontier vertex
+      }
+
+      lines.push(l1.reverse().concat(l2));
+    }
+  }
+
+  return lines;
 }
