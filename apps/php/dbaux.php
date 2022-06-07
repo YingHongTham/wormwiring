@@ -462,7 +462,12 @@ class NeuronTrace {
 	//get x1 = 1191, y1 = 709, z1 = 74
 	//but in object, by
 	// select * from object where OBJ_Name = 43881;
-	//get OBJ_X = 4165, OBJ_Y = 2292
+  //get OBJ_X = 4165, OBJ_Y = 2292
+  //
+  //sometimes fails, e.g. synapse with contin = 6226,
+  //is gap junction PVQL--ADAL,
+  //but both object numbers are 87352
+  //obviously this is impossible
 	function get_object_xyz($obj){
 		if (array_key_exists($obj,$this->objects)){
 			return $this->objects[$obj];

@@ -211,7 +211,7 @@ $sql = "select
     postobj3 as postObj3,
     postobj4 as postObj4
   from synapsecombined 
-  where pre like '%$continName%' 
+  where pre like '%$cell%' 
     and type like 'chemical' 
   order by post asc, sections desc";
 $query_results = $dbcon->_return_query_rows_assoc($sql);
@@ -228,22 +228,34 @@ foreach ($query_results as $v) {
 
 //===================================================
 // gap junctions
+// essentially returns query results as is,
+// except
+// sectionNum1,sectionNum2 swapped out for zLow,zHigh
 
 $sql = "select
     pre, post, sections, continNum, mid,
     preobj as preObj,
-    postobj1 as postObj
+    postobj1 as postObj,
+    sectionNum1, sectionNum2
   from synapsecombined 
-  where (pre like '%$continName%' 
-    or post like '%$continName%') 
-    and type like 'electrical' 
+    join contin
+      on synapsecombined.continNum = contin.CON_Number
+  where (pre like '%$cell%' 
+    or post like '%$cell%') 
+    and synapsecombined.type like 'electrical' 
   order by pre asc, sections desc";
 $query_results = $dbcon->_return_query_rows_assoc($sql);
 foreach ($query_results as $v) {
   // cast to integer
-  foreach (['sections','continNum','mid','preObj','postObj'] as $k) {
+  foreach (['sections','continNum','mid','preObj','postObj','sectionNum1','sectionNum2'] as $k) {
     $v[$k] = intval($v[$k]);
   }
+
+  $v['zLow'] = min($v['sectionNum1'],$v['sectionNum2']);
+  $v['zHigh'] = max($v['sectionNum1'],$v['sectionNum2']);
+  unset($v['sectionNum1']);
+  unset($v['sectionNum2']);
+
   // clean cell names
   foreach (['pre','post'] as $k) {
     $v[$k] = alphanumeric($v[$k]);

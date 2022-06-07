@@ -84,14 +84,14 @@ ImporterApp = function (params)
   // will be updated when a synapse is clicked
   // see AddSynapseInfo for more
   this.defaultSynapseInfo = {
-    'cellname': '---',
-    'syntype': '---',
-    'synsource': '---',
-    'syntarget': '---',
-    'synweight': '---',
-    'synsection': '---',
-    'syncontin': '---',
-    'synposition': '---',
+    cellname: '---',
+    syntype: '---',
+    synsource: '---',
+    syntarget: '---',
+    synweight: '---',
+    synsection: '---',
+    syncontin: '---',
+    synposition: '---',
   }
   this.synapseInfoClicked = Object.assign({}, this.defaultSynapseInfo);
 
@@ -1120,10 +1120,6 @@ ImporterApp.prototype.Resize = function ()
   //var headerimage = document.getElementById ('headerimage');
   //var nav = document.getElementById ('nav');
 
-  console.log('headerNav: ', headerNav.offsetHeight);
-  console.log('headerimage: ', headerimage.offsetHeight);
-  console.log('nav: ', nav.offsetHeight);
-
   let top = document.getElementById ('top'); // 'Help' etc
   let left = document.getElementById ('left');
   let canvas = document.getElementById ('meshviewer');
@@ -1210,14 +1206,14 @@ ImporterApp.prototype.GenerateMenu = function()
   // (see MapViewer.addOneSynapse)
   function AddSynapseInfo(parent){
     var synElems = {
-      'cellname':'Cell: ',
-      'syntype':'Synapse type: ',
-      'synsource':'Source: ',
-      'syntarget':'Target: ',
-      'synweight':'# EM sections: ',
-      'synsection':'Sections: ',
-      'syncontin':'Synapse Id/Contin number: ',
-      'synposition':'Coordinates: ',
+      cellname: 'Cell: ',
+      syntype: 'Synapse type: ',
+      synsource: 'Source: ',
+      syntarget: 'Target: ',
+      synweight: '# EM sections: ',
+      synsection: 'Sections: ',
+      syncontin: 'Synapse Id/Contin number: ',
+      synposition: 'Coordinates: ',
     };
     for (var i in synElems){
       var left = document.createElement('div');

@@ -98,8 +98,8 @@ MapViewer = function(_canvas,_menu,_debug=false)
   this.maxY = 0;
   this.minX = 0;
   this.aspectRation = 1;
-  this.sphereWidthSegments = 5;
-  this.sphereHeightSegments = 5;
+  this.sphereWidthSegments = 5; // for smoothness
+  this.sphereHeightSegments = 5; // of synapse sphere
   
   this.debug = _debug;
   this.menu = _menu;
@@ -585,7 +585,7 @@ MapViewer.prototype.loadMap = function(map)
   // is order by z value ascending
   // we want to add them in ascending order
   // because of the labeling stuff
-  allSyn = [];
+  let allSyn = [];
   allSyn = allSyn.concat(
     map['preSynapse'].map(syn => [syn.z, 'pre', syn]));
   allSyn = allSyn.concat(
@@ -645,7 +645,7 @@ MapViewer.prototype.loadMap = function(map)
  * and retrieve_trace_coord_alt.php,
  * where object numbers are used effectively
  *
- * expect format of @param map:
+ * expect format of @param data:
  *  {
  *    db: database name,
  *    name: cell name,
@@ -657,6 +657,9 @@ MapViewer.prototype.loadMap = function(map)
  *      // object number: x,y,z coord's
  *      '43946': [-1529,701,61],
  *      ...
+ *      // note here coordinates given as array,
+ *      // but in this.maps[name].objCoord it's
+ *      // THREE.Vector3 object
  *    },
  *    objSeries: {
  *      '43946': 'NR',
@@ -753,16 +756,17 @@ MapViewer.prototype.loadMap2 = function(data)
   this.maps[data.name] = {
     name: data.name,
     allGrps: new THREE.Group(),
-    objCoord: {}, // need to apply transform
+    objCoord: {}, // key,value = objNum, THREE.Vector3
     objSeries: data.objSeries,
     skeletonGraph: {},
     skeletonLines: [],
     skeletonGrp: new THREE.Group(),
     skelMaterial : skelMaterial,
     synObjs: new THREE.Group(),
-    pre: new THREE.Group(),
-    post: new THREE.Group(),
-    gap: new THREE.Group(),
+    preGrp: new THREE.Group(),
+    postGrp: new THREE.Group(),
+    gapGrp: new THREE.Group(),
+    gap: [],
     synapses : {},
     synLabels : new THREE.Group(),
     remarks : new THREE.Group(),
@@ -774,9 +778,9 @@ MapViewer.prototype.loadMap2 = function(data)
   map.allGrps.add(map.synObjs);
   map.allGrps.add(map.synLabels);
   map.allGrps.add(map.remarks);
-  map.synObjs.add(map.pre);
-  map.synObjs.add(map.post);
-  map.synObjs.add(map.gap);
+  //map.synObjs.add(map.pre);
+  //map.synObjs.add(map.post);
+  map.synObjs.add(map.gapGrp);
   
   // default visibilities
   // see use of AddToggleButton in importerapp.js,
@@ -803,27 +807,55 @@ MapViewer.prototype.loadMap2 = function(data)
       breakGraphIntoLineSubgraphs(map.skeletonGraph);
   this.loadSkeletonIntoViewer(map.name);
 
-  //TODO next do synapses, uncomment following
+  // order by z value ascending
+  // because of the labeling stuff
+  let allSyn = [];
+  // TODO pre,post
 
-  //// map['pre..'] is array of objects,
-  //// each representing one synapse
-  //// each map['pre..'], map['post..'], map['gap..']
-  //// is order by z value ascending
-  //// we want to add them in ascending order
-  //// because of the labeling stuff
-  //allSyn = [];
-  //allSyn = allSyn.concat(
-  //  map['preSynapse'].map(syn => [syn.z, 'pre', syn]));
-  //allSyn = allSyn.concat(
-  //  map['postSynapse'].map(syn => [syn.z, 'post', syn]));
-  //allSyn = allSyn.concat(
-  //  map['gapJunction'].map(syn => [syn.z, 'gap', syn]));
-  //allSyn.sort((obj1, obj2) => obj1[0] - obj2[0]);
-  //for (const obj of allSyn) {
-  //  // obj = [z-coord, type, syn object]
-  //  const sphereMaterial = this[`${obj[1]}Material`];
-  //  this.addOneSynapse(map.name,obj[2],sphereMaterial,obj[1],params);
-  //}
+  // note: if gap is from cell to itself,
+  // creates two sphere objects
+  for (const synMid in data.gap) {
+    const syn = data.gap[synMid];
+    let synData = {
+      pre: syn.pre,
+      post: syn.post,
+      type: 'gap',
+      contin: syn.continNum,
+      zLow: syn.zLow,
+      zHigh: syn.zHigh,
+      partner: '',
+    };
+    if (syn.pre === data.name) {
+      if (map.objCoord[syn.preObj] === undefined) {
+        console.error('Bad synapse object numbers? synapse contin number: ', syn.continNum);
+      }
+      else {
+        let synDataP = Object.assign({}, synData);
+        synDataP.pos = new THREE.Vector3();
+        synDataP.pos.copy(map.objCoord[syn.preObj]);
+        synDataP.partner = syn.post;
+        allSyn.push(synDataP);
+      }
+    }
+    if (syn.post === data.name) {
+      if (map.objCoord[syn.postObj] === undefined) {
+        console.error('Bad synapse object numbers? synapse contin number: ', syn.continNum);
+      }
+      else {
+        let synDataP = Object.assign({}, synData);
+        synDataP.pos = new THREE.Vector3();
+        synDataP.pos.copy(map.objCoord[syn.postObj]);
+        console.log('objCoord: ',map.objCoord[syn.postObj]);
+        synDataP.partner = syn.pre;
+        allSyn.push(synDataP);
+      }
+    }
+  }
+  allSyn.sort((obj1, obj2) => obj1.pos.z - obj2.pos.z);
+  for (const synData of allSyn) {
+    console.log('synData: ', synData.partner);
+    this.addOneSynapse2(map.name, synData);
+  }
 
   //// map.remarks[i] has 5 keys:
   ////    x, y, z, series, remark
@@ -849,14 +881,14 @@ MapViewer.prototype.loadMap2 = function(data)
   //      self.addTextWithArrow(obj.remarks, params2));
   //});
 
-  // translate cell by the slider values
-  // and update camera
-  this.translateOneMapsToThisPos(map.name);
-  const avePos = this.GetAveragePosition(map.name);
-  this.SetCameraTarget(avePos);
-  this.camera.position.x = avePos.x;
-  this.camera.position.y = avePos.y + 1000;
-  this.camera.position.z = avePos.z;
+  //// translate cell by the slider values
+  //// and update camera
+  //this.translateOneMapsToThisPos(map.name);
+  //const avePos = this.GetAveragePosition(map.name);
+  //this.SetCameraTarget(avePos);
+  //this.camera.position.x = avePos.x;
+  //this.camera.position.y = avePos.y + 1000;
+  //this.camera.position.z = avePos.z;
   this.updateCamera();
 };
 
@@ -943,11 +975,10 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
  * @param {String} name - cell name
  */
 MapViewer.prototype.loadSkeletonIntoViewer = function(name) { 
-  console.log(name);
   for (const line of this.maps[name].skeletonLines) {
     const points = line.map(obj => this.maps[name].objCoord[obj]);
-    const material = this.skelMaterial;
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = this.skelMaterial;
     const l = new THREE.Line(geometry, material);
     this.maps[name].skeletonGrp.add(l);
   }
@@ -990,7 +1021,6 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
  *     remarks : false
  *   }
  */
-
 MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType,params)
 {
   const self = this;
@@ -1075,6 +1105,139 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
   // floating dialog now handled by button
   // (see AddSynapseInfo in importerapp.js)
   self.domEvents.addEventListener(sphere,'click',function(event){
+    if (self.menu.app.GetSynapseInfoContin() === info.syncontin) {
+      synLabelObj.visible = false;
+      self.menu.app.ResetDefaultSynapseInfo();
+    }
+    else {
+      self.toggleSynapseLabels(info.cellname, false);
+      synLabelObj.visible = true;
+      sphere.getWorldPosition(info.synposition);
+      self.menu.app.UpdateClickedSynapseInfo(info);
+    }
+    self.renderer.render(self.scene,self.camera);
+  });
+};
+
+
+
+
+/*
+ * new version of addOneSynapse
+ *
+ * create THREE.Sphere for synapse and add to viewer
+ * sphere has emits events when clicked and hover
+ * (shows synapse details in menu,
+ * and synapse label in viewer)
+ *
+ * no return, adds Sphere to:
+ * -this.maps[name].synObjs, THREE.Group already added to scene
+ * -this.maps[name].synapses, same but organized by other cell
+ * 
+ * (usually I prefer to return the object
+ * and leave the adding to viewer to the caller,
+ * but here because there are lots of other stuff like
+ * event listeners and synapse labels in the viewer,
+ * easier to add to viewer here)
+ *
+ * also adds text labels to each synapse,
+ * not visible by default, but responds to mouse:
+ * -if only hover, becomes visible and disappears afterwards
+ * -if clicked, stays visible after no hover
+ * stored and added to this.maps[name].synLabels,
+ * which is a THREE.Group already in scene
+ * 
+ * @param {String} name - cell name
+ *  (sphere object appears attached to this cell)
+ * @param {Object} synapse - processed from data[synType]; see loadMap2
+ */
+MapViewer.prototype.addOneSynapse2 = function(name,synData)
+{
+  const synPos = synData.pos;
+  const synType = synData.type;
+  // main diff with addOneSynapse; no need to transform
+  //synapsePos = this.applyParamsTranslate(synapsePos, params);
+  const numSections = synData.zHigh - synData.zLow + 1;
+  const radius = Math.min(this.SynMax,numSections*this.SynScale);
+  console.log(synPos, numSections, radius);
+  const partner = synData['partner'];
+  const zLow = synData['zLow'];
+  const zHigh = synData['zHigh'];
+  const contin = synData['continNum'];
+  const source = synData['pre'];
+  const target = synData['post'];
+
+  const geometry = new THREE.SphereGeometry(radius,this.sphereWidthSegments,this.sphereHeightSegments);
+  const sphereMaterial = this[`${synType}Material`];
+  const sphere = new THREE.Mesh(geometry,sphereMaterial);
+  sphere.name = contin;
+  sphere.position.copy(synPos);
+  sphere.material.transparent = true;
+
+  // add sphere to scene via pre/post/gap Group
+  this.maps[name][`${synType}Grp`].add(sphere);
+
+  // function for determining the offset
+  // previously defined based on input z value
+  function offsetx() {
+    if (this.count === undefined) {
+      this.count = 0;
+    }
+    ++this.count;
+    switch(this.count % 4) {
+      case 0: return -50;// + 10*this.count;
+      case 1: return 25;// + 10*this.count;
+      case 2: return -25;// + 10*this.count;
+      case 3: return 50;// + 10*this.count;
+    }
+  };
+    
+  // add text label to scene via synLabels
+  // accessed by this reference in the event listener callback
+  const synLabelObj = this.addTextWithArrow(partner,{
+    pos: sphere.position.clone(),
+    rotate: { x: -Math.PI/3 },
+    scale: { x: 0.2, y: 0.2, z: 0.2 },
+    offset: new THREE.Vector3(offsetx(),0,0),
+        //offsetx(Math.floor(sphere.position.z)),0,0),
+    font: '20px Arial',
+    arrowhead: false,
+  });
+  synLabelObj.name = contin;
+  synLabelObj.visible = false;
+  this.maps[name].synLabels.add(synLabelObj);
+
+  // setting up events/listeners to respond to
+  // mouse events over synapse in viewer
+  const info = {
+    cellname: name,
+    syntype: synType,
+    synsource: source,
+    syntarget: target,
+    synweight: numSections,
+    synsection: `(${zLow},${zHigh})`,
+    syncontin: contin,
+    synposition: sphere.getWorldPosition(), // must be updated when emit event
+  };
+
+
+  const self = this;
+
+  this.domEvents.addEventListener(sphere,'mouseover',function(event){
+    sphere.getWorldPosition(info.synposition);
+    synLabelObj.visible = true;
+    self.menu.app.UpdateSynapseInfo(info);
+    self.renderer.render(self.scene,self.camera);
+  });
+  this.domEvents.addEventListener(sphere,'mouseout',function(event){
+    if (self.menu.app.GetSynapseInfoContin() !== info.syncontin) {
+      synLabelObj.visible = false;
+    }
+    self.menu.app.RestoreSynapseInfo();
+    self.renderer.render(self.scene,self.camera);
+  });
+
+  this.domEvents.addEventListener(sphere,'click',function(event){
     if (self.menu.app.GetSynapseInfoContin() === info.syncontin) {
       synLabelObj.visible = false;
       self.menu.app.ResetDefaultSynapseInfo();

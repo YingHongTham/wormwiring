@@ -77,3 +77,15 @@ TODO:
 -related: in apps/neuronMaps/include/mapViewer.js,
   check that parameters like this.XYScale = 0.05
   is correct, make proper documentation
+
+
+some errors in the SQL tables
+-in synapsecombined, contin = 6226,
+  have gap junction between PVQL and ADAL
+  but their object numbers are the same = 87352.
+  the correct object number for ADAL is 87392
+  (get z1 of obj 87352 from display2 : 379,
+  get contins of ADAL from contin (113, 5713)
+  in display2 check continNum = 5713 and z1 = 379)
+  FOR NOW,
+  just going to ignore this (that's what has been done)
