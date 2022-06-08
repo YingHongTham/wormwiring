@@ -802,9 +802,9 @@ MapViewer.prototype.loadMap2 = function(data)
 
   // process skeleton data
   map.skeletonGraph =
-      buildGraphFromEdgeList(data.skeleton);
+      BuildGraphFromEdgeList(data.skeleton);
   map.skeletonLines = 
-      breakGraphIntoLineSubgraphs(map.skeletonGraph);
+      BreakGraphIntoLineSubgraphs(map.skeletonGraph);
   this.loadSkeletonIntoViewer(map.name);
 
   // order by z value ascending
@@ -881,14 +881,14 @@ MapViewer.prototype.loadMap2 = function(data)
   //      self.addTextWithArrow(obj.remarks, params2));
   //});
 
-  //// translate cell by the slider values
-  //// and update camera
-  //this.translateOneMapsToThisPos(map.name);
-  //const avePos = this.GetAveragePosition(map.name);
-  //this.SetCameraTarget(avePos);
-  //this.camera.position.x = avePos.x;
-  //this.camera.position.y = avePos.y + 1000;
-  //this.camera.position.z = avePos.z;
+  // translate cell by the slider values
+  // and update camera
+  this.translateOneMapsToThisPos(map.name);
+  const avePos = this.GetAveragePosition2(map.name);
+  this.SetCameraTarget(avePos);
+  this.camera.position.x = avePos.x;
+  this.camera.position.y = avePos.y + 1000;
+  this.camera.position.z = avePos.z;
   this.updateCamera();
 };
 
@@ -1697,8 +1697,40 @@ MapViewer.prototype.GetAveragePosition = function(name) {
   tot.z = tot.z * 0.5 / len;
   console.log(tot);
 
-  // translate by whatever allGrps was hit
-  // (by translateOneMapsToThisPos only affects the allGrps
+  // further translate by whatever allGrps was hit by
+  // (translateOneMapsToThisPos only affects the allGrps
+  // the parent group containing the skeleton)
+  allGrpsPos = this.maps[name].allGrps.position;
+  tot.x += allGrpsPos.x;
+  tot.y += allGrpsPos.y;
+  tot.z += allGrpsPos.z;
+
+  return tot;
+};
+
+// get average position of cell
+// used for recentering view on LoadMap2
+// new version
+MapViewer.prototype.GetAveragePosition2 = function(name) {
+  // maybe easier to just do objCoord directly,
+  // but in the future might add objs that are
+  // not part of the skeleton per se
+  const lines = this.maps[name].skeletonLines;
+  const objCoord = this.maps[name].objCoord;
+  const tot = new THREE.Vector3(0,0,0);
+  let count = 0;
+  for (const line of lines) {
+    for (const v of line) {
+      tot.add(objCoord[v]);
+      ++count;
+    }
+  }
+  tot.x = tot.x / count;
+  tot.y = tot.y / count;
+  tot.z = tot.z / count;
+
+  // further translate by whatever allGrps was hit by
+  // (translateOneMapsToThisPos only affects the allGrps
   // the parent group containing the skeleton)
   allGrpsPos = this.maps[name].allGrps.position;
   tot.x += allGrpsPos.x;
@@ -1725,7 +1757,7 @@ MapViewer.prototype.GetAveragePosition = function(name) {
  *    nodes can be anything, String or Number,
  *    but in our use case expected numbers
  */
-function buildGraphFromEdgeList(edges) {
+function BuildGraphFromEdgeList(edges) {
   // return object
   const graph = {};
   for (const edge of edges) {
@@ -1751,7 +1783,7 @@ function buildGraphFromEdgeList(edges) {
  * whose union make up the graph,
  * and no edges are repeated
  */
-function breakGraphIntoLineSubgraphs(graph) {
+function BreakGraphIntoLineSubgraphs(graph) {
   // first make a copy,
   // but in the form of "weighted graph" (just 0/1)
   // to keep track of whether we've visited an edge
@@ -1838,4 +1870,22 @@ function breakGraphIntoLineSubgraphs(graph) {
   }
 
   return lines;
+}
+
+
+/*
+ * given a graph G and a subset X of vertices,
+ * "reduce" it to a graph on the subset
+ * where vertices are connected if there is a path in G
+ * between them that does not pass through other vertices of X
+ *
+ * strict assumption (which we check for!)
+ * X must contain all vertices of degree >= 3
+ *
+ * @param {Object} G - graph given in neighbor list form
+ * @param {Object} X - subset of vertices of G
+ *    given in the form of object whose keys are that subset
+ *    and values are 
+ */
+function ReduceGraph(G, X) {
 }
