@@ -807,6 +807,10 @@ MapViewer.prototype.loadMap2 = function(data)
       BreakGraphIntoLineSubgraphs(map.skeletonGraph);
   this.loadSkeletonIntoViewer(map.name);
 
+
+  // testing ReduceGraph
+  const X = {};
+
   // order by z value ascending
   // because of the labeling stuff
   let allSyn = [];
@@ -826,7 +830,7 @@ MapViewer.prototype.loadMap2 = function(data)
       partner: '',
     };
     if (syn.pre === data.name) {
-      if (map.objCoord[syn.preObj] === undefined) {
+      if (!map.objCoord.hasOwnProperty(syn.preObj)) {
         console.error('Bad synapse object numbers? synapse contin number: ', syn.continNum);
       }
       else {
@@ -835,10 +839,12 @@ MapViewer.prototype.loadMap2 = function(data)
         synDataP.pos.copy(map.objCoord[syn.preObj]);
         synDataP.partner = syn.post;
         allSyn.push(synDataP);
+        // testing ReduceGraph
+        X[syn.preObj] = syn.post;
       }
     }
     if (syn.post === data.name) {
-      if (map.objCoord[syn.postObj] === undefined) {
+      if (!map.objCoord.hasOwnProperty(syn.postObj)) {
         console.error('Bad synapse object numbers? synapse contin number: ', syn.continNum);
       }
       else {
@@ -848,6 +854,8 @@ MapViewer.prototype.loadMap2 = function(data)
         console.log('objCoord: ',map.objCoord[syn.postObj]);
         synDataP.partner = syn.pre;
         allSyn.push(synDataP);
+        // testing ReduceGraph
+        X[syn.postObj] = syn.pre;
       }
     }
   }
@@ -856,6 +864,22 @@ MapViewer.prototype.loadMap2 = function(data)
     console.log('synData: ', synData.partner);
     this.addOneSynapse2(map.name, synData);
   }
+
+
+  // testing ReduceGraph
+  for (const v in map.skeletonGraph) {
+    if (map.skeletonGraph[v].length !== 2
+      && !X.hasOwnProperty(v)) {
+      X[v] = `Vertex degree ${map.skeletonGraph[v].length}`;
+    }
+  }
+  console.log(X);
+  const Gred = ReduceGraph(map.skeletonGraph, X);
+  map.skeletonLines = 
+      BreakGraphIntoLineSubgraphs(Gred);
+  this.loadSkeletonIntoViewer(map.name);
+
+
 
   //// map.remarks[i] has 5 keys:
   ////    x, y, z, series, remark
@@ -964,9 +988,8 @@ MapViewer.prototype.addSkeleton = function(name,skeleton,params)
 
 /*
  * add the cell skeleton to THREE scene
- * assume this.maps[name].skeletonLines
- * has been properly computed;
- * e.g. see invoked in loadMap2
+ * uses this.maps[name].skeletonLines
+ * as computed in loadMap2
  *
  * takes the place of this.addSkeleton(..)
  *
@@ -1750,7 +1773,7 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
  *    43945: [43946,43944],
  *    ...
  *  }
- * remove multiedges, possible self-edge
+ * remove multiedges, self-loop
  *
  * @param {Array} edges - array of two-elem arrays
  *    whose entries are the nodes that are connected edge
@@ -1761,6 +1784,9 @@ function BuildGraphFromEdgeList(edges) {
   // return object
   const graph = {};
   for (const edge of edges) {
+    if (edge[0] === edge[1]) {
+      continue;
+    }
     if (!graph.hasOwnProperty(edge[0])) {
       graph[edge[0]] = [];
     }
@@ -1875,17 +1901,61 @@ function BreakGraphIntoLineSubgraphs(graph) {
 
 /*
  * given a graph G and a subset X of vertices,
- * "reduce" it to a graph on the subset
+ * returns a new graph which "reduces" G to X,
  * where vertices are connected if there is a path in G
  * between them that does not pass through other vertices of X
+ * (we also remove self-loops from the result;
+ * since in our application we expect a tree,
+ * this is really redundant, but just in case!
+ * similarly, in general there could be multiple such paths
+ * between vertices in X, but in the output we simply
+ * have one edge, no weights)
  *
  * strict assumption (which we check for!)
- * X must contain all vertices of degree >= 3
+ * X must contain all vertices of degree != 2
+ * G no self-loops
+ *
+ * with this assumption, essentially we just want to
+ * collapse all 'line subgraphs' between vertices of X
  *
  * @param {Object} G - graph given in neighbor list form
  * @param {Object} X - subset of vertices of G
  *    given in the form of object whose keys are that subset
- *    and values are 
+ *    and values are some description, not relevant here
  */
 function ReduceGraph(G, X) {
+  for (const v in G) {
+    if (G[v].length !== 2 && !X.hasOwnProperty(v)) {
+      console.error('ReduceGraph expects X to contain all vertices of degree not 2; vertex in error: ', v);
+      return null;
+    }
+    if (G[v].indexOf(v) > -1) {
+      console.error('Expect G to have no self-loops; vertex in error: ', v);
+    }
+  }
+
+  // result graph to be returned
+  const res = {};
+  for (const v in X) {
+    res[v] = [];
+    // attempt to go in every direction
+    for (const w of G[v]) {
+      // go all the way in that direction
+      let u = w, prev = v;
+      while (!X.hasOwnProperty(u)) {
+        // so G[u] must have exactly two elements
+        let y = u;
+        u = (G[u][0] !== prev) ? G[u][0] : G[u][1];
+        prev = y;
+      }
+      // now u must be in X; add it to neighbor of v
+      res[v].push(u);
+    }
+    // remove duplicates and self-loops
+    // probably redundant as we typically expect G = tree
+    res[v]= [...new Set(res[v])];
+    res[v] = res[v].filter(p => p !== v);
+  }
+
+  return res;
 }

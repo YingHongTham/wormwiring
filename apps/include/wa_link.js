@@ -16,6 +16,7 @@
  * seems like these are only for neurons?
  */
 
+
 const cellnameWALinkDict = {
   'ADAL': 'ADA',
   'ADAR': 'ADA',
@@ -88,6 +89,7 @@ const cellnameWALinkDict = {
   'AVKL': 'AVK',
   'AVKR': 'AVK',
   'AVL.': 'AVL',
+  'AVL': 'AVL',
   'AVM': 'AVM',
   'AWAL': 'AWA',
   'AWAR': 'AWA',
@@ -225,6 +227,7 @@ const cellnameWALinkDict = {
   'PGA': 'PGA',
   'PHAL': 'PHA',
   'PHAR.': 'PHA',
+  'PHAR': 'PHA',
   'PHBL': 'PHB',
   'PHBR': 'PHB',
   'PHCL': 'PHC',
@@ -246,6 +249,7 @@ const cellnameWALinkDict = {
   'PVQL': 'PVQ',
   'PVQR': 'PVQ',
   'PVR.': 'PVR',
+  'PVR': 'PVR',
   'PVS': 'PVS',
   'PVT': 'PVT',
   'PVU': 'PVU',
