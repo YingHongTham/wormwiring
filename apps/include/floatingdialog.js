@@ -68,10 +68,11 @@ FloatingDialog.prototype.Open = function(parameters)
 
 
 	this.dialogDiv = document.createElement ('div');
-	this.dialogDiv.classList.add(parameters.className);
-	//this.dialogDiv.classList.add('modal-content');
 	this.dialogDiv.classList.add('floatingDialog');
-  console.log(this.dialogDiv);
+  if (parameters.hasOwnProperty('className')) {
+    this.dialogDiv.classList.add(parameters.className);
+  }
+	//this.dialogDiv.classList.add('modal-content');
 	
 	const titleDiv = document.createElement('div');
 	titleDiv.classList.add('dialogtitle');

@@ -16,10 +16,16 @@
  * });
  */
 
-// requires plotParams.js (and probably more)
+// requires plotParams.js
+// cytoscape-3.21.1.min.js
+// (and probably more)
 
 if (plotMinMaxValues === undefined) {
-  console.err('require /apps/include/plotParams.js');
+  console.error('require /apps/include/plotParams.js');
+}
+
+if (cytoscape === undefined) {
+  console.error('require /apps/include/cytoscape-3.21.1.min.js');
 }
 
 
@@ -747,6 +753,8 @@ MapViewer.prototype.loadMap2 = function(data)
    *    ...
    *  }
    *
+   *  -allSynData: TODO
+   *
    *  when doing concrete things like deleting from viewer,
    *  e.g. in clearMaps, or toggleAllSynapses
    *  only need to do on synObjs (which is more convenient to go through)
@@ -767,6 +775,7 @@ MapViewer.prototype.loadMap2 = function(data)
     postGrp: new THREE.Group(),
     gapGrp: new THREE.Group(),
     gap: [],
+    allSynData: {}, // TODO new
     synapses : {},
     synLabels : new THREE.Group(),
     remarks : new THREE.Group(),
@@ -808,14 +817,9 @@ MapViewer.prototype.loadMap2 = function(data)
   this.loadSkeletonIntoViewer(map.name);
 
 
-  // testing ReduceGraph
-  const X = {};
-
-  // order by z value ascending
-  // because of the labeling stuff
-  let allSyn = [];
   // TODO pre,post
 
+  // add gap junctions to allSynData
   // note: if gap is from cell to itself,
   // creates two sphere objects
   for (const synMid in data.gap) {
@@ -828,6 +832,7 @@ MapViewer.prototype.loadMap2 = function(data)
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       partner: '',
+      obj: null,
     };
     if (syn.pre === data.name) {
       if (!map.objCoord.hasOwnProperty(syn.preObj)) {
@@ -835,12 +840,12 @@ MapViewer.prototype.loadMap2 = function(data)
       }
       else {
         let synDataP = Object.assign({}, synData);
-        synDataP.pos = new THREE.Vector3();
-        synDataP.pos.copy(map.objCoord[syn.preObj]);
+        synDataP.obj = syn.preObj;
+        //synDataP.pos = new THREE.Vector3();
+        //synDataP.pos.copy(map.objCoord[syn.preObj]);
         synDataP.partner = syn.post;
-        allSyn.push(synDataP);
-        // testing ReduceGraph
-        X[syn.preObj] = syn.post;
+        //allSyn.push(synDataP);
+        map.allSynData[synData.contin] = synDataP;
       }
     }
     if (syn.post === data.name) {
@@ -849,35 +854,34 @@ MapViewer.prototype.loadMap2 = function(data)
       }
       else {
         let synDataP = Object.assign({}, synData);
-        synDataP.pos = new THREE.Vector3();
-        synDataP.pos.copy(map.objCoord[syn.postObj]);
-        console.log('objCoord: ',map.objCoord[syn.postObj]);
+        synDataP.obj = syn.postObj;
+        //synDataP.pos = new THREE.Vector3();
+        //synDataP.pos.copy(map.objCoord[syn.postObj]);
         synDataP.partner = syn.pre;
-        allSyn.push(synDataP);
-        // testing ReduceGraph
-        X[syn.postObj] = syn.pre;
+        //allSyn.push(synDataP);
+        map.allSynData[synData.contin] = synDataP;
       }
     }
   }
-  allSyn.sort((obj1, obj2) => obj1.pos.z - obj2.pos.z);
-  for (const synData of allSyn) {
+
+  // order by z value ascending
+  // because of the labeling stuff
+  let allSynList = [];
+  for (const contin in map.allSynData) {
+    if (map.allSynData.hasOwnProperty(contin)) {
+      allSynList.push(map.allSynData[contin]);
+    }
+  }
+  allSynList.sort((obj1, obj2) => {
+    const pos1 = map.objCoord[obj1.obj];
+    const pos2 = map.objCoord[obj2.obj];
+    return pos1.z - pos2.z;
+  });
+  for (const synData of allSynList) {
     console.log('synData: ', synData.partner);
     this.addOneSynapse2(map.name, synData);
   }
 
-
-  // testing ReduceGraph
-  for (const v in map.skeletonGraph) {
-    if (map.skeletonGraph[v].length !== 2
-      && !X.hasOwnProperty(v)) {
-      X[v] = `Vertex degree ${map.skeletonGraph[v].length}`;
-    }
-  }
-  console.log(X);
-  const Gred = ReduceGraph(map.skeletonGraph, X);
-  map.skeletonLines = 
-      BreakGraphIntoLineSubgraphs(Gred);
-  this.loadSkeletonIntoViewer(map.name);
 
 
 
@@ -1176,13 +1180,11 @@ MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType
  */
 MapViewer.prototype.addOneSynapse2 = function(name,synData)
 {
-  const synPos = synData.pos;
-  const synType = synData.type;
   // main diff with addOneSynapse; no need to transform
-  //synapsePos = this.applyParamsTranslate(synapsePos, params);
+  const synPos = this.maps[name].objCoord[synData.obj];
+  const synType = synData.type;
   const numSections = synData.zHigh - synData.zLow + 1;
   const radius = Math.min(this.SynMax,numSections*this.SynScale);
-  console.log(synPos, numSections, radius);
   const partner = synData['partner'];
   const zLow = synData['zLow'];
   const zHigh = synData['zHigh'];
@@ -1764,6 +1766,111 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
 };
 
 
+
+/*
+ * loads cells into 2D Viewer with Cytoscape
+ *
+ * @param {HTMLDivElement} elem - where Cytoscape will load into
+ */
+MapViewer.prototype.load2DViewer = function(elem) {
+  const cell = 'ADAL';
+  const map = this.maps[cell];
+  const cy_elems = [];
+
+  const X = {};
+  for (const contin in map.allSynData) {
+    if (map.allSynData.hasOwnProperty(contin)) {
+      X[map.allSynData[contin].obj] = map.allSynData[contin].partner;
+    }
+  }
+  console.log(X);
+  for (const v in map.skeletonGraph) {
+    if (!map.skeletonGraph.hasOwnProperty(v)) {
+      continue;
+    }
+    if (map.skeletonGraph[v].length !== 2
+      && !X.hasOwnProperty(v)) {
+      X[v] = `Vertex degree ${map.skeletonGraph[v].length}`;
+    }
+  }
+  console.log(X);
+  const Gred = ReduceGraph(map.skeletonGraph, X);
+
+  for (const v in Gred) {
+    if (!Gred.hasOwnProperty(v)) {
+      continue;
+    }
+    cy_elems.push({data: {id: v}});
+    for (const w of Gred[v]) {
+      cy_elems.push({data: {id: `${v}--${w}`, source: v, target: w}});
+    }
+  }
+  
+  //// entire graph
+  //for (const v in map.skeletonGraph) {
+  //  if (map.skeletonGraph.hasOwnProperty(v)) {
+  //    cy_elems.push({data: {id: v}});
+  //  }
+  //}
+  //for (const v in map.skeletonGraph) {
+  //  if (!map.skeletonGraph.hasOwnProperty(v)) {
+  //    continue;
+  //  }
+  //  for (const w of map.skeletonGraph[v]) {
+  //    cy_elems.push({data: {id: `${v}--${w}`, source: v, target: w}});
+  //  }
+  //}
+  
+
+  const cy = cytoscape({
+    container: elem,
+    elements: cy_elems,
+    //elements: [ // list of graph elements to start with
+    //  { // node a
+    //    data: { id: 'a' }
+    //  },
+    //  { // node b
+    //    data: { id: 'b' }
+    //  },
+    //  { // edge ab
+    //    data: { id: 'ab', source: 'a', target: 'b' }
+    //  }
+    //],
+
+    style: [ // the stylesheet for the graph
+      {
+        selector: 'node',
+        style: {
+          'background-color': '#666',
+          'label': 'data(id)'
+        }
+      },
+
+      {
+        selector: 'edge',
+        style: {
+          'width': 3,
+          'line-color': '#ccc',
+          'target-arrow-color': '#ccc',
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier'
+        }
+      }
+    ],
+
+    layout: {
+      name: 'grid',
+      rows: 1
+    }
+  });
+};
+
+
+
+//==========================================================
+// some auxiliary functions for graphs
+
+
 /*
  * convert edgelist into neighbor list
  * returned object should have one key for each node,
@@ -1918,6 +2025,13 @@ function BreakGraphIntoLineSubgraphs(graph) {
  * with this assumption, essentially we just want to
  * collapse all 'line subgraphs' between vertices of X
  *
+ * TODO!!
+ * currently we're implicitly assuming that nodes of G
+ * are given by numbers
+ * because of some comparison,
+ * we compare key with value
+ * see below "TODO assumption of node type here!"
+ *
  * @param {Object} G - graph given in neighbor list form
  * @param {Object} X - subset of vertices of G
  *    given in the form of object whose keys are that subset
@@ -1925,6 +2039,9 @@ function BreakGraphIntoLineSubgraphs(graph) {
  */
 function ReduceGraph(G, X) {
   for (const v in G) {
+    if (!G.hasOwnProperty(v)) {
+      continue;
+    }
     if (G[v].length !== 2 && !X.hasOwnProperty(v)) {
       console.error('ReduceGraph expects X to contain all vertices of degree not 2; vertex in error: ', v);
       return null;
@@ -1937,7 +2054,14 @@ function ReduceGraph(G, X) {
   // result graph to be returned
   const res = {};
   for (const v in X) {
+    if (!X.hasOwnProperty(v)) {
+      continue;
+    }
     res[v] = [];
+    if (!G.hasOwnProperty(v)) {
+      console.log('weird, X should be subset of G; vertex in error: ', v);
+      continue;
+    }
     // attempt to go in every direction
     for (const w of G[v]) {
       // go all the way in that direction
@@ -1945,7 +2069,8 @@ function ReduceGraph(G, X) {
       while (!X.hasOwnProperty(u)) {
         // so G[u] must have exactly two elements
         let y = u;
-        u = (G[u][0] !== prev) ? G[u][0] : G[u][1];
+        // TODO assumption of node type here!
+        u = (G[u][0] != prev) ? G[u][0] : G[u][1];
         prev = y;
       }
       // now u must be in X; add it to neighbor of v

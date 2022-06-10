@@ -195,6 +195,7 @@ ImporterApp.prototype.Init = function ()
   var importerButtons = new ImporterButtons (top);
   importerButtons.AddLogo('Help',()=>{self.OpenHelpDialog();});
   importerButtons.AddLogo('Select neuron',()=>{self.NeuronSelectorDialog();});
+  importerButtons.AddLogo('2D Viewer',()=>{self.Open2DViewer();});
   importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
 
   //the small window in which help/selector/synapseviewer is shown
@@ -632,6 +633,27 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
     //this.AddSelectPanel(selector,group);
     contentDiv.appendChild(this.AddSelectPanel(celltype));
   }
+};
+
+/*
+ * loads, creates 2D viewer in floating dialog
+ */
+ImporterApp.prototype.Open2DViewer = function()
+{
+  const self = this;
+  this.dialog.Open({
+    //className: '',
+    title : '2DViewer',
+    buttons : [{
+      text : 'close',
+      callback : function(dialog) {
+        self.dialog.Close();
+      }
+    }],
+  });
+
+  const contentDiv = this.dialog.GetContentDiv();
+  this.viewer.load2DViewer(contentDiv);
 };
 
 ImporterApp.prototype.ClearMaps = function() {
