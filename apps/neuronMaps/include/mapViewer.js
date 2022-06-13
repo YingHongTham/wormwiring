@@ -1816,18 +1816,21 @@ MapViewer.prototype.load2DViewer = function(elem) {
   //    because pushing array from the right is easier,
   //    but later reversed back so it's node to leaf)
   //    TODO also impose line is monotone in z coord
-  const vis = new Set();
+  const visited = new Set();
   const prevNode = {};
+  const orderOfVisit = {};
+  let orderOfVisitCounter = 0;
   longestLine= {};
   function getLongestLine(cur,prev) {
-    if (vis.has(cur)) return;
-    vis.add(cur);
+    if (visited.has(cur)) return;
+    visited.add(cur);
     prevNode[cur] = prev;
+    orderOfVisit[cur] = orderOfVisitCounter++;
     let v; // the neighbor of cur that longest line runs thru
     let maxLen = -1;
     for (const w of Gred[cur]) {
       if (w === prev) continue;
-      if (vis.has(w)) continue;
+      if (visited.has(w)) continue;
       getLongestLine(w,cur);
       if (longestLine[w].length > maxLen) {
         v = w;
@@ -1848,7 +1851,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
   }
   console.log('long long man: ', longestLine);
 
-  // want to sort lines by length
+  // want to sort lines by orderOfVisit
   // linesList: lines, but represented by the
   //    nodes that are starting points of lines
   // also reverse lines as promised
@@ -1859,102 +1862,37 @@ MapViewer.prototype.load2DViewer = function(elem) {
       linesList.push(v);
     }
   }
-  linesList.sort((v,w) => longestLine[w].length - longestLine[v].length);
+  linesList.sort((v,w) => orderOfVisit[v] - orderOfVisit[w]);
+
+  console.log('linesList: ', linesList);
   
   // now give 2D coord
+  // since we've sorted by orderOfVisit,
+  // prevNode below will be a node that has been given pos2D
   const pos2D = {};
   linesList.forEach((v,i) => {
     let h = 0;
     let prev = prevNode[v];
     if (prev !== null) {
-      const comp = Math.sign(objCoord[v] - objCoord[prev]);
-      console.log(prev);
-      h = pos2D[prev][1] + comp;
+      const comp = Math.sign(objCoord[v].z - objCoord[prev].z);
+      if (pos2D.hasOwnProperty(prev)) {
+        h = pos2D[prev][1] + comp;
+        console.log(pos2D[prev], comp);
+      } else {
+        h = 0;
+      }
     }
+    console.log('prev, h: ', prev, h);
     longestLine[v].forEach((w,j) => {
       pos2D[w] = [i, h + j];
     });
   });
 
+  // TODO wtf there's a loop??
+  // 43615, 43612, 43610, 43609
 
-  //let positionByZ = {};
-  //const visited = new Set();
-  //let horiz = 0;
-  //const pos2D = {};
-  //const horizPos = {};
-  //const vertPos = {};
-
-  //function dfs(cur,prev) {
-  //  if (visited.has(cur)) {
-  //    return;
-  //  }
-  //  console.log('in dfs: ', cur);
-  //  visited.add(cur);
-  //  const z = map.objCoord[cur].z;
-  //  if (!positionByZ.hasOwnProperty(z)) {
-  //    positionByZ[z] = [];
-  //    horizPos[cur] = horiz;
-  //    if (prev === null) {
-  //      vertPos[cur] = 0;
-  //    }
-  //    else {
-  //      let zDiff = map.objCoord[cur].z - map.objCoord[prev].z;
-  //      vertPos[cur] = vertPos[prev] + 50*Math.sign(zDiff);
-  //    }
-  //  }
-  //  positionByZ[z].push(cur);
-  //  let isStraight = true;
-  //  for (const v of Gred[cur]) {
-  //    if (!visited.has(v)) {
-  //      if (isStraight) {
-  //        isStraight = false;
-  //      }
-  //      else {
-  //        horiz += 50;
-  //      }
-  //      dfs(v,cur);
-  //    }
-  //  }
-  //}
-
-  //let compenentCount = 0;
-  //let horizMax = 0;
-
-  //for (const v of Xlist) {
-  //  if (visited.has(v)) {
-  //    continue;
-  //  }
-  //  ++compenentCount;
-  //  positionByZ = {};
-  //  let newHoriz = horizMax + 50;
-  //  horiz += 50;
-  //  console.log('new comp, horiz: ', horiz);
-  //  dfs(v,null);
-  //  for (const z in positionByZ) {
-  //    if (!positionByZ.hasOwnProperty(z)) {
-  //      continue;
-  //    }
-  //    const zNum = parseInt(z);
-  //    positionByZ[z].forEach((v,i) => {
-  //      pos2D[v] = [i*50 + newHoriz,zNum];
-  //      horizMax = Math.max(pos2D[v][0], horizMax);
-  //    });
-  //  }
-  //}
-
-  //console.log('pos2D: ', pos2D);
-
-  //let j = 0, k = 0;
   Xlist.forEach((v,i) => {
-    //if (i > 0) {
-    //  if (map.objCoord[Xlist[i-1]].z < map.objCoord[Xlist[i]].z) {
-    //    ++j;
-    //    k = 0;
-    //  }
-    //  else {
-    //    ++k;
-    //  }
-    //}
+    console.log('cy pushing v: ', v);
     cy_elems.push({
       group: 'nodes',
       data: {
