@@ -810,6 +810,10 @@ MapViewer.prototype.loadMap2 = function(data)
   }
 
   // process skeleton data
+  // note: graph's nodes are object numbers
+  // but because keys of object in JS are strings,
+  // be careful if comparing key and value with ===
+  // e.g. for (v in G) --> v is string, while G[v] = [int's]
   map.skeletonGraph =
       BuildGraphFromEdgeList(data.skeleton);
   map.skeletonLines = 
@@ -1770,41 +1774,210 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
 /*
  * loads cells into 2D Viewer with Cytoscape
  *
+ * in experimental phase for now, somewhat sketchy
+ *
  * @param {HTMLDivElement} elem - where Cytoscape will load into
  */
 MapViewer.prototype.load2DViewer = function(elem) {
   const cell = 'ADAL';
   const map = this.maps[cell];
+  const objCoord = map.objCoord;
   const cy_elems = [];
 
-  const X = {};
+  const X = new Set();
   for (const contin in map.allSynData) {
     if (map.allSynData.hasOwnProperty(contin)) {
-      X[map.allSynData[contin].obj] = map.allSynData[contin].partner;
+      //X[map.allSynData[contin].obj] = map.allSynData[contin].partner;
+      X.add(map.allSynData[contin].obj);
     }
   }
-  console.log(X);
   for (const v in map.skeletonGraph) {
     if (!map.skeletonGraph.hasOwnProperty(v)) {
       continue;
     }
-    if (map.skeletonGraph[v].length !== 2
-      && !X.hasOwnProperty(v)) {
-      X[v] = `Vertex degree ${map.skeletonGraph[v].length}`;
+    const vNum = parseInt(v);
+    if (map.skeletonGraph[v].length !== 2) {
+      //&& !X.hasOwnProperty(v)) {
+      //&& !X.has(vNum)) {
+      //X[v] = `Vertex degree ${map.skeletonGraph[v].length}`;
+      X.add(vNum);
     }
   }
-  console.log(X);
   const Gred = ReduceGraph(map.skeletonGraph, X);
 
-  for (const v in Gred) {
-    if (!Gred.hasOwnProperty(v)) {
-      continue;
+  let Xlist = [...X];
+  Xlist.sort((v,w) => map.objCoord[v].z - map.objCoord[w].z);
+  console.log(Xlist);
+
+  // key: node,
+  // value: array of nodes in longest line graph
+  //    from this node to a leaf
+  //    (in getLongestLine, it is computed in reverse
+  //    because pushing array from the right is easier,
+  //    but later reversed back so it's node to leaf)
+  //    TODO also impose line is monotone in z coord
+  const vis = new Set();
+  const prevNode = {};
+  longestLine= {};
+  function getLongestLine(cur,prev) {
+    if (vis.has(cur)) return;
+    vis.add(cur);
+    prevNode[cur] = prev;
+    let v; // the neighbor of cur that longest line runs thru
+    let maxLen = -1;
+    for (const w of Gred[cur]) {
+      if (w === prev) continue;
+      if (vis.has(w)) continue;
+      getLongestLine(w,cur);
+      if (longestLine[w].length > maxLen) {
+        v = w;
+        maxLen = longestLine[w].length;
+      }
     }
-    cy_elems.push({data: {id: v}});
-    for (const w of Gred[v]) {
-      cy_elems.push({data: {id: `${v}--${w}`, source: v, target: w}});
+    if (maxLen === -1) { // cur is leaf
+      longestLine[cur] = [cur];
+      return;
+    }
+    longestLine[v].push(cur);
+    longestLine[cur] = longestLine[v];
+    delete longestLine[v];
+  }
+  // start from all possible positions because Gred not conn
+  for (const v of Xlist) {
+    getLongestLine(v, null);
+  }
+  console.log('long long man: ', longestLine);
+
+  // want to sort lines by length
+  // linesList: lines, but represented by the
+  //    nodes that are starting points of lines
+  // also reverse lines as promised
+  const linesList = [];
+  for (const v in longestLine) {
+    if (longestLine.hasOwnProperty(v)) {
+      longestLine[v].reverse();
+      linesList.push(v);
     }
   }
+  linesList.sort((v,w) => longestLine[w].length - longestLine[v].length);
+  
+  // now give 2D coord
+  const pos2D = {};
+  linesList.forEach((v,i) => {
+    let h = 0;
+    let prev = prevNode[v];
+    if (prev !== null) {
+      const comp = Math.sign(objCoord[v] - objCoord[prev]);
+      console.log(prev);
+      h = pos2D[prev][1] + comp;
+    }
+    longestLine[v].forEach((w,j) => {
+      pos2D[w] = [i, h + j];
+    });
+  });
+
+
+  //let positionByZ = {};
+  //const visited = new Set();
+  //let horiz = 0;
+  //const pos2D = {};
+  //const horizPos = {};
+  //const vertPos = {};
+
+  //function dfs(cur,prev) {
+  //  if (visited.has(cur)) {
+  //    return;
+  //  }
+  //  console.log('in dfs: ', cur);
+  //  visited.add(cur);
+  //  const z = map.objCoord[cur].z;
+  //  if (!positionByZ.hasOwnProperty(z)) {
+  //    positionByZ[z] = [];
+  //    horizPos[cur] = horiz;
+  //    if (prev === null) {
+  //      vertPos[cur] = 0;
+  //    }
+  //    else {
+  //      let zDiff = map.objCoord[cur].z - map.objCoord[prev].z;
+  //      vertPos[cur] = vertPos[prev] + 50*Math.sign(zDiff);
+  //    }
+  //  }
+  //  positionByZ[z].push(cur);
+  //  let isStraight = true;
+  //  for (const v of Gred[cur]) {
+  //    if (!visited.has(v)) {
+  //      if (isStraight) {
+  //        isStraight = false;
+  //      }
+  //      else {
+  //        horiz += 50;
+  //      }
+  //      dfs(v,cur);
+  //    }
+  //  }
+  //}
+
+  //let compenentCount = 0;
+  //let horizMax = 0;
+
+  //for (const v of Xlist) {
+  //  if (visited.has(v)) {
+  //    continue;
+  //  }
+  //  ++compenentCount;
+  //  positionByZ = {};
+  //  let newHoriz = horizMax + 50;
+  //  horiz += 50;
+  //  console.log('new comp, horiz: ', horiz);
+  //  dfs(v,null);
+  //  for (const z in positionByZ) {
+  //    if (!positionByZ.hasOwnProperty(z)) {
+  //      continue;
+  //    }
+  //    const zNum = parseInt(z);
+  //    positionByZ[z].forEach((v,i) => {
+  //      pos2D[v] = [i*50 + newHoriz,zNum];
+  //      horizMax = Math.max(pos2D[v][0], horizMax);
+  //    });
+  //  }
+  //}
+
+  //console.log('pos2D: ', pos2D);
+
+  //let j = 0, k = 0;
+  Xlist.forEach((v,i) => {
+    //if (i > 0) {
+    //  if (map.objCoord[Xlist[i-1]].z < map.objCoord[Xlist[i]].z) {
+    //    ++j;
+    //    k = 0;
+    //  }
+    //  else {
+    //    ++k;
+    //  }
+    //}
+    cy_elems.push({
+      group: 'nodes',
+      data: {
+        id: v,
+        label: 'data'+v,
+      },
+      position: {
+        x: pos2D[v][0] * 50,
+        y: pos2D[v][1] * 50,
+      }
+    });
+    for (const w of Gred[v]) {
+      if (v < w) {
+        cy_elems.push({
+          data: {
+            id: `${v}--${w}`,
+            source: v,
+            target: w
+          },
+        });
+      }
+    }
+  });
   
   //// entire graph
   //for (const v in map.skeletonGraph) {
@@ -1825,17 +1998,9 @@ MapViewer.prototype.load2DViewer = function(elem) {
   const cy = cytoscape({
     container: elem,
     elements: cy_elems,
-    //elements: [ // list of graph elements to start with
-    //  { // node a
-    //    data: { id: 'a' }
-    //  },
-    //  { // node b
-    //    data: { id: 'b' }
-    //  },
-    //  { // edge ab
-    //    data: { id: 'ab', source: 'a', target: 'b' }
-    //  }
-    //],
+    // array of objects
+    // -nodes: { data: { id: 'a' } },
+    // -edges: { data: { id: 'ab', source: 'a', target: 'b' } }
 
     style: [ // the stylesheet for the graph
       {
@@ -1852,16 +2017,18 @@ MapViewer.prototype.load2DViewer = function(elem) {
           'width': 3,
           'line-color': '#ccc',
           'target-arrow-color': '#ccc',
-          'target-arrow-shape': 'triangle',
+          //'target-arrow-shape': 'triangle',
           'curve-style': 'bezier'
         }
       }
     ],
 
     layout: {
-      name: 'grid',
-      rows: 1
-    }
+      name: 'preset',
+      //name: 'grid',
+      //rows: 1
+    },
+    wheelSensitivity: 0.5, // zoom speed
   });
 };
 
@@ -2025,24 +2192,22 @@ function BreakGraphIntoLineSubgraphs(graph) {
  * with this assumption, essentially we just want to
  * collapse all 'line subgraphs' between vertices of X
  *
- * TODO!!
  * currently we're implicitly assuming that nodes of G
- * are given by numbers
- * because of some comparison,
- * we compare key with value
- * see below "TODO assumption of node type here!"
+ * are given by numbers;
+ * but because nodes are keys, they are turned into strings,
+ * so be careful when comparing a node and its neighbors!!
  *
  * @param {Object} G - graph given in neighbor list form
- * @param {Object} X - subset of vertices of G
- *    given in the form of object whose keys are that subset
- *    and values are some description, not relevant here
+ * @param {Set} X - subset of vertices of G
  */
 function ReduceGraph(G, X) {
+  // perform some checks
   for (const v in G) {
     if (!G.hasOwnProperty(v)) {
       continue;
     }
-    if (G[v].length !== 2 && !X.hasOwnProperty(v)) {
+    const vNum = parseInt(v);
+    if (G[v].length !== 2 && !X.has(vNum)) {
       console.error('ReduceGraph expects X to contain all vertices of degree not 2; vertex in error: ', v);
       return null;
     }
@@ -2053,23 +2218,19 @@ function ReduceGraph(G, X) {
 
   // result graph to be returned
   const res = {};
-  for (const v in X) {
-    if (!X.hasOwnProperty(v)) {
-      continue;
-    }
+  X.forEach(v => {
     res[v] = [];
     if (!G.hasOwnProperty(v)) {
       console.log('weird, X should be subset of G; vertex in error: ', v);
-      continue;
+      return;
     }
     // attempt to go in every direction
     for (const w of G[v]) {
       // go all the way in that direction
       let u = w, prev = v;
-      while (!X.hasOwnProperty(u)) {
+      while (!X.has(u)) {
         // so G[u] must have exactly two elements
         let y = u;
-        // TODO assumption of node type here!
         u = (G[u][0] != prev) ? G[u][0] : G[u][1];
         prev = y;
       }
@@ -2080,7 +2241,7 @@ function ReduceGraph(G, X) {
     // probably redundant as we typically expect G = tree
     res[v]= [...new Set(res[v])];
     res[v] = res[v].filter(p => p !== v);
-  }
+  });
 
   return res;
 }
