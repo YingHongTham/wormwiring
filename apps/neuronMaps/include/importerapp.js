@@ -94,6 +94,7 @@ ImporterApp = function (params)
     synposition: '---',
   }
   this.synapseInfoClicked = Object.assign({}, this.defaultSynapseInfo);
+  this.synapseClicked = { cellname: null, contin: null };
 
   // but wait, there's more...
   // many more members defined in Init()
@@ -1538,8 +1539,13 @@ ImporterApp.prototype.GetMapsTranslate = function() {
 };
 
 
+/*==============================
+ * old way of updating synapse info section
+ */
+
 /*
  * YH
+ * update the synapse info section of menu
  *
  * @param {Object} info - synapse info,
  * should be of the form this.synapseInfoClicked
@@ -1556,6 +1562,7 @@ ImporterApp.prototype.UpdateSynapseInfo = function(info) {
   document.getElementById('synposition').innerHTML =
     `x: ${info.synposition.x}, y: ${info.synposition.y}, z: ${info.synposition.z}`;
 };
+
 
 // returns Synapse Info to last clicked synapse
 ImporterApp.prototype.RestoreSynapseInfo = function() {
@@ -1578,6 +1585,96 @@ ImporterApp.prototype.ResetDefaultSynapseInfo = function() {
 ImporterApp.prototype.GetSynapseInfoContin = function() {
   return this.synapseInfoClicked.syncontin;
 };
+
+
+// end old way of updating synapse info section
+
+
+/*============================================
+ * YH new and improved way
+ * we don't pass around the info object,
+ * just need to give cellname and contin num of synapse
+ * blazingly fast
+ *
+ * the synapse info section always shows the
+ * synapse that mouse is hovering over,
+ * but if mouse not hovering over any synapse,
+ * returns it to the previously clicked synapse
+ *
+ * the methods below switch between four states:
+ * -mouse hover synapse X, synapse Y clicked (possibly X=Y)
+ * -mouse hover synapse X, no synapse clicked
+ * -mouse not hovering over any synapse, synapse X clicked
+ * -mouse not hovering over any synapse, no synapse clicked
+ * /
+
+/*
+ * update the synapse info section of menu
+ * but doesn't update the synapse clicked
+ * so that synapse info will return to previous clicked synapse
+ *
+ * @param {String} cellname - cell on which synapse sits
+ * @param {Number} contin - contin number of synapse
+ */
+ImporterApp.prototype.UpdateSynapseInfo2 = function(cellname,contin) {
+  if (contin === null) {
+    this.RestoreSynapseInfoToDefault2();
+    return;
+  }
+  const synData = this.viewer.GetSynData(cellname,contin);
+  const pos = this.viewer.GetObjCoord(cellname,synData.obj);
+  document.getElementById('cellname').innerHTML = cellname;
+  document.getElementById('syntype').innerHTML = synData.type;
+  document.getElementById('synsource').innerHTML = synData.pre;
+  document.getElementById('syntarget').innerHTML = synData.post;
+  document.getElementById('synweight').innerHTML = synData.zHigh - synData.zLow + 1;
+  document.getElementById('synsection').innerHTML = `(${synData.zLow},${synData.zHigh})`;
+  document.getElementById('syncontin').innerHTML = contin;
+  document.getElementById('synposition').innerHTML =
+    `x: ${pos.x}, y: ${pos.y}, z: ${pos.z}`;
+};
+
+/*
+ * return synapse info to default values, all '---'
+ * also sets synapse clicked to null
+ */
+ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
+  this.synapseClicked.cellname = null;
+  this.synapseClicked.contin = null;
+  document.getElementById('cellname').innerHTML = '---';
+  document.getElementById('syntype').innerHTML = '---';
+  document.getElementById('synsource').innerHTML = '---';
+  document.getElementById('syntarget').innerHTML = '---';
+  document.getElementById('synweight').innerHTML = '---';
+  document.getElementById('synsection').innerHTML = '---';
+  document.getElementById('syncontin').innerHTML = '---';
+  document.getElementById('synposition').innerHTML = '---';
+};
+
+
+/*
+ * returns Synapse Info to last clicked synapse
+ * does not update synapse clicked
+ */
+ImporterApp.prototype.RestoreSynapseInfo2 = function() {
+  //const info = this.synapseInfoClicked;
+  this.UpdateSynapseInfo2(this.synapseClicked.cellname, this.synapseClicked.contin);
+};
+
+
+// update both clicked synapse and the synapse info panel
+ImporterApp.prototype.UpdateClickedSynapseInfo2 = function(cellname, contin) {
+  this.synapseClicked.cellname = cellname;
+  this.synapseClicked.contin = contin;
+  this.UpdateSynapseInfo2(cellname,contin);
+};
+
+ImporterApp.prototype.GetSynapseInfoContin2 = function() {
+  return this.synapseClicked.contin;
+};
+
+
+
 
 // series/sex get/set from/to HTML
 ImporterApp.prototype.GetSeriesFromHTML = function() {

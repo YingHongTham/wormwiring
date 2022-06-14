@@ -753,7 +753,24 @@ MapViewer.prototype.loadMap2 = function(data)
    *    ...
    *  }
    *
-   *  -allSynData: TODO
+   *  -allSynData: {
+   *    3860: { // key is contin number of synapse
+   *      pre: syn.pre,
+   *      post: syn.post,
+   *      type: 'pre'/'post/'gap',
+   *      contin: 3860,
+   *      zLow: syn.zLow, // lowest and highest z of synapse
+   *      zHigh: syn.zHigh,
+   *      cellname: this = maps[cellname]
+   *      partner: other cell(s) on other side of synapse
+   *        (if we have RICL -> AVAL,ADAL
+   *        and cellname = ADAL (so type = post),
+   *        then partner is just RICL)
+   *      obj: object that synapse is attached to
+   *        (use its coordinates to position synapse sphere)
+   *    },
+   *    ...
+   *  }
    *
    *  when doing concrete things like deleting from viewer,
    *  e.g. in clearMaps, or toggleAllSynapses
@@ -835,6 +852,7 @@ MapViewer.prototype.loadMap2 = function(data)
       contin: syn.continNum,
       zLow: syn.zLow,
       zHigh: syn.zHigh,
+      cellname: map.name,
       partner: '',
       obj: null,
     };
@@ -1013,6 +1031,10 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
     const l = new THREE.Line(geometry, material);
     this.maps[name].skeletonGrp.add(l);
   }
+};
+
+MapViewer.prototype.GetObjCoord = function(cellname, objNum) {
+  return this.maps[cellname].objCoord[objNum];
 };
 
 /*
@@ -1228,7 +1250,6 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
     rotate: { x: -Math.PI/3 },
     scale: { x: 0.2, y: 0.2, z: 0.2 },
     offset: new THREE.Vector3(offsetx(),0,0),
-        //offsetx(Math.floor(sphere.position.z)),0,0),
     font: '20px Arial',
     arrowhead: false,
   });
@@ -1236,50 +1257,41 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
   synLabelObj.visible = false;
   this.maps[name].synLabels.add(synLabelObj);
 
-  // setting up events/listeners to respond to
-  // mouse events over synapse in viewer
-  const info = {
-    cellname: name,
-    syntype: synType,
-    synsource: source,
-    syntarget: target,
-    synweight: numSections,
-    synsection: `(${zLow},${zHigh})`,
-    syncontin: contin,
-    synposition: sphere.getWorldPosition(), // must be updated when emit event
-  };
-
-
   const self = this;
 
+  // mouse events over synapses
+  // updates the synapse info section
   this.domEvents.addEventListener(sphere,'mouseover',function(event){
-    sphere.getWorldPosition(info.synposition);
     synLabelObj.visible = true;
-    self.menu.app.UpdateSynapseInfo(info);
+    self.menu.app.UpdateSynapseInfo2(synData.cellname, synData.contin);
     self.renderer.render(self.scene,self.camera);
   });
   this.domEvents.addEventListener(sphere,'mouseout',function(event){
-    if (self.menu.app.GetSynapseInfoContin() !== info.syncontin) {
+    if (self.menu.app.GetSynapseInfoContin2() !== synData.contin) {
       synLabelObj.visible = false;
     }
-    self.menu.app.RestoreSynapseInfo();
+    self.menu.app.RestoreSynapseInfo2();
     self.renderer.render(self.scene,self.camera);
   });
 
   this.domEvents.addEventListener(sphere,'click',function(event){
-    if (self.menu.app.GetSynapseInfoContin() === info.syncontin) {
+    if (self.menu.app.GetSynapseInfoContin2() === synData.contin) {
       synLabelObj.visible = false;
-      self.menu.app.ResetDefaultSynapseInfo();
+      self.menu.app.RestoreSynapseInfoToDefault2();
     }
     else {
-      self.toggleSynapseLabels(info.cellname, false);
+      self.toggleSynapseLabels(synData.cellname, false);
       synLabelObj.visible = true;
-      sphere.getWorldPosition(info.synposition);
-      self.menu.app.UpdateClickedSynapseInfo(info);
+      self.menu.app.UpdateClickedSynapseInfo2(synData.cellname, synData.contin);
     }
     self.renderer.render(self.scene,self.camera);
   });
 };
+
+MapViewer.prototype.GetSynData = function(cellname,contin) {
+  const synData = Object.assign({}, this.maps[cellname].allSynData[contin]);
+  return synData;
+}
 
 
 //should be called addSynapseS!
@@ -1575,7 +1587,7 @@ MapViewer.prototype.toggleSynapseLabels = function(name,bool=null) {
   this.synapseLabelsAllVisible = bool;
   for (const synLabel of this.maps[name].synLabels.children) {
     synLabel.visible = bool;
-    if (this.menu.app.GetSynapseInfoContin() === synLabel.name) {
+    if (this.menu.app.GetSynapseInfoContin2() === synLabel.name) {
       synLabel.visible = true;
     }
   }
@@ -1903,12 +1915,10 @@ MapViewer.prototype.load2DViewer = function(elem) {
   // is 43615, 43614, 43611, 43610, 43609, 43612, 43613
 
   Xlist.forEach((v,i) => {
-    console.log('cy pushing v: ', v);
     cy_elems.push({
-      group: 'nodes',
       data: {
         id: v,
-        label: 'data'+v,
+        label: v+'garage',
       },
       position: {
         x: pos2D[v][0] * 50,
@@ -1921,7 +1931,8 @@ MapViewer.prototype.load2DViewer = function(elem) {
           data: {
             id: `${v}--${w}`,
             source: v,
-            target: w
+            target: w,
+            label: 'boom',
           },
         });
       }
@@ -1956,7 +1967,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
         selector: 'node',
         style: {
           'background-color': '#666',
-          'label': 'data(id)'
+          'label': 'data(label)',
         }
       },
 
@@ -1978,6 +1989,12 @@ MapViewer.prototype.load2DViewer = function(elem) {
       //rows: 1
     },
     wheelSensitivity: 0.5, // zoom speed
+  });
+
+  // event listeneres
+  cy.on('tap', 'node', function(evt){
+    var node = evt.target;
+    console.log( 'tapped ' + node.id() );
   });
 };
 
