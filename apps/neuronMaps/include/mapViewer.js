@@ -855,10 +855,11 @@ MapViewer.prototype.loadMap2 = function(data)
       cellname: map.name,
       partner: '',
       obj: null,
+      sphere: null, // set later in addOneSynapse2
     };
     if (syn.pre === data.name) {
       if (!map.objCoord.hasOwnProperty(syn.preObj)) {
-        console.error('Bad synapse object numbers? synapse contin number: ', syn.continNum);
+        console.log('Bad synapse object numbers? synapse contin number: ', syn.continNum);
       }
       else {
         let synDataP = Object.assign({}, synData);
@@ -872,7 +873,7 @@ MapViewer.prototype.loadMap2 = function(data)
     }
     if (syn.post === data.name) {
       if (!map.objCoord.hasOwnProperty(syn.postObj)) {
-        console.error('Bad synapse object numbers? synapse contin number: ', syn.continNum);
+        console.log('Bad synapse object numbers? synapse contin number: ', syn.continNum);
       }
       else {
         let synDataP = Object.assign({}, synData);
@@ -1227,6 +1228,7 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
 
   // add sphere to scene via pre/post/gap Group
   this.maps[name][`${synType}Grp`].add(sphere);
+  this.maps[name].allSynData[synData.contin].sphere = sphere;
 
   // function for determining the offset
   // previously defined based on input z value
@@ -1788,6 +1790,13 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
  *
  * in experimental phase for now, somewhat sketchy
  *
+ * note to self: some of the graph algorithms have to be
+ * a little more complicated than expected because
+ * the relevant graph is NOT always a tree,
+ * which is what one might expect from the skeleton of a cell
+ * this typically involves an extra layer of bookkeeping
+ * to ensure we don't go into infinite loops
+ *
  * @param {HTMLDivElement} elem - where Cytoscape will load into
  */
 MapViewer.prototype.load2DViewer = function(elem) {
@@ -1796,11 +1805,24 @@ MapViewer.prototype.load2DViewer = function(elem) {
   const objCoord = map.objCoord;
   const cy_elems = [];
 
+
+  // get the set of vertices
+  // (synapses + vertices of degree != 2)
+  // and reduced the skeleton graph to just those vertices
+
   const X = new Set();
+  // for the synapses, we also want to keep track of
+  // the contin number(s) of the synapses
+  // that have that a given obj num
+  const continByObj = {}; // key=obj, val=array of continNums
   for (const contin in map.allSynData) {
     if (map.allSynData.hasOwnProperty(contin)) {
-      //X[map.allSynData[contin].obj] = map.allSynData[contin].partner;
-      X.add(map.allSynData[contin].obj);
+      const objNum = map.allSynData[contin].obj;
+      X.add(objNum);
+      if (!continByObj.hasOwnProperty(objNum)) {
+        continByObj[objNum] = [];
+      }
+      continByObj[objNum].push(contin);
     }
   }
   for (const v in map.skeletonGraph) {
@@ -1809,9 +1831,6 @@ MapViewer.prototype.load2DViewer = function(elem) {
     }
     const vNum = parseInt(v);
     if (map.skeletonGraph[v].length !== 2) {
-      //&& !X.hasOwnProperty(v)) {
-      //&& !X.has(vNum)) {
-      //X[v] = `Vertex degree ${map.skeletonGraph[v].length}`;
       X.add(vNum);
     }
   }
@@ -1819,6 +1838,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
   // testing on entire graph
   //Gred = map.skeletonGraph;
 
+  // want to go through vertices in increasing z
   let Xlist = [...X];
   // testing on entire graph
   //Xlist = [];
@@ -1828,31 +1848,79 @@ MapViewer.prototype.load2DViewer = function(elem) {
   //  }
   //}
   Xlist.sort((v,w) => map.objCoord[v].z - map.objCoord[w].z);
-  console.log(Xlist);
 
-  // key: node,
+
+  // next we need to give the 2D coordinates
+  // for the graph embedding in the 2D view
+  // we want embedding to be as "vertical" as possible
+  // so we look for long lines,
+  // a little bit like BreakGraphIntoLineSubgraphs,
+  // but here we need the lines to be
+  // -monotone in z coord (TODO!)
+  // -have disjoint vertices
+
+  // longestLine will keep such partition of graph
+  // into collection of lines
+  // key: node (objNum),
   // value: array of nodes in longest line graph
-  //    from this node to a leaf
-  //    (in getLongestLine, it is computed in reverse
+  //    from this node to a leaf,
+  //    in a direction away from the root
+  //    (which should have lowest z in that connected comp)
+  //    (in GetLongestLine, it is computed in reverse
   //    because pushing array from the right is easier,
   //    but later reversed back so it's node to leaf)
   //    TODO also impose line is monotone in z coord
-  const visited = new Set();
-  const prevNode = {};
+  const longestLine = {};
+
+  // GetLongestLine(cur) is a recursive function,
+  // it looks at the longestLines of children of cur
+  // (neighbors that are not parentNode[cur])
+  // and picks the longest one,
+  // say starting at v,
+  // and adds cur to it:
+  // longestLine[cur] = [cur] + longestLine[v]
+  // the entry for v is be deleted from longestLine
+  // since that line has been subsumed into cur's
+  //
+  // implicitly we find a rooted tree
+  // (rooted at the node from which we call GetLongestLine)
+  // parentNode[w] is the parent of w in this rooted tree
+  // (parentNode[root] = null)
+  // (since the given graph is not necessarily a tree,
+  // this is not unique but it doesn't really matter)
+  //
+  // parentNode is also used to keep track of
+  // whether a node has been visited
+  // (=== whether node is a key of parentNode)
+  //
+  // calling GetLongestLine(cur,prev)
+  // is an attempt to make prev the parent of cur,
+  // but if cur has been visited, then we just return
+  const parentNode = {};
+
+  // orderOfVisit is needed for assembling the lines together
+  // we give coordinates to each line in longestLine
+  // based on the parent of the first node in that line,
+  // so we want to do this in the right order
+  // (in principal we could just do another graph traversal
+  // but ain't nobody got time for that)
   const orderOfVisit = {};
   let orderOfVisitCounter = 0;
-  longestLine= {};
-  function getLongestLine(cur,prev) {
-    if (visited.has(cur)) return;
-    visited.add(cur);
-    prevNode[cur] = prev;
+
+  // recursive; if want root to be at v,
+  // call with GetLongestLine(v,null)
+  function GetLongestLine(cur, prev) {
+    if (parentNode.hasOwnProperty(cur)) {
+      return;
+    }
+    parentNode[cur] = prev;
     orderOfVisit[cur] = orderOfVisitCounter++;
     let v; // the neighbor of cur that longest line runs thru
     let maxLen = -1;
     for (const w of Gred[cur]) {
-      if (w === prev) continue;
-      if (visited.has(w)) continue;
-      getLongestLine(w,cur);
+      if (w === parentNode[cur]) continue;
+      if (parentNode.hasOwnProperty(w)) continue; // technically redundant
+      GetLongestLine(w, cur);
       if (longestLine[w].length > maxLen) {
         v = w;
         maxLen = longestLine[w].length;
@@ -1868,9 +1936,11 @@ MapViewer.prototype.load2DViewer = function(elem) {
   }
   // start from all possible positions because Gred not conn
   for (const v of Xlist) {
-    getLongestLine(v, null);
+    if (parentNode.hasOwnProperty(v)) {
+      continue; // technically redundant
+    }
+    GetLongestLine(v, null);
   }
-  console.log('long long man: ', longestLine);
 
   // want to sort lines by orderOfVisit
   // linesList: lines, but represented by the
@@ -1884,41 +1954,58 @@ MapViewer.prototype.load2DViewer = function(elem) {
     }
   }
   linesList.sort((v,w) => orderOfVisit[v] - orderOfVisit[w]);
-
-  console.log('linesList: ', linesList);
   
   // now give 2D coord
   // since we've sorted by orderOfVisit,
-  // prevNode below will be a node that has been given pos2D
+  // parentNode below will be a node that has been given pos2D
+  // the starting node v of a longestLine[v]
+  // will have its y coord defined relative to its parent
+  // (above/equal/below based on z coord)
+  // the rest of the line will also go up or down
+  // based on z coord
   const pos2D = {};
   linesList.forEach((v,i) => {
-    let h = 0;
-    let prev = prevNode[v];
-    if (prev !== null) {
-      const comp = Math.sign(objCoord[v].z - objCoord[prev].z);
-      if (pos2D.hasOwnProperty(prev)) {
-        h = pos2D[prev][1] + comp;
-        console.log(pos2D[prev], comp);
-      } else {
-        h = 0;
-      }
+    let h = 0; // height/y for starting node v
+    let par = parentNode[v];
+    if (par !== null && pos2D.hasOwnProperty(par)) {
+      const comp = Math.sign(objCoord[v].z - objCoord[par].z);
+      h = pos2D[par][1] + comp;
     }
-    console.log('prev, h: ', prev, h);
-    longestLine[v].forEach((w,j) => {
-      pos2D[w] = [i, h + j];
-    });
+    if (longestLine[v].length === 1) {
+      pos2D[v] = [i, h];
+    }
+    else {
+      const comp2 = 
+          objCoord[longestLine[v][1]].z
+          >= objCoord[longestLine[v][0]].z
+          ? 1 : -1;
+      longestLine[v].forEach((w,j) => {
+        pos2D[w] = [i, h + comp2 * j];
+      });
+    }
   });
 
-  // TODO wtf there's a loop??
+  // wtf there's a loop?? in ADAL
   // 43615, 43612, 43610, 43609 (in reduced graph)
   // upon further inspection, the loop in the actual graph
   // is 43615, 43614, 43611, 43610, 43609, 43612, 43613
 
   Xlist.forEach((v,i) => {
+    // label v with the partner(s) of the synapse(s) at v
+    // empty label if not synapse
+    const vLabels = [];
+    if (continByObj.hasOwnProperty(v)) {
+      for (const contin of continByObj[v]) {
+        vLabels.push(map.allSynData[contin].partner);
+      }
+    }
+    const vlabel = vLabels.join(' / ');
     cy_elems.push({
       data: {
         id: v,
-        label: v+'garage',
+        label: vlabel,
+        width: 10,
+        height: 10,
       },
       position: {
         x: pos2D[v][0] * 50,
@@ -1932,14 +2019,13 @@ MapViewer.prototype.load2DViewer = function(elem) {
             id: `${v}--${w}`,
             source: v,
             target: w,
-            label: 'boom',
           },
         });
       }
     }
   });
   
-  //// entire graph
+  //// testing entire graph
   //for (const v in map.skeletonGraph) {
   //  if (map.skeletonGraph.hasOwnProperty(v)) {
   //    cy_elems.push({data: {id: v}});
@@ -1968,6 +2054,8 @@ MapViewer.prototype.load2DViewer = function(elem) {
         style: {
           'background-color': '#666',
           'label': 'data(label)',
+          'width': 'data(width)',
+          'height': 'data(height)',
         }
       },
 
@@ -1992,9 +2080,16 @@ MapViewer.prototype.load2DViewer = function(elem) {
   });
 
   // event listeneres
+  const self = this;
   cy.on('tap', 'node', function(evt){
-    var node = evt.target;
-    console.log( 'tapped ' + node.id() );
+    const obj = evt.target.id();
+    const contin = continByObj[obj][0];
+    const pos = map.allSynData[contin].sphere.getWorldPosition();
+    self.SetCameraTarget(pos);
+    console.log( 'tapped ' + obj);
+    // TODO currently relying on sphere to get position
+    // make function to get coord by obj number
+    // so also can do remark
   });
 };
 
