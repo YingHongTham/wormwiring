@@ -1034,7 +1034,7 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
   }
 };
 
-MapViewer.prototype.GetObjCoord = function(cellname, objNum) {
+MapViewer.prototype.GetObjCoordAbsolute = function(cellname, objNum) {
   return this.maps[cellname].objCoord[objNum];
 };
 
@@ -1772,17 +1772,41 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
   tot.y = tot.y / count;
   tot.z = tot.z / count;
 
-  // further translate by whatever allGrps was hit by
-  // (translateOneMapsToThisPos only affects the allGrps
-  // the parent group containing the skeleton)
-  allGrpsPos = this.maps[name].allGrps.position;
-  tot.x += allGrpsPos.x;
-  tot.y += allGrpsPos.y;
-  tot.z += allGrpsPos.z;
+  //// further translate by whatever allGrps was hit by
+  //// (translateOneMapsToThisPos only affects the allGrps
+  //// the parent group containing the skeleton)
+  //allGrpsPos = this.maps[name].allGrps.position;
+  const trans = this.GetTranslateOnMaps(name);
+  tot.x += trans.x;
+  tot.y += trans.y;
+  tot.z += trans.z;
 
   return tot;
 };
 
+// get the amount that this cell has been translated
+// (translations are put in effect by
+// translateOneMapsToThisPos,
+// which only affects maps[cellname].allGrps)
+//
+// this shold return the same as ImporterApp.GetMapsTranslate
+// but this returns as THREE, importer app no THREE
+// also, it should really be independent of cell
+// but in all use cases, there is reference to a cell
+MapViewer.prototype.GetTranslateOnMaps = function(cellname) {
+  return this.maps[cellname].allGrps.position;
+};
+
+// get obj's coordinates as seen in 3D viewer,
+// i.e. taking into account translations too
+MapViewer.prototype.GetObjCoordActual = function(cellname,obj) {
+  const trans = this.GetTranslateOnMaps(cellname);
+  const coord = this.maps[cellname].objCoord[obj];
+  return new THREE.Vector3(
+    trans.x + coord.x,
+    trans.y + coord.y,
+    trans.z + coord.z);
+};
 
 
 /*
@@ -2083,14 +2107,17 @@ MapViewer.prototype.load2DViewer = function(elem) {
   const self = this;
   cy.on('tap', 'node', function(evt){
     const obj = evt.target.id();
-    const contin = continByObj[obj][0];
-    const pos = map.allSynData[contin].sphere.getWorldPosition();
+    //const contin = continByObj[obj][0];
+    const pos = self.GetObjCoordActual(cell, obj);
     self.SetCameraTarget(pos);
-    console.log( 'tapped ' + obj);
-    // TODO currently relying on sphere to get position
-    // make function to get coord by obj number
-    // so also can do remark
   });
+};
+
+
+// get the skeleton obj that a synapse is attached to
+// usually combined with GetObjCoordActual
+MapViewer.prototype.SynapseContinToObj = function(cellname, contin) {
+  return this.maps[cellname].allSynData[contin].obj;
 };
 
 

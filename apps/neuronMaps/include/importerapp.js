@@ -1266,6 +1266,19 @@ ImporterApp.prototype.GenerateMenu = function()
       //self.OpenInfoDialog(url,'Synapse viewer');
     };
     parent.appendChild(synViewerBtn);
+
+    // YH adding button to center view on synapse
+    const synCenterViewBtn = document.createElement('button');
+    synCenterViewBtn.innerHTML = 'Center View on Synapse';
+    synCenterViewBtn.onclick = () => {
+      const cellname = self.synapseClicked.cellname;
+      const contin = self.synapseClicked.contin;
+      if (contin === null) return;
+      const obj = self.viewer.SynapseContinToObj(cellname, contin);
+      const pos = self.viewer.GetObjCoordActual(cellname, obj);
+      self.viewer.SetCameraTarget(pos);
+    };
+    parent.appendChild(synCenterViewBtn);
   };
 
   function AddSynapseFilter(parent){
@@ -1409,6 +1422,12 @@ ImporterApp.prototype.GenerateMenu = function()
       const y = parseInt(document.getElementById('y-slider').value);
       const z = parseInt(document.getElementById('z-slider').value);
       params.callback(x,y,z); // used to be negative
+      const xShowVal = document.getElementById('x-slider-show-value');
+      xShowVal.innerHTML = x;
+      const yShowVal = document.getElementById('y-slider-show-value');
+      yShowVal.innerHTML = y;
+      const zShowVal = document.getElementById('z-slider-show-value');
+      zShowVal.innerHTML = z;
     };
     slider.oninput = slider.onchange;
     parent.appendChild(slider);
@@ -1425,14 +1444,24 @@ ImporterApp.prototype.GenerateMenu = function()
     };
     const text = {
       x: '<-x Left / Right +x>',
-      y: '<-y Ventral / Dorsal +y>',
-      z: '<-z Anterior / Posterior +z>',
+      y: '<-y Vent. / Dors. +y>',
+      z: '<-z Ant. / Post. +z>',
     };
-    for (const i in text){
-      const p = document.createElement('p')
-      p.innerHTML = text[i] + ': '
-      parent.appendChild(p);
-      AddSlider(parent,i,params);
+    for (const i of ['x','y','z']){
+      const div = document.createElement('p');
+      div.style = 'width: 100%';
+      parent.appendChild(div);
+      const p = document.createElement('p');
+      p.innerHTML = text[i] + ': ';
+      p.sytle = 'float: left';
+      div.appendChild(p);
+      const sp = document.createElement('span');
+      sp.innerHTML = 0;
+      sp.id = i + '-slider-show-value';
+      sp.style = 'float: left';
+      div.appendChild(sp);
+      console.log(sp);
+      AddSlider(div,i,params);
     }
   };
 
@@ -1622,7 +1651,7 @@ ImporterApp.prototype.UpdateSynapseInfo2 = function(cellname,contin) {
     return;
   }
   const synData = this.viewer.GetSynData(cellname,contin);
-  const pos = this.viewer.GetObjCoord(cellname,synData.obj);
+  const pos = this.viewer.GetObjCoordAbsolute(cellname,synData.obj);
   document.getElementById('cellname').innerHTML = cellname;
   document.getElementById('syntype').innerHTML = synData.type;
   document.getElementById('synsource').innerHTML = synData.pre;
