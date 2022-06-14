@@ -882,7 +882,7 @@ MapViewer.prototype.loadMap2 = function(data)
     return pos1.z - pos2.z;
   });
   for (const synData of allSynList) {
-    console.log('synData: ', synData.partner);
+    //console.log('synData: ', synData.partner);
     this.addOneSynapse2(map.name, synData);
   }
 
@@ -1803,9 +1803,18 @@ MapViewer.prototype.load2DViewer = function(elem) {
       X.add(vNum);
     }
   }
-  const Gred = ReduceGraph(map.skeletonGraph, X);
+  let Gred = ReduceGraph(map.skeletonGraph, X);
+  // testing on entire graph
+  //Gred = map.skeletonGraph;
 
   let Xlist = [...X];
+  // testing on entire graph
+  //Xlist = [];
+  //for (const v in map.skeletonGraph) {
+  //  if (map.skeletonGraph.hasOwnProperty(v)) {
+  //    Xlist.push(parseInt(v));
+  //  }
+  //}
   Xlist.sort((v,w) => map.objCoord[v].z - map.objCoord[w].z);
   console.log(Xlist);
 
@@ -1889,7 +1898,9 @@ MapViewer.prototype.load2DViewer = function(elem) {
   });
 
   // TODO wtf there's a loop??
-  // 43615, 43612, 43610, 43609
+  // 43615, 43612, 43610, 43609 (in reduced graph)
+  // upon further inspection, the loop in the actual graph
+  // is 43615, 43614, 43611, 43610, 43609, 43612, 43613
 
   Xlist.forEach((v,i) => {
     console.log('cy pushing v: ', v);
@@ -2116,12 +2127,11 @@ function BreakGraphIntoLineSubgraphs(graph) {
  * returns a new graph which "reduces" G to X,
  * where vertices are connected if there is a path in G
  * between them that does not pass through other vertices of X
- * (we also remove self-loops from the result;
- * since in our application we expect a tree,
- * this is really redundant, but just in case!
+ * we also remove self-loops from the result;
+ * turns out the graphs do have loops... very weird!!
  * similarly, in general there could be multiple such paths
  * between vertices in X, but in the output we simply
- * have one edge, no weights)
+ * have one edge, no weights
  *
  * strict assumption (which we check for!)
  * X must contain all vertices of degree != 2
@@ -2176,10 +2186,10 @@ function ReduceGraph(G, X) {
       res[v].push(u);
     }
     // remove duplicates and self-loops
-    // probably redundant as we typically expect G = tree
     res[v]= [...new Set(res[v])];
     res[v] = res[v].filter(p => p !== v);
   });
 
   return res;
 }
+
