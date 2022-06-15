@@ -1448,19 +1448,14 @@ ImporterApp.prototype.GenerateMenu = function()
       z: '<-z Ant. / Post. +z>',
     };
     for (const i of ['x','y','z']){
-      const div = document.createElement('p');
-      div.style = 'width: 100%';
+      const div = document.createElement('div');
+      div.style = 'display: inline';
+      div.append(text[i] + ': ');
       parent.appendChild(div);
-      const p = document.createElement('p');
-      p.innerHTML = text[i] + ': ';
-      p.sytle = 'float: left';
-      div.appendChild(p);
       const sp = document.createElement('span');
       sp.innerHTML = 0;
       sp.id = i + '-slider-show-value';
-      sp.style = 'float: left';
       div.appendChild(sp);
-      console.log(sp);
       AddSlider(div,i,params);
     }
   };

@@ -155,12 +155,18 @@ foreach ($query_results as $v) {
 	$data['objCoord'][$v['objNum2']] = array(-$v['x2'],$v['y2'],$v['z2']);
 
   // record cellbody; may duplicate, make unique later
+  // for some reaons cb2 is not an indicator of
+  // being cellbody, dunno what it's for then...
+  // anyway we go back to the old method,
+  // which is that we make an edge in cellbody
+  // if cb1 is 1
+  // and we return the edges individually as pairs
   if ($v['cb1'] == 1) {
-    $data['cellbody'][] = $v['objNum1'];
+    $data['cellbody'][] = [$v['objNum1'], $v['objNum2']];
   }
-  if ($v['cb2'] == 1) {
-    $data['cellbody'][] = $v['objNum2'];
-  }
+  //if ($v['cb2'] == 1) {
+  //  $data['cellbody'][] = $v['objNum2'];
+  //}
 
   if ($v['remarks1'] != ''){
     $data['remarks'][$v['objNum1']] = $v['remarks1'];
@@ -179,6 +185,10 @@ $data['cellbody'] = array_unique($data['cellbody']);
 // we filter out non-alphanumeric characters
 function alphanumeric($s) {
   return preg_replace("/[^a-zA-Z0-9]+/", "", $s);
+}
+// same but allow comma also
+function alphanumericcomma($s) {
+  return preg_replace("/[^a-zA-Z0-9,]+/", "", $s);
 }
 
 
@@ -225,7 +235,6 @@ foreach ($query_results as $v) {
 }
 
 
-
 //===================================================
 // gap junctions
 // essentially returns query results as is,
@@ -261,7 +270,123 @@ foreach ($query_results as $v) {
     $v[$k] = alphanumeric($v[$k]);
   }
 
-  $data['gap'][$v['mid']] = $v;
+  $data['gap'][$v['continNum']] = $v;
+}
+
+
+//===================================================
+// pre synapses
+// that is, synapses where $cell has the presynaptic density
+// essentially returns query results as is,
+// except
+// sectionNum1,sectionNum2 swapped out for zLow,zHigh
+// basically same as for gap junction
+//
+// warning to future self or poor soul who has to work on this
+// if add postobj1 field in query below,
+// even after performing intval($v['postobj1'])
+// it will still be a string
+// OK, but then why does converting to int work for gap?!
+
+$sql = "select
+    pre, post, sections, continNum, mid,
+    preobj as preObj,
+    sectionNum1, sectionNum2
+  from synapsecombined 
+    join contin
+      on synapsecombined.continNum = contin.CON_Number
+  where pre like '%$cell%' 
+    and synapsecombined.type like 'chemical' 
+  order by pre asc, sections desc";
+$query_results = $dbcon->_return_query_rows_assoc($sql);
+foreach ($query_results as $v) {
+  // cast to integer
+  foreach (['sections','continNum','mid','preObj','sectionNum1','sectionNum2'] as $k) {
+    $v[$k] = intval($v[$k]);
+  }
+
+  $v['zLow'] = min($v['sectionNum1'],$v['sectionNum2']);
+  $v['zHigh'] = max($v['sectionNum1'],$v['sectionNum2']);
+  unset($v['sectionNum1']);
+  unset($v['sectionNum2']);
+
+  // clean cell names
+  $v['pre'] = alphanumeric($v['pre']);
+  $v['post'] = alphanumericcomma($v['post']);
+
+  $data['pre'][$v['continNum']] = $v;
+}
+
+
+
+//===================================================
+// postsynapses
+// that is, synapses where $cell is on the post side
+//
+// as warned in pre above,
+// for some unknown reason, applying intval to the
+// postObj1/2/3/4 fields doesn't work,
+// so you must remember to apply parseInt in the JS
+
+$sql = "select
+    pre, post, sections, continNum, mid,
+    post1,
+    post2,
+    post3,
+    post4,
+    preobj as preObj,
+    postobj1 as postObj1,
+    postobj2 as postObj2,
+    postobj3 as postObj3,
+    postobj4 as postObj4,
+    sectionNum1, sectionNum2
+  from synapsecombined 
+    join contin
+      on synapsecombined.continNum = contin.CON_Number
+  where post like '%$cell%'
+    and synapsecombined.type like 'chemical' 
+  order by pre asc, sections desc";
+$query_results = $dbcon->_return_query_rows_assoc($sql);
+foreach ($query_results as $v) {
+  // cast to integer
+  foreach (['sections','continNum','mid','preObj','sectionNum1','sectionNum2'] as $k) {
+    $v[$k] = intval($v[$k]);
+  }
+
+  $v['zLow'] = min($v['sectionNum1'],$v['sectionNum2']);
+  $v['zHigh'] = max($v['sectionNum1'],$v['sectionNum2']);
+  unset($v['sectionNum1']);
+  unset($v['sectionNum2']);
+
+  // clean cell names
+  $v['pre'] = alphanumeric($v['pre']);
+  $v['post'] = alphanumericcomma($v['post']);
+  $v['post1'] = alphanumeric($v['post1']);
+  $v['post2'] = alphanumeric($v['post2']);
+  $v['post3'] = alphanumeric($v['post3']);
+  $v['post4'] = alphanumeric($v['post4']);
+
+  $data['post'][$v['continNum']] = $v;
+}
+
+
+//=========================================
+// get remarks
+// $data['remarks'] = array(); // objNum => remark text
+
+$sql = "select
+    OBJ_Name as objNum,
+    OBJ_Remarks as remarks
+  from object
+  where
+    OBJ_Remarks != ''
+    and CON_AlternateName like '%$cell%'
+";
+$query_results = $dbcon->_return_query_rows_assoc($sql);
+foreach ($query_results as $v) {
+  // cast to integer
+  $v['objNum'] = intval($v['objNum']);
+  $data['remarks'][$v['objNum']] = $v['remarks'];
 }
 
 echo json_encode($data);

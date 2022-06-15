@@ -672,14 +672,8 @@ MapViewer.prototype.loadMap = function(map)
  *      '98874': 'VC',
  *      ...
  *    }
- *    pre: {
- *      TODO
- *    },
- *    post: {
- *      TODO
- *    },
  *    gap: {
- *      '63063': {
+ *      '4881': {
  *        pre: 'ADAR',
  *        post: 'ADAL',
  *        sections: 3,
@@ -689,7 +683,17 @@ MapViewer.prototype.loadMap = function(map)
  *        postObj: 43945,
  *      },
  *    },
- *    cellbody: [ obj nums in cell body ],
+ *    pre: { // synapses where data.name is the pre
+ *      TODO
+ *    },
+ *    post: {
+ *      TODO
+ *    },
+ *    cellbody: { // php has no chill, only associative arrs
+ *      0: [obj1, obj2],
+ *      1: [obj2, obj3],
+ *      ...
+ *    }, // use Object.values(data.cellbody) to get array
  *    remarks: {
  *      '43946': 'end',
  *      '94628': 'start RVG commissure',
@@ -791,7 +795,7 @@ MapViewer.prototype.loadMap2 = function(data)
     preGrp: new THREE.Group(),
     postGrp: new THREE.Group(),
     gapGrp: new THREE.Group(),
-    gap: [],
+    //gap: [], // used?
     allSynData: {}, // TODO new
     synapses : {},
     synLabels : new THREE.Group(),
@@ -804,8 +808,8 @@ MapViewer.prototype.loadMap2 = function(data)
   map.allGrps.add(map.synObjs);
   map.allGrps.add(map.synLabels);
   map.allGrps.add(map.remarks);
-  //map.synObjs.add(map.pre);
-  //map.synObjs.add(map.post);
+  map.synObjs.add(map.preGrp);
+  map.synObjs.add(map.postGrp);
   map.synObjs.add(map.gapGrp);
   
   // default visibilities
@@ -837,14 +841,27 @@ MapViewer.prototype.loadMap2 = function(data)
       BreakGraphIntoLineSubgraphs(map.skeletonGraph);
   this.loadSkeletonIntoViewer(map.name);
 
+  // color cellbody edges
+  // that is, edges whose both ends are in cellbody
+  // just add as a collection of line segments,
+  // one for each edge, to skeletonGrp
+  // (very few edges compared to whole skeleton)
+  const cellbodyList = Object.values(data.cellbody);
+  for (const edge of cellbodyList) {
+    const lineGeometry = new THREE.Geometry();
+    lineGeometry.vertices.push(
+      map.objCoord[edge[0]], map.objCoord[edge[1]]);
+    const line = new THREE.Line(lineGeometry,this.cbMaterial);
+    map.skeletonGrp.add(line);
+  }
 
-  // TODO pre,post
 
   // add gap junctions to allSynData
   // note: if gap is from cell to itself,
-  // creates two sphere objects
-  for (const synMid in data.gap) {
-    const syn = data.gap[synMid];
+  // creates two sphere objects, one for each skeleton obj
+  for (const contin in data.gap) {
+    if (!data.gap.hasOwnProperty(contin)) continue;
+    const syn = data.gap[contin];
     let synData = {
       pre: syn.pre,
       post: syn.post,
@@ -887,8 +904,75 @@ MapViewer.prototype.loadMap2 = function(data)
     }
   }
 
+  // add pre synapses to allSynData
+  for (const contin in data.pre) {
+    if (!data.pre.hasOwnProperty(contin)) continue;
+    const syn = data.pre[contin];
+    let synData = {
+      pre: syn.pre,
+      post: syn.post,
+      type: 'pre',
+      contin: syn.continNum,
+      zLow: syn.zLow,
+      zHigh: syn.zHigh,
+      cellname: map.name,
+      partner: '',
+      obj: null,
+      sphere: null, // set later in addOneSynapse2
+    };
+    if (!map.objCoord.hasOwnProperty(syn.preObj)) {
+      console.log('Bad synapse object numbers? synapse contin number: ', syn.continNum,
+        'preObj: ', syn.preObj);
+    }
+    else {
+      let synDataP = Object.assign({}, synData);
+      synDataP.obj = syn.preObj;
+      synDataP.partner = syn.post;
+      map.allSynData[synData.contin] = synDataP;
+    }
+  }
+
+
+  // add post synapses to allSynData
+  for (const contin in data.post) {
+    if (!data.post.hasOwnProperty(contin)) continue;
+    const syn = data.post[contin];
+    let synData = {
+      pre: syn.pre,
+      post: syn.post,
+      type: 'post',
+      contin: syn.continNum,
+      zLow: syn.zLow,
+      zHigh: syn.zHigh,
+      cellname: map.name,
+      partner: '',
+      obj: null,
+      sphere: null, // set later in addOneSynapse2
+    };
+    // go through post(Obj)1/2/3/4
+    for (let i = 1; i <= 4; ++i) {
+      if (syn['post' + i] !== data.name) continue;
+      const postObji = 'postObj' + i;
+      const obj = parseInt(syn[postObji]);
+      if (!map.objCoord.hasOwnProperty(obj)) {
+        console.log('Bad synapse object numbers? synapse contin number: ', syn.continNum,
+          postObji, ': ', obj);
+      }
+      else {
+        let synDataP = Object.assign({}, synData);
+        synDataP.obj = obj;
+        synDataP.partner = syn.pre;
+        map.allSynData[synData.contin] = synDataP;
+      }
+    }
+  }
+
+  //==================================================
+  // preprocessing synapses done, now add to viewer
+
   // order by z value ascending
-  // because of the labeling stuff
+  // ordering is implicitly used in addOneSynapse2
+  // for the synLabels (to stagger them to avoid overlap)
   let allSynList = [];
   for (const contin in map.allSynData) {
     if (map.allSynData.hasOwnProperty(contin)) {
@@ -901,36 +985,31 @@ MapViewer.prototype.loadMap2 = function(data)
     return pos1.z - pos2.z;
   });
   for (const synData of allSynList) {
-    //console.log('synData: ', synData.partner);
     this.addOneSynapse2(map.name, synData);
   }
 
+  // synapses done
+  //================================================
+  // remarks
 
 
-
-  //// map.remarks[i] has 5 keys:
-  ////    x, y, z, series, remark
-  //// note that for some reason the x is -x...
-  //// see dbaux.php add_remark(..)
-  //// YH rewrote to follow add_remark_alt (returns ASSOC array)
-  //// YH also got rid of parseInt, fixed php
-  //map.remarks.forEach( obj => {
-  //  const pos = this.applyParamsTranslate(new THREE.Vector3(
-  //      obj.x, obj.y, obj.z));
-  //  console.log('pos: ', pos.x, pos.y, pos.z);
-  //  console.log('obj: ', obj.x, obj.y, obj.z);
-  //  const params2 = {
-  //    pos: pos,
-  //    offset: new THREE.Vector3(200,200,0),
-  //    color: self.remarksColor,
-  //    font: "Bold 20px Arial",
-  //    visible: true, // visibility handled by remarks Group
-  //    arrowhead: false,
-  //  };
-
-  //  self.maps[map.name].remarks.add(
-  //      self.addTextWithArrow(obj.remarks, params2));
-  //});
+  //  data.remarks = {
+  //    objNum: remark,
+  //    ...
+  //  }
+  for (const obj in data.remarks) {
+    if (!data.remarks.hasOwnProperty(obj)) continue;
+    const params = {
+      pos: map.objCoord[obj],
+      offset: new THREE.Vector3(200,200,0),
+      color: this.remarksColor,
+      font: "Bold 20px Arial",
+      visible: true, // visibility handled by remarks Group
+      arrowhead: false,
+    };
+    map.remarks.add(
+        this.addTextWithArrow(data.remarks[obj], params));
+  };
 
   // translate cell by the slider values
   // and update camera
@@ -1230,7 +1309,7 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
   this.maps[name][`${synType}Grp`].add(sphere);
   this.maps[name].allSynData[synData.contin].sphere = sphere;
 
-  // function for determining the offset
+  // function for determining the offset for synLabel
   // previously defined based on input z value
   function offsetx() {
     if (this.count === undefined) {
@@ -2026,7 +2105,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
     const vlabel = vLabels.join(' / ');
     cy_elems.push({
       data: {
-        id: v,
+        id: cell + '-' + v,
         label: vlabel,
         width: 10,
         height: 10,
@@ -2040,9 +2119,9 @@ MapViewer.prototype.load2DViewer = function(elem) {
       if (v < w) {
         cy_elems.push({
           data: {
-            id: `${v}--${w}`,
-            source: v,
-            target: w,
+            id: `${cell}++${v}--${w}`,
+            source: cell + '-' + v,
+            target: cell + '-' + w,
           },
         });
       }
@@ -2068,8 +2147,8 @@ MapViewer.prototype.load2DViewer = function(elem) {
   const cy = cytoscape({
     container: elem,
     elements: cy_elems,
-    // array of objects
-    // -nodes: { data: { id: 'a' } },
+    // cy_elems is array of objects
+    // -nodes: { data: { id: 'a', label: .. } },
     // -edges: { data: { id: 'ab', source: 'a', target: 'b' } }
 
     style: [ // the stylesheet for the graph
@@ -2106,9 +2185,11 @@ MapViewer.prototype.load2DViewer = function(elem) {
   // event listeneres
   const self = this;
   cy.on('tap', 'node', function(evt){
-    const obj = evt.target.id();
+    const id = evt.target.id();
+    const cellname = parseInt(id.split('-')[0]);
+    const obj = parseInt(id.split('-')[1]);
     //const contin = continByObj[obj][0];
-    const pos = self.GetObjCoordActual(cell, obj);
+    const pos = self.GetObjCoordActual(cellname, obj);
     self.SetCameraTarget(pos);
   });
 };
