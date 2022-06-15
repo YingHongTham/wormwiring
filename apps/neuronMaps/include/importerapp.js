@@ -591,6 +591,8 @@ ImporterApp.prototype.OpenInfoDialog = function(url,title)
  * for neurons that are selected, calls LoadMaps,
  * which sends request to php for the neuron data,
  * skeleton, synapses etc
+ *
+ * now using LoadMap2 instead of LoadMap
  */
 ImporterApp.prototype.NeuronSelectorDialog = function()
 {
@@ -609,7 +611,7 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
           for (var i in self.selectedNeurons[group]){
             if (self.selectedNeurons[group][i].visible == 1
                 && self.selectedNeurons[group][i].plotted == 0){
-              self.LoadMap(series,i);
+              self.LoadMap2(series,i);
               self.LoadMapMenu(i,self.selectedNeurons[group][i].walink);
               self.selectedNeurons[group][i].plotted = 1;
             }
@@ -710,7 +712,7 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
       console.timeEnd(`Retrieve ${mapname}`);
       console.time(`Load to viewer ${mapname}`);
 
-      console.log(this.responseText);
+      //console.log(this.responseText);
 
       self.data[mapname] = JSON.parse(this.responseText);
       self.viewer.loadMap(self.data[mapname]);

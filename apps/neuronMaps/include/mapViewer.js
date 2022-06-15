@@ -1904,10 +1904,321 @@ MapViewer.prototype.GetObjCoordActual = function(cellname,obj) {
  */
 MapViewer.prototype.load2DViewer = function(elem) {
   const cell = 'ADAL';
+  // start massive comment
+  //const map = this.maps[cell];
+  //const objCoord = map.objCoord;
+  //const cy_elems = [];
+
+
+  //// get the set of vertices
+  //// (synapses + vertices of degree != 2)
+  //// and reduced the skeleton graph to just those vertices
+
+  //const X = new Set();
+  //// for the synapses, we also want to keep track of
+  //// the contin number(s) of the synapses
+  //// that have that a given obj num
+  //const continByObj = {}; // key=obj, val=array of continNums
+  //for (const contin in map.allSynData) {
+  //  if (map.allSynData.hasOwnProperty(contin)) {
+  //    const objNum = map.allSynData[contin].obj;
+  //    X.add(objNum);
+  //    if (!continByObj.hasOwnProperty(objNum)) {
+  //      continByObj[objNum] = [];
+  //    }
+  //    continByObj[objNum].push(contin);
+  //  }
+  //}
+  //for (const v in map.skeletonGraph) {
+  //  if (!map.skeletonGraph.hasOwnProperty(v)) {
+  //    continue;
+  //  }
+  //  const vNum = parseInt(v);
+  //  if (map.skeletonGraph[v].length !== 2) {
+  //    X.add(vNum);
+  //  }
+  //}
+  //let Gred = ReduceGraph(map.skeletonGraph, X);
+  //// testing on entire graph
+  ////Gred = map.skeletonGraph;
+
+  //// want to go through vertices in increasing z
+  //let Xlist = [...X];
+  //// testing on entire graph
+  ////Xlist = [];
+  ////for (const v in map.skeletonGraph) {
+  ////  if (map.skeletonGraph.hasOwnProperty(v)) {
+  ////    Xlist.push(parseInt(v));
+  ////  }
+  ////}
+  //Xlist.sort((v,w) => map.objCoord[v].z - map.objCoord[w].z);
+
+
+  //// next we need to give the 2D coordinates
+  //// for the graph embedding in the 2D view
+  //// we want embedding to be as "vertical" as possible
+  //// so we look for long lines,
+  //// a little bit like BreakGraphIntoLineSubgraphs,
+  //// but here we need the lines to be
+  //// -monotone in z coord (TODO!)
+  //// -have disjoint vertices
+
+  //// longestLine will keep such partition of graph
+  //// into collection of lines
+  //// key: node (objNum),
+  //// value: array of nodes in longest line graph
+  ////    from this node to a leaf,
+  ////    in a direction away from the root
+  ////    (which should have lowest z in that connected comp)
+  ////    (in GetLongestLine, it is computed in reverse
+  ////    because pushing array from the right is easier,
+  ////    but later reversed back so it's node to leaf)
+  ////    TODO also impose line is monotone in z coord
+  //const longestLine = {};
+
+  //// GetLongestLine(cur) is a recursive function,
+  //// it looks at the longestLines of children of cur
+  //// (neighbors that are not parentNode[cur])
+  //// and picks the longest one,
+  //// say starting at v,
+  //// and adds cur to it:
+  //// longestLine[cur] = [cur] + longestLine[v]
+  //// the entry for v is be deleted from longestLine
+  //// since that line has been subsumed into cur's
+  ////
+  //// implicitly we find a rooted tree
+  //// (rooted at the node from which we call GetLongestLine)
+  //// parentNode[w] is the parent of w in this rooted tree
+  //// (parentNode[root] = null)
+  //// (since the given graph is not necessarily a tree,
+  //// this is not unique but it doesn't really matter)
+  ////
+  //// parentNode is also used to keep track of
+  //// whether a node has been visited
+  //// (=== whether node is a key of parentNode)
+  ////
+  //// calling GetLongestLine(cur,prev)
+  //// is an attempt to make prev the parent of cur,
+  //// but if cur has been visited, then we just return
+  //const parentNode = {};
+
+  //// orderOfVisit is needed for assembling the lines together
+  //// we give coordinates to each line in longestLine
+  //// based on the parent of the first node in that line,
+  //// so we want to do this in the right order
+  //// (in principal we could just do another graph traversal
+  //// but ain't nobody got time for that)
+  //const orderOfVisit = {};
+  //let orderOfVisitCounter = 0;
+
+  //// recursive; if want root to be at v,
+  //// call with GetLongestLine(v,null)
+  //function GetLongestLine(cur, prev) {
+  //  if (parentNode.hasOwnProperty(cur)) {
+  //    return;
+  //  }
+  //  parentNode[cur] = prev;
+  //  orderOfVisit[cur] = orderOfVisitCounter++;
+  //  let v; // the neighbor of cur that longest line runs thru
+  //  let maxLen = -1;
+  //  for (const w of Gred[cur]) {
+  //    if (w === parentNode[cur]) continue;
+  //    if (parentNode.hasOwnProperty(w)) continue; // technically redundant
+  //    GetLongestLine(w, cur);
+  //    if (longestLine[w].length > maxLen) {
+  //      v = w;
+  //      maxLen = longestLine[w].length;
+  //    }
+  //  }
+  //  if (maxLen === -1) { // cur is leaf
+  //    longestLine[cur] = [cur];
+  //    return;
+  //  }
+  //  longestLine[v].push(cur);
+  //  longestLine[cur] = longestLine[v];
+  //  delete longestLine[v];
+  //}
+  //// start from all possible positions because Gred not conn
+  //for (const v of Xlist) {
+  //  if (parentNode.hasOwnProperty(v)) {
+  //    continue; // technically redundant
+  //  }
+  //  GetLongestLine(v, null);
+  //}
+
+  //// want to sort lines by orderOfVisit
+  //// linesList: lines, but represented by the
+  ////    nodes that are starting points of lines
+  //// also reverse lines as promised
+  //const linesList = [];
+  //for (const v in longestLine) {
+  //  if (longestLine.hasOwnProperty(v)) {
+  //    longestLine[v].reverse();
+  //    linesList.push(v);
+  //  }
+  //}
+  //linesList.sort((v,w) => orderOfVisit[v] - orderOfVisit[w]);
+  //
+  //// now give 2D coord
+  //// since we've sorted by orderOfVisit,
+  //// parentNode below will be a node that has been given pos2D
+  //// the starting node v of a longestLine[v]
+  //// will have its y coord defined relative to its parent
+  //// (above/equal/below based on z coord)
+  //// the rest of the line will also go up or down
+  //// based on z coord
+  //const pos2D = {};
+  //linesList.forEach((v,i) => {
+  //  let h = 0; // height/y for starting node v
+  //  let par = parentNode[v];
+  //  if (par !== null && pos2D.hasOwnProperty(par)) {
+  //    const comp = Math.sign(objCoord[v].z - objCoord[par].z);
+  //    h = pos2D[par][1] + comp;
+  //  }
+  //  if (longestLine[v].length === 1) {
+  //    pos2D[v] = [i, h];
+  //  }
+  //  else {
+  //    const comp2 = 
+  //        objCoord[longestLine[v][1]].z
+  //        >= objCoord[longestLine[v][0]].z
+  //        ? 1 : -1;
+  //    longestLine[v].forEach((w,j) => {
+  //      pos2D[w] = [i, h + comp2 * j];
+  //    });
+  //  }
+  //});
+
+  //// wtf there's a loop?? in ADAL
+  //// 43615, 43612, 43610, 43609 (in reduced graph)
+  //// upon further inspection, the loop in the actual graph
+  //// is 43615, 43614, 43611, 43610, 43609, 43612, 43613
+
+  //Xlist.forEach((v,i) => {
+  //  // label v with the partner(s) of the synapse(s) at v
+  //  // empty label if not synapse
+  //  const vLabels = [];
+  //  if (continByObj.hasOwnProperty(v)) {
+  //    for (const contin of continByObj[v]) {
+  //      vLabels.push(map.allSynData[contin].partner);
+  //    }
+  //  }
+  //  const vlabel = vLabels.join(' / ');
+  //  cy_elems.push({
+  //    data: {
+  //      id: cell + '-' + v,
+  //      label: vlabel,
+  //      width: 10,
+  //      height: 10,
+  //    },
+  //    position: {
+  //      x: pos2D[v][0] * 50,
+  //      y: pos2D[v][1] * 50,
+  //    }
+  //  });
+  //  for (const w of Gred[v]) {
+  //    if (v < w) {
+  //      cy_elems.push({
+  //        data: {
+  //          id: `${cell}--${v}--${w}`,
+  //          source: cell + '-' + v,
+  //          target: cell + '-' + w,
+  //        },
+  //      });
+  //    }
+  //  }
+  //});
+  //
+  ////// testing entire graph
+  ////for (const v in map.skeletonGraph) {
+  ////  if (map.skeletonGraph.hasOwnProperty(v)) {
+  ////    cy_elems.push({data: {id: v}});
+  ////  }
+  ////}
+  ////for (const v in map.skeletonGraph) {
+  ////  if (!map.skeletonGraph.hasOwnProperty(v)) {
+  ////    continue;
+  ////  }
+  ////  for (const w of map.skeletonGraph[v]) {
+  ////    cy_elems.push({data: {id: `${v}--${w}`, source: v, target: w}});
+  ////  }
+  ////}
+  ////
+  //// end massive comment
+
+  let cy_elems = [];
+  let maxHoriz = 0; // rightmost x position so far
+  let sepBtCells = 8;
+  // maxHoriz is the furthest that the graph goes to the right
+  // is updated each time a cell is added
+  for (const cell in this.maps) {
+    if (!this.maps.hasOwnProperty(cell)) continue;
+    let ee = this.load2DViewerHelper(cell,maxHoriz);
+    cy_elems = cy_elems.concat(ee.cy_elems);
+    maxHoriz += ee.maxHoriz + sepBtCells;
+  }
+
+  const cy = cytoscape({
+    container: elem,
+    elements: cy_elems,
+    // cy_elems is array of objects
+    // -nodes: { data: { id: 'a', label: .. } },
+    // -edges: { data: { id: 'ab', source: 'a', target: 'b' } }
+
+    style: [ // the stylesheet for the graph
+      {
+        selector: 'node',
+        style: {
+          'background-color': '#666',
+          'label': 'data(label)',
+          'width': 'data(width)',
+          'height': 'data(height)',
+        }
+      },
+
+      {
+        selector: 'edge',
+        style: {
+          'width': 3,
+          'line-color': '#ccc',
+          'target-arrow-color': '#ccc',
+          //'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier'
+        }
+      }
+    ],
+
+    layout: {
+      name: 'preset',
+      //name: 'grid',
+      //rows: 1
+    },
+    wheelSensitivity: 0.5, // zoom speed
+  });
+
+  // event listeneres
+  const self = this;
+  cy.on('tap', 'node', function(evt){
+    const id = evt.target.id();
+    const cell= parseInt(id.split('-')[0]);
+    const obj = parseInt(id.split('-')[1]);
+    //const contin = continByObj[obj][0];
+    const pos = self.GetObjCoordActual(cell, obj);
+    self.SetCameraTarget(pos);
+  });
+};
+
+
+// cell: cellname
+// horizInit: horizontal starting position for drawing
+// (for separating different cells)
+// we keep all in same div
+// because in future, maybe can add edges between cells
+// to indicate synapses
+MapViewer.prototype.load2DViewerHelper = function(cell, horizInit) {
   const map = this.maps[cell];
   const objCoord = map.objCoord;
   const cy_elems = [];
-
 
   // get the set of vertices
   // (synapses + vertices of degree != 2)
@@ -1919,14 +2230,13 @@ MapViewer.prototype.load2DViewer = function(elem) {
   // that have that a given obj num
   const continByObj = {}; // key=obj, val=array of continNums
   for (const contin in map.allSynData) {
-    if (map.allSynData.hasOwnProperty(contin)) {
-      const objNum = map.allSynData[contin].obj;
-      X.add(objNum);
-      if (!continByObj.hasOwnProperty(objNum)) {
-        continByObj[objNum] = [];
-      }
-      continByObj[objNum].push(contin);
+    if (!map.allSynData.hasOwnProperty(contin)) continue;
+    const objNum = map.allSynData[contin].obj;
+    X.add(objNum);
+    if (!continByObj.hasOwnProperty(objNum)) {
+      continByObj[objNum] = [];
     }
+    continByObj[objNum].push(contin);
   }
   for (const v in map.skeletonGraph) {
     if (!map.skeletonGraph.hasOwnProperty(v)) {
@@ -1952,6 +2262,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
   //}
   Xlist.sort((v,w) => map.objCoord[v].z - map.objCoord[w].z);
 
+  console.log('Xlist.length: ', Xlist.length);
 
   // next we need to give the 2D coordinates
   // for the graph embedding in the 2D view
@@ -2075,7 +2386,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
       h = pos2D[par][1] + comp;
     }
     if (longestLine[v].length === 1) {
-      pos2D[v] = [i, h];
+      pos2D[v] = [i + horizInit, h];
     }
     else {
       const comp2 = 
@@ -2083,7 +2394,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
           >= objCoord[longestLine[v][0]].z
           ? 1 : -1;
       longestLine[v].forEach((w,j) => {
-        pos2D[w] = [i, h + comp2 * j];
+        pos2D[w] = [i + horizInit, h + comp2 * j];
       });
     }
   });
@@ -2119,7 +2430,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
       if (v < w) {
         cy_elems.push({
           data: {
-            id: `${cell}++${v}--${w}`,
+            id: `${cell}--${v}--${w}`,
             source: cell + '-' + v,
             target: cell + '-' + w,
           },
@@ -2143,55 +2454,37 @@ MapViewer.prototype.load2DViewer = function(elem) {
   //  }
   //}
   
+  // really should just be number of longeset lines
+  // but do this just in case change in future
+  let maxHoriz = 0;
+  for (const v in pos2D) {
+    if (!pos2D.hasOwnProperty(v)) continue;
+    maxHoriz = Math.max(pos2D[v][0], maxHoriz);
+  }
+  maxHoriz -= horizInit;
+  console.log('maxHoriz: ', maxHoriz);
+  console.log('num lines: ', linesList.length);
 
-  const cy = cytoscape({
-    container: elem,
-    elements: cy_elems,
-    // cy_elems is array of objects
-    // -nodes: { data: { id: 'a', label: .. } },
-    // -edges: { data: { id: 'ab', source: 'a', target: 'b' } }
-
-    style: [ // the stylesheet for the graph
-      {
-        selector: 'node',
-        style: {
-          'background-color': '#666',
-          'label': 'data(label)',
-          'width': 'data(width)',
-          'height': 'data(height)',
-        }
-      },
-
-      {
-        selector: 'edge',
-        style: {
-          'width': 3,
-          'line-color': '#ccc',
-          'target-arrow-color': '#ccc',
-          //'target-arrow-shape': 'triangle',
-          'curve-style': 'bezier'
-        }
-      }
-    ],
-
-    layout: {
-      name: 'preset',
-      //name: 'grid',
-      //rows: 1
+  // final node, to label by cell name
+  cy_elems.push({
+    data: {
+      id: 'graph-' + cell,
+      label: cell,
+      width: 10,
+      height: 10,
     },
-    wheelSensitivity: 0.5, // zoom speed
+    style: {
+      'font-size': 100,
+    },
+    position: {
+      x: horizInit * 50 + maxHoriz * 50 / 2,
+      y: -1 * 50,
+    }
   });
-
-  // event listeneres
-  const self = this;
-  cy.on('tap', 'node', function(evt){
-    const id = evt.target.id();
-    const cellname = parseInt(id.split('-')[0]);
-    const obj = parseInt(id.split('-')[1]);
-    //const contin = continByObj[obj][0];
-    const pos = self.GetObjCoordActual(cellname, obj);
-    self.SetCameraTarget(pos);
-  });
+  return {
+    cy_elems: cy_elems,
+    maxHoriz: maxHoriz,
+  };
 };
 
 
