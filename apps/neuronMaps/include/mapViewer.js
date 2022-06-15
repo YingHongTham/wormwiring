@@ -1666,9 +1666,11 @@ MapViewer.prototype.toggleSynapseLabels = function(name,bool=null) {
     bool = !this.synapseLabelsAllVisible;
   }
   this.synapseLabelsAllVisible = bool;
+  console.log(this.synapseLabelsAllVisible);
   for (const synLabel of this.maps[name].synLabels.children) {
     synLabel.visible = bool;
     if (this.menu.app.GetSynapseInfoContin2() === synLabel.name) {
+      // keep label visible if that synapse was clicked
       synLabel.visible = true;
     }
   }
@@ -1873,6 +1875,7 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
 // also, it should really be independent of cell
 // but in all use cases, there is reference to a cell
 MapViewer.prototype.GetTranslateOnMaps = function(cellname) {
+  console.log(cellname);
   return this.maps[cellname].allGrps.position;
 };
 
@@ -1905,7 +1908,7 @@ MapViewer.prototype.GetObjCoordActual = function(cellname,obj) {
 MapViewer.prototype.load2DViewer = function(elem) {
   let cy_elems = [];
   let maxHoriz = 0; // rightmost x position so far
-  let sepBtCells = 8;
+  let sepBtCells = 10;
   // maxHoriz is the furthest that the graph goes to the right
   // is updated each time a cell is added
   for (const cell in this.maps) {
@@ -1957,7 +1960,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
   const self = this;
   cy.on('tap', 'node', function(evt){
     const id = evt.target.id();
-    const cell= parseInt(id.split('-')[0]);
+    const cell = id.split('-')[0];
     const obj = parseInt(id.split('-')[1]);
     //const contin = continByObj[obj][0];
     const pos = self.GetObjCoordActual(cell, obj);
@@ -2018,8 +2021,6 @@ MapViewer.prototype.load2DViewerHelper = function(cell, horizInit) {
   //  }
   //}
   Xlist.sort((v,w) => map.objCoord[v].z - map.objCoord[w].z);
-
-  console.log('Xlist.length: ', Xlist.length);
 
   // next we need to give the 2D coordinates
   // for the graph embedding in the 2D view
@@ -2219,8 +2220,6 @@ MapViewer.prototype.load2DViewerHelper = function(cell, horizInit) {
     maxHoriz = Math.max(pos2D[v][0], maxHoriz);
   }
   maxHoriz -= horizInit;
-  console.log('maxHoriz: ', maxHoriz);
-  console.log('num lines: ', linesList.length);
 
   // final node, to label by cell name
   cy_elems.push({
@@ -2231,7 +2230,7 @@ MapViewer.prototype.load2DViewerHelper = function(cell, horizInit) {
       height: 10,
     },
     style: {
-      'font-size': 100,
+      'font-size': 80,
     },
     position: {
       x: horizInit * 50 + maxHoriz * 50 / 2,

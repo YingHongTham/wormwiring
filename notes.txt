@@ -77,7 +77,8 @@ TODO:
 -related: in apps/neuronMaps/include/mapViewer.js,
   check that parameters like this.XYScale = 0.05
   is correct, make proper documentation
-
+-remarks for 2D viewer
+-check cell list, seems mine differs from wormwiring.org..
 
 some errors in the SQL tables
 -in synapsecombined, contin = 6226,
