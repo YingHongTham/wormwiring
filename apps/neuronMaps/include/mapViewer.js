@@ -704,11 +704,8 @@ MapViewer.prototype.loadMap = function(map)
  */
 MapViewer.prototype.loadMap2 = function(data)
 {
-  const main_this = this;
-
-  console.log('db: ', data.db);
+  // scale/translate obj coords
   const plotMinMax = plotMinMaxValues[data.db];
-  console.log(plotMinMax);
   this.plotParam.xmid = 0.5*(plotMinMax.xMin+plotMinMax.xMax);
   this.plotParam.xmin = Math.min(this.minX,plotMinMax.xMin);
   this.plotParam.ymid = 0.5*(plotMinMax.yMin+plotMinMax.yMax);
@@ -799,7 +796,8 @@ MapViewer.prototype.loadMap2 = function(data)
     allSynData: {}, // TODO new
     synapses : {},
     synLabels : new THREE.Group(),
-    remarks : new THREE.Group(),
+    remarksGrp : new THREE.Group(),
+    remarks: {},
   };
   // continued initialization of maps
   const map = this.maps[data.name];
@@ -807,7 +805,7 @@ MapViewer.prototype.loadMap2 = function(data)
   map.allGrps.add(map.skeletonGrp);
   map.allGrps.add(map.synObjs);
   map.allGrps.add(map.synLabels);
-  map.allGrps.add(map.remarks);
+  map.allGrps.add(map.remarksGrp);
   map.synObjs.add(map.preGrp);
   map.synObjs.add(map.postGrp);
   map.synObjs.add(map.gapGrp);
@@ -817,7 +815,7 @@ MapViewer.prototype.loadMap2 = function(data)
   // which should have the same default values
   map.skeletonGrp.visible = true;
   map.synObjs.visible = true;
-  map.remarks.visible = false; // see remarksparams
+  map.remarksGrp.visible = false; // see remarksparams
   map.synLabels.visible = true;
 
   // set object coordinates, apply transformation
@@ -997,18 +995,19 @@ MapViewer.prototype.loadMap2 = function(data)
   //    objNum: remark,
   //    ...
   //  }
-  for (const obj in data.remarks) {
-    if (!data.remarks.hasOwnProperty(obj)) continue;
+  map.remarks = Object.assign({}, data.remarks);
+  for (const obj in map.remarks) {
+    if (!map.remarks.hasOwnProperty(obj)) continue;
     const params = {
       pos: map.objCoord[obj],
       offset: new THREE.Vector3(200,200,0),
       color: this.remarksColor,
       font: "Bold 20px Arial",
-      visible: true, // visibility handled by remarks Group
+      visible: true, // visibility handled by remarksGrp
       arrowhead: false,
     };
-    map.remarks.add(
-        this.addTextWithArrow(data.remarks[obj], params));
+    map.remarksGrp.add(
+        this.addTextWithArrow(map.remarks[obj], params));
   };
 
   // translate cell by the slider values
@@ -1474,9 +1473,10 @@ MapViewer.prototype.transformSynapses = function(m, name) {
  * @param {String} name - cell name
  */
 MapViewer.prototype.transformRemarks = function(m, name) {
-  this.maps[name].remarks.applyMatrix(m);
+  this.maps[name].remarksGrp.applyMatrix(m);
 };
 
+// old methods
 MapViewer.prototype.translateRemarks = function(remarks,transMatrix)
 {
   for (var i=0; i < remarks.length; i++){
@@ -1492,10 +1492,6 @@ MapViewer.prototype.translateRemarks = function(remarks,transMatrix)
  */
 MapViewer.prototype.transformStuffOneCell = function(m, name) {
   this.maps[name].allGrps.applyMatrix(m);
-  //this.maps[name].skeletonGrp.applyMatrix(m);
-  //this.maps[name].synObjs.applyMatrix(m);
-  //this.maps[name].synLabels.applyMatrix(m);
-  //this.maps[name].remarks.applyMatrix(m);
 };
 
 /*
@@ -1598,19 +1594,19 @@ MapViewer.prototype.toggleSynapseContin = function(contin)
   object.visible = !object.visible;
 };
 
-// toggle all remarks
-MapViewer.prototype.toggleRemarks = function(bool=null) {
+MapViewer.prototype.toggleAllRemarks = function(bool=null) {
   for (const cell in this.maps) {
     this.toggleRemarksByCell(cell, bool);
   }
 };
 
 // YH better version of _toggleRemarks
-MapViewer.prototype.toggleRemarksByCell = function(cell, bool) {
+MapViewer.prototype.toggleRemarksByCell = function(cell, bool=null) {
+  console.log('in toggleRemarksByCell: ', bool);
   if (typeof(bool) !== 'boolean') {
-    bool = !this.maps[cell].remarks.visible;
+    bool = !this.maps[cell].remarksGrp.visible;
   }
-  this.maps[cell].remarks.visible = bool;
+  this.maps[cell].remarksGrp.visible = bool;
 };
 
 // YH old method; toggle remarks by cell
@@ -1621,29 +1617,6 @@ MapViewer.prototype._toggleRemarks = function(name,bool=null)
   } else {
     this.maps[name].remarks.visible = !this.maps[name].remarks.visible;
   }
-};
-
-/*
- * YH currently not in use; decided to fix the original remarks stuff
- *
- * toggle visibility of objRemarks in viewer
- *
- * @param {String} name - neuron/muscle name
- * @param {Boolean} bool - if given, specifies whether visible
- */
-MapViewer.prototype._toggleObjRemarks = function(name,bool=null)
-{
-  this.maps[name].objRemarks.forEach( rmk => {
-    if (bool != null){
-      rmk.visible = bool;
-    } else {
-      if (typeof(rmk.visible) !== 'boolean') {
-        rmk.visible = false;
-      } else {
-        rmk.visible = !rmk.visible;
-      }
-    }
-  });
 };
 
 MapViewer.prototype.toggleGrid = function() {
@@ -1913,7 +1886,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
   // is updated each time a cell is added
   for (const cell in this.maps) {
     if (!this.maps.hasOwnProperty(cell)) continue;
-    let ee = this.load2DViewerHelper(cell,maxHoriz);
+    let ee = this.Get2DGraphCY(cell,maxHoriz);
     cy_elems = cy_elems.concat(ee.cy_elems);
     maxHoriz += ee.maxHoriz + sepBtCells;
   }
@@ -1975,13 +1948,14 @@ MapViewer.prototype.load2DViewer = function(elem) {
 // we keep all in same div
 // because in future, maybe can add edges between cells
 // to indicate synapses
-MapViewer.prototype.load2DViewerHelper = function(cell, horizInit) {
+// used to be called load2DViewerHelper 
+MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
   const map = this.maps[cell];
   const objCoord = map.objCoord;
   const cy_elems = [];
 
   // get the set of vertices
-  // (synapses + vertices of degree != 2)
+  // (synapses + remarks + vertices of degree != 2)
   // and reduced the skeleton graph to just those vertices
 
   const X = new Set();
@@ -1998,6 +1972,9 @@ MapViewer.prototype.load2DViewerHelper = function(cell, horizInit) {
     }
     continByObj[objNum].push(contin);
   }
+  for (const obj in map.remarks) {
+  }
+  // vertices of deg != 2
   for (const v in map.skeletonGraph) {
     if (!map.skeletonGraph.hasOwnProperty(v)) {
       continue;

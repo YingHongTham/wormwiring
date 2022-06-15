@@ -872,14 +872,16 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       // which sets remarks to be hidden by default
       // mapname is cell name..
       onClick : function(image,mapname){
-        if (self.viewer.maps[mapname].remarks.length === 0) {
-          console.log('no remarks');
-          return;
-        }
+        //if (self.viewer.maps[mapname].remarks.length === 0) {
+        //  console.log('no remarks');
+        //  return;
+        //}
 
-        self.viewer._toggleRemarks(mapname);
-        var visible = self.viewer.maps[mapname].remarks.visible;
+        //self.viewer._toggleRemarks(mapname);
+        self.viewer.toggleRemarksByCell(mapname);
+        let visible = self.viewer.maps[mapname].remarksGrp.visible;
         image.src = visible ? 'images/visible.png' : 'images/hidden.png';
+        console.log('remarks: ', visible);
       },
       title : 'Show/Hide remarks',
       userData: mapname
@@ -1463,18 +1465,24 @@ ImporterApp.prototype.GenerateMenu = function()
   };
 
 
-  // callback expects no arguments
+  // callback expect boolean argument,
+  // which corresponds to on/off state (on = true)
   // (usage: application of viewer.toggleRemarks or toggleAxes)
+  // isOn determines default on/offText
   function AddToggleButton(parent,onText,offText,isOn,callback){
     var remarkBtn = document.createElement('button');
     remarkBtn.innerHTML = isOn ? onText : offText;
-    remarkBtn.value = isOn;
+    remarkBtn.value = isOn ? '1' : '0'; // HTML turns to string
     remarkBtn.classList.add('filterbutton');
     //remarkBtn.id = 'remarkBtn';
     remarkBtn.onclick = function() {
-      isOn = !isOn;
-      this.innerHTML = isOn ? onText : offText;
-      callback();
+      console.log('remarkBtn before: ', remarkBtn.value);
+      const curState = Boolean(parseInt(remarkBtn.value));
+      const newState = !curState;
+      remarkBtn.value = newState ? '1' : '0';
+      remarkBtn.innerHTML = newState ? onText : offText;
+      console.log('remarkBtn after: ', remarkBtn.value);
+      callback(newState);
     };
     parent.appendChild(remarkBtn);
   };
@@ -1511,21 +1519,21 @@ ImporterApp.prototype.GenerateMenu = function()
 
   AddToggleButton(this.menuGroup['comments'],
     'Hide Grid', 'Show Grid', true,
-    () => { self.viewer.toggleGrid(); });
+    (state) => { self.viewer.toggleGrid(); });
 
   AddToggleButton(this.menuGroup['comments'],
     'Hide Axes', 'Show Axes', true, // used to be Axes ON, Axes OFF
-    () => { self.viewer.toggleAxes(); });
+    (state) => { self.viewer.toggleAxes(); });
 
   // see maps[..].remarks in MapViewer.loadMap
   AddToggleButton(this.menuGroup['comments'],
-    'Hide Remarks', 'Show Remarks', false, // used to be Remarks ON/OFF
-    () => { self.viewer.toggleRemarks(); } );
+    'Hide All Remarks', 'Show All Remarks', false, // used to be Remarks ON/OFF
+    (state) => { self.viewer.toggleAllRemarks(state); } );
 
   // YH
   AddToggleButton(this.menuGroup['comments'],
     'Hide Synapse Labels', 'Show Synapse Labels', false,
-    () => {self.viewer.toggleAllSynapseLabels();});
+    (state) => {self.viewer.toggleAllSynapseLabels(state);});
 
   // YH
   this.menuGroup['load-save'] =
