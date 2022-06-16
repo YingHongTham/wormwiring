@@ -858,7 +858,7 @@ MapViewer.prototype.loadMap2 = function(data)
   // note: if gap is from cell to itself,
   // creates two sphere objects, one for each skeleton obj
   for (const contin in data.gap) {
-    if (!data.gap.hasOwnProperty(contin)) continue;
+    //if (!data.gap.hasOwnProperty(contin)) continue;
     const syn = data.gap[contin];
     let synData = {
       pre: syn.pre,
@@ -904,7 +904,7 @@ MapViewer.prototype.loadMap2 = function(data)
 
   // add pre synapses to allSynData
   for (const contin in data.pre) {
-    if (!data.pre.hasOwnProperty(contin)) continue;
+    //if (!data.pre.hasOwnProperty(contin)) continue;
     const syn = data.pre[contin];
     let synData = {
       pre: syn.pre,
@@ -933,7 +933,7 @@ MapViewer.prototype.loadMap2 = function(data)
 
   // add post synapses to allSynData
   for (const contin in data.post) {
-    if (!data.post.hasOwnProperty(contin)) continue;
+    //if (!data.post.hasOwnProperty(contin)) continue;
     const syn = data.post[contin];
     let synData = {
       pre: syn.pre,
@@ -997,7 +997,7 @@ MapViewer.prototype.loadMap2 = function(data)
   //  }
   map.remarks = Object.assign({}, data.remarks);
   for (const obj in map.remarks) {
-    if (!map.remarks.hasOwnProperty(obj)) continue;
+    //if (!map.remarks.hasOwnProperty(obj)) continue;
     const params = {
       pos: map.objCoord[obj],
       offset: new THREE.Vector3(200,200,0),
@@ -1867,7 +1867,7 @@ MapViewer.prototype.GetObjCoordActual = function(cellname,obj) {
 /*
  * loads cells into 2D Viewer with Cytoscape
  *
- * in experimental phase for now, somewhat sketchy
+ * the real work is done in Get2DGraphCY
  *
  * note to self: some of the graph algorithms have to be
  * a little more complicated than expected because
@@ -1885,7 +1885,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
   // maxHoriz is the furthest that the graph goes to the right
   // is updated each time a cell is added
   for (const cell in this.maps) {
-    if (!this.maps.hasOwnProperty(cell)) continue;
+    //if (!this.maps.hasOwnProperty(cell)) continue;
     let ee = this.Get2DGraphCY(cell,maxHoriz);
     cy_elems = cy_elems.concat(ee.cy_elems);
     maxHoriz += ee.maxHoriz + sepBtCells;
@@ -1942,14 +1942,29 @@ MapViewer.prototype.load2DViewer = function(elem) {
 };
 
 
-// cell: cellname
-// horizInit: horizontal starting position for drawing
-// (for separating different cells)
-// we keep all in same div
-// because in future, maybe can add edges between cells
-// to indicate synapses
-// used to be called load2DViewerHelper 
+/* returns cy_elems, which is data for cytoscape
+ * to create 2D graph
+ *
+ * -computes 2D coordinates for nodes
+ *  attempt to make graph as "straigt" as possible
+ *  (see GetLongestLine below)
+ *
+ * @param {String} cell - cellname
+ * @param {Number} horizInit - horizontal starting position for drawing
+ * (for separating different cells;
+ * load2DViewer loads all cells into one div element;
+ * in future, maybe can add edges between cells
+ * to indicate synapses)
+ *
+ * used to be called load2DViewerHelper 
+ */
 MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
+  // below we store coordinate in pos2D,
+  // which will have integer entries
+  // this is scale between the integer units to
+  // actual coordinates in the cytoscape
+  // (see cy_elems.push(...))
+  const UNITS_TO_CYTOSCAPE_COORD = 50;
   const map = this.maps[cell];
   const objCoord = map.objCoord;
   const cy_elems = [];
@@ -1964,7 +1979,7 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
   // that have that a given obj num
   const continByObj = {}; // key=obj, val=array of continNums
   for (const contin in map.allSynData) {
-    if (!map.allSynData.hasOwnProperty(contin)) continue;
+    //if (!map.allSynData.hasOwnProperty(contin)) continue;
     const objNum = map.allSynData[contin].obj;
     X.add(objNum);
     if (!continByObj.hasOwnProperty(objNum)) {
@@ -1972,13 +1987,13 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
     }
     continByObj[objNum].push(contin);
   }
-  for (const obj in map.remarks) {
+  for (const objStr in map.remarks) {
+    const obj = parseInt(objStr);
+    X.add(obj);
   }
   // vertices of deg != 2
   for (const v in map.skeletonGraph) {
-    if (!map.skeletonGraph.hasOwnProperty(v)) {
-      continue;
-    }
+    //if (!map.skeletonGraph.hasOwnProperty(v)) continue;
     const vNum = parseInt(v);
     if (map.skeletonGraph[v].length !== 2) {
       X.add(vNum);
@@ -2148,6 +2163,9 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
         vLabels.push(map.allSynData[contin].partner);
       }
     }
+    if (map.remarks.hasOwnProperty(v)) {
+      vLabels.push(map.remarks[v]);
+    }
     const vlabel = vLabels.join(' / ');
     cy_elems.push({
       data: {
@@ -2157,8 +2175,8 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
         height: 10,
       },
       position: {
-        x: pos2D[v][0] * 50,
-        y: pos2D[v][1] * 50,
+        x: pos2D[v][0] * UNITS_TO_CYTOSCAPE_COORD,
+        y: pos2D[v][1] * UNITS_TO_CYTOSCAPE_COORD,
       }
     });
     for (const w of Gred[v]) {
@@ -2193,7 +2211,7 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
   // but do this just in case change in future
   let maxHoriz = 0;
   for (const v in pos2D) {
-    if (!pos2D.hasOwnProperty(v)) continue;
+    //if (!pos2D.hasOwnProperty(v)) continue;
     maxHoriz = Math.max(pos2D[v][0], maxHoriz);
   }
   maxHoriz -= horizInit;
@@ -2210,8 +2228,8 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
       'font-size': 80,
     },
     position: {
-      x: horizInit * 50 + maxHoriz * 50 / 2,
-      y: -1 * 50,
+      x: (horizInit + maxHoriz / 2) * UNITS_TO_CYTOSCAPE_COORD,
+      y: -1 * UNITS_TO_CYTOSCAPE_COORD,
     }
   });
   return {
@@ -2397,9 +2415,7 @@ function BreakGraphIntoLineSubgraphs(graph) {
 function ReduceGraph(G, X) {
   // perform some checks
   for (const v in G) {
-    if (!G.hasOwnProperty(v)) {
-      continue;
-    }
+    //if (!G.hasOwnProperty(v)) continue;
     const vNum = parseInt(v);
     if (G[v].length !== 2 && !X.has(vNum)) {
       console.error('ReduceGraph expects X to contain all vertices of degree not 2; vertex in error: ', v);
