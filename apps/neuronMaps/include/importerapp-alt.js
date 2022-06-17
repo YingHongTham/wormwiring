@@ -6,6 +6,7 @@
  * expect some libraries:
  * apps/include/floatingdialog.js - for FloatingDialog class
  *
+ * css used: /css/importer.css
  *
  * note to self: viewer must be initialized after GenerateMenu()
  * because it needs references to the menu items...
@@ -37,6 +38,9 @@ if (cellnameWALinkDict === undefined
   console.error('expect wa_link.js');
 }
 
+if (helpDialogItems === undefined) {
+  console.error('expect helpDialogItems.js');
+}
 
 ImporterApp = function (params)
 {
@@ -67,78 +71,13 @@ ImporterApp = function (params)
 
   // but wait, there's more...
   // many more members defined in Init()
-  // in particular,
-  // this.viewer, the object dealing with the viewer inside canvas
 
-  this.helpParams =  [
-    {
-      title : 'Quick start',
-      text : 'Cell skeletons are intially displayed in blue. This can be altered in the maps menu. Cell bodies are displayed as thicker red segements. '
-        + 'This color cannot be changed. Presynapses are pink, postsynapses are purple and gap junctions are blue spheres. '
-        + 'For presyanpses, the cell is the presynaptic partner. For the postsynapses, the cell is the postsynaptic partners. '
-        + 'The size of the sphere reflects the size of the synapse. Mousing over displays the synapse info in the menu. '
-        + 'Clicking on the synapse takes the user to the electron micrographs where the synapse was scored. '
-        + 'Left mouse button rotates the mapse. Mouse wheel zooms in/out of the maps. Right mouse button pans the maps.',
-      video: 'https://www.youtube.com/embed/hySW0Q57iL4',
-      name : 'help-display'
-    },
-    {
-      title : 'Cell selector',
-      text : 'First select the sex and data series from the dropdown menus on the left. Then click on the Select Neuron button.',
-      video: 'https://www.youtube.com/embed/l_oCC-3GdVQ',
-      name : 'help-series'
-    },
-    {
-      title : 'Synapse info',
-      text :
-      'Synapses are represented as spheres along the skeleton diagram. Click/hover over synapse to display info for that synapse in the left panel. Synapses come in three colors: gap junction = blue, chemical = pink/purple; pink if the cell on which the sphere appears is presynaptic, and purple if post. The Synapse info menu item shows the the cell on which the synapse sphere is located (Cell), the synapse type, the presynaptic source, the postsynaptic target(s), the estimated volume of the synapse (# of EM sections), the sections over which the synapse occurs, and numerical id of the synapse. The Details (EM Viewer) button opens a floating dialog that shows the electron micrographs containing the selected (clicked) synapse. (Video is a little outdated.)',
-      video: 'https://www.youtube.com/embed/DDjFMjFSdO0',
-      name : 'help-synapse-info'
-    },
-    {
-      title : 'Synapse Viewer',
-      text : 'Click on synapse sphere to view the synapse in the associated electron micrograph (EM). The synapse viewer '
-        + 'has both a high and low magnification. Use the dropdown to to select the a different EM section in which the '
-        + 'synapse was scored.',
-      video: 'https://www.youtube.com/embed/Qiy6JO2YeDU',
-      name : 'help-synapse-viewer'
-    },
-    {
-      title : 'Synapse filter',
-      text : 'Display only the selected synapses. Check presynaptic (Pre.), postsynaptic (Post.) or gap junction (Gap.).'
-        + 'Then enter the partner cells to keep. Mulitple cells should be separated by a comma (e.g. AVAL,ASHL).'
-        + 'You can also select synapses by synapse id number. '
-        + 'Filter button will hide all but the selected synapses. Restore button makes all synapses visible.',
-      video: 'https://www.youtube.com/embed/1vGvdg3cUlY',
-      name : 'help-filter'
-    },
-    {
-      title : 'Map translate',
-      text : 'Translate the map along the x, y and z axes. Some maps may not be centered when selected. This can be used to manually center the maps.',
-      video: 'https://www.youtube.com/embed/23dytw_7yRM',
-      name : 'help-translate'
-    },
-    {
-      title : 'Comments',
-      text : 'Various global settings. Toggle visibility of grid, axes, cell remarks, synapse labels.',
-      video: 'https://www.youtube.com/embed/D25joOnz1XE',
-      name : 'help-comments'
-    },
-    {
-      title : 'Maps',
-      text : 'Displays info for each map. Visibility of each map can be toggled on/off with the eye icon. Clicking on the cell reveals map info. '
-        + 'Map color can be changed. Map remarks toggled on/off. If a WormAtlas link exists it can be accessed. Synaptic partners and synapse partners '
-        + 'can also be displayed.',
-      video: 'https://www.youtube.com/embed/9aVMiiGVwYA',
-      name : 'help-maps'
-    },
-    {
-      title : 'Clear maps',
-      text : 'Clears all maps. Maps can also be cleared with the browser refresh button.',
-      video: 'https://www.youtube.com/embed/LT3PTMcnFAo',
-      name : 'help-clear'
-    }
-  ];
+  // object dealing with the viewer inside canvas
+  this.viewer = null; // initialized properly in Init()
+
+  // the small floating window in which
+  // help/selector/2Dviewer/synapseviewer is shown
+  this.dialog = new FloatingDialog();
 };
 
 
@@ -158,17 +97,6 @@ ImporterApp.prototype.Init = function ()
     alert('WebGL failed to load, viewer may not work');
   };
 
-  //set up the Help, selector, clear menu
-  const topElem = document.getElementById ('top');
-  const topItems = topElem.children;
-  topItems[0].onclick = () => { this.OpenHelpDialog(); };
-  topItems[1].onclick = () => { this.CellSelectorDialog(); };
-  topItems[2].onclick = () => { this.Open2DViewer(); };
-  topItems[3].onclick = () => { this.ClearMaps(); };
-
-  //the small window in which help/selector/synapseviewer is shown
-  this.dialog = new FloatingDialog();
-  
   const canvas = this.GetCanvasElem();
   
   //this.GenerateMenu();
@@ -207,12 +135,120 @@ ImporterApp.prototype.Init = function ()
   document.addEventListener('resizeAll', (ev) => {
     self.Resize();
   });
+  
+  this.LinkFunctionalityWithHTML();
+};
 
+/*
+ * making the buttons and menu work
+ */
+ImporterApp.prototype.LinkFunctionalityWithHTML = function() {
+  const self = this;
+
+  // set up the top menu, Help, cell selector etc.
+  const topElem = document.getElementById ('top');
+  const topItems = topElem.children;
+  topItems[0].onclick = () => { this.OpenHelpDialog(); };
+  topItems[1].onclick = () => { this.CellSelectorDialog(); };
+  topItems[2].onclick = () => { this.Open2DViewer(); };
+  topItems[3].onclick = () => { this.ClearMaps(); };
+
+  // create menu items' accordian behaviour
+  const menuSections = Array.from(
+    document.getElementsByClassName('accordianSection')
+  );
+  menuSections.forEach( el => {
+    // expect exactly two children - with classes
+    // sectionTitle, sectionContent - in that order
+    // state of open/close stored in presence/absence
+    // of class active/inactive in title
+    const title = el.children[0];
+    const content = el.children[1];
+    title.onclick = () => {
+      const active = title.classList.contains('active')
+                  || !title.classList.contains('inactive');
+      content.style.display = active ? 'none' : 'block';
+      title.classList.toggle('active', !active);
+      title.classList.toggle('inactive', active);
+    };
+  });
+
+
+  // link series-selector to this.db and this.cellsInSlctdSrs
+  // make the HTML the source/"ground truth" for db value
   const seriesSelector = this.GetSeriesElem();
+  this.SetSeriesInternal(seriesSelector.value);
   seriesSelector.onchange = () => {
     const newDb = self.GetSeriesFromHTML();
     self.SetSeriesInternal(newDb);
   };
+
+  // link synapse filter, add button functionality
+  const synFilterBtnFilter = document.getElementById('synFilterBtnFilter');
+  synFilterBtnFilter.onclick = () => {
+    const synFilterTypeNodes = document.querySelectorAll(`input[name='synFilterType']:checked`);
+    let typesSelected = [];
+    synFilterTypeNodes.forEach( nn => {
+      typesSelected.push(nn.value);
+    });
+
+    const synFilterCells = document.getElementById('synFilterCells');
+    let cells = synFilterCells.value.split(',');
+    // TODO clean spaces, make case insensitive
+
+    const synFilterContins = document.getElementById('synFilterContins');
+    let continsStr = synFilterContins.value.split(',');
+    let contins = [];
+    for (const cStr of continsStr) {
+      let c= parseInt(cStr);
+      if (!isNaN(c))
+        contins.push(c);
+    }
+
+    // TODO make mapViewer respond
+    console.log(typesSelected, cells, contins);
+  };
+
+  // Restore
+  const synFilterBtnRestore = document.getElementById('synFilterBtnRestore');
+  synFilterBtnRestore.onclick = () => {
+    const synFilterTypeNodes = document.querySelectorAll(`input[name='synFilterType']:checked`);
+    synFilterTypeNodes.forEach( nn => {
+      nn.checked = false;
+    });
+
+    const synFilterCells = document.getElementById('synFilterCells');
+    synFilterCells.value = '';
+
+    const synFilterContins = document.getElementById('synFilterContins');
+    synFilterContins.value = '';
+
+    //TODO make mapViewer respond
+  };
+
+
+  // link Translate Maps sliders
+  // give all three sliders same response to change:
+  // set the shown value and apply viewer.translateMapsTo
+  function MapsTranslateSliderOnChange() {
+    const pos = { x: 0, y: 0, z: 0 };
+    for (const i of ['x','y','z']) {
+      const slider = document.getElementById(i+'-slider');
+      const span = document.getElementById(i+'-slider-show-value');
+      const val = parseInt(slider.value);
+      span.innerHTML = val;
+      pos[i] = val;
+    }
+    self.viewer.translateMapsTo(pos.x,pos.y,pos.z);
+  };
+  for (const i of ['x','y','z']) {
+    console.log(i+'-slider');
+    const slider = document.getElementById(i+'-slider');
+    slider.onchange = MapsTranslateSliderOnChange;
+    slider.oninput = slider.onchange;
+  };
+
+
 };
 
 // YH
@@ -345,34 +381,18 @@ ImporterApp.prototype.PreloadParamsLoaded = function() {
 
 // loads cell given in url
 // new method, gets cell lists from a JS file
-//
-// TODO if show remarks was on already,
-// and then you load, it'll only toggle
 ImporterApp.prototype.PreloadCells2 = function()
 {
   const db = this.params.db;
   const cell = this.params.cell;
 
-  //this.LoadMap(db,cell);
-  this.LoadMap2(db,cell);
-
   // update the series selector in menu
   this.SetSeriesToHTML(db);
+  this.SetSeriesInternal(db);
+  //this.cellsInSlctdSrs = celllistByDbType[db];
 
-  // ideally make a deep copy.. or no?
-  // if not deep copy, the values of visible/plotted
-  // would be persistent even if user changes the db
-  this.cellsInSlctdSrs = celllistByDbType[db];
-
-  for (const celltype in this.cellsInSlctdSrs){
-    if (cell in this.cellsInSlctdSrs[celltype]){
-      this.cellsInSlctdSrs[celltype][cell].visible = 1;
-      this.cellsInSlctdSrs[celltype][cell].plotted = 1;
-      this.LoadMapMenu(cell,
-        this.cellsInSlctdSrs[celltype][cell].walink);
-      break;
-    }
-  }
+  this.LoadMap2(db,cell);
+  this.LoadMapMenu2(cell);
 };
 
 
@@ -429,7 +449,7 @@ ImporterApp.prototype.OpenHelpDialog = function()
   //panelGroup.id = 'accordion'; where used?
   panelGroup.classList.add('panel-group');
   // panel-group is from bootstrap.css
-  for (const helpItem of this.helpParams) {
+  for (const helpItem of helpDialogItems) {
     this.AddHelpPanel(panelGroup,helpItem);
   }
   contentDiv.appendChild(panelGroup);
@@ -702,15 +722,7 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
       // from data by reference,
       // so set to {} to avoid affecting that
 
-      //main_this.data[cell] = JSON.parse(this.responseText);
-      //main_this.viewer.loadMap(main_this.data[cell]);
-
-      //// translate maps of this cell
-      //main_this.viewer.translateOneMapsToThisPos(cell);
-
       //console.timeEnd(`Load to viewer ${cell}`);
-
-      //main_this.viewer.SetCameraTarget(main_this.viewer.GetAveragePosition(cell));
 
       //// YH maybe don't need this
       //document.dispatchEvent(new CustomEvent('loadMapComplete', {
@@ -754,161 +766,352 @@ ImporterApp.prototype.LoadMapCallback = function(db, mapname, callback)
 /*
  * loads menu entry for cell in 'Maps'
  * @param {String} cellname - name of cell
- * @param {String} walink - WormAtlas link address for this cell
+ *
+ * each cell entry should be of the form:
+ *  <div> // div
+ *    <div>Cellname</div> // title
+ *    <div> // content
+ *      <button>Color</button>
+ *      <button>Show Remarks</button>
+ *      <button>WormAtlas</button>
+ *      <button>Synaptic Partners</button>
+ *      <button>Synaptic List</button>
+ *    </div>
+ *  </div>
  */
-ImporterApp.prototype.LoadMapMenu = function(cellname,walink)
+ImporterApp.prototype.LoadMapMenu2 = function(cellname)
 {
-  var self = this;
-  var menuObj = this.menuObj;
-  //var menuGroup = this.menuGroup.maps;    
-  //const mapsMenuItem = this.menuObj.mainItems['Maps'].content;
-  const mapsMenuItem = this.GetMapsContentDiv();
+  const self = this;
+  const mapsContentDiv = this.GetMapsContentDiv();
 
-  // define params for sub items under each cell entry in Maps
-  // the action happens at the end
+  const div = document.createElement('div');
+  const title = document.createElement('div');
+  const content = document.createElement('div');
 
-  const colorparams = {
-    openCloseButton: {
-      visible: false,
-	    open: 'images/opened.png',//'\u25b2',
-	    close: 'images/closed.png',//'\u25bc',
-      title: 'Skeleton color',
-      onOpen : function(content) {
-        while(content.lastChild){
-          content.removeChild(content.lastChild);
-        };
-        colorInput = document.createElement('input');
-        // class no CSS, but used below
-        colorInput.classList.add('colorSelector');
-        colorInput.setAttribute('type','text');
-        var {r, g, b} = self.viewer.getColor(cellname);
-        var r = Math.round(255*r);
-        var b = Math.round(255*b);
-        var g = Math.round(255*g);
-        var rgb = b | (g << 8) | (r << 16);
-        var hex = '#' + rgb.toString(16);
-        colorInput.setAttribute('value',hex);
-        content.appendChild(colorInput);
-        $(".colorSelector").spectrum({
-          preferredFormat: "rgb",
-          showInput: true,
-          move: function(color){
-            const {r, g, b} = color.toRgb();
-            self.viewer.setColor(cellname, {r:r/255., g:g/255., b:b/255.});
-          }
-        });
-      },
-      userData: cellname,
-    }
+  mapsContentDiv.appendChild(div);
+  div.appendChild(title);
+  div.appendChild(content);
+
+  const colorBtn = document.createElement('button');
+  const colorDiv = document.createElement('div');
+  const remarksBtn = document.createElement('button');
+  const walinkBtn = document.createElement('button');
+  const parterListBtn = document.createElement('button');
+  const synapseListBtn = document.createElement('button');
+
+  content.appendChild(colorBtn);
+  content.appendChild(colorDiv);
+  content.appendChild(remarksBtn);
+  content.appendChild(walinkBtn);
+  content.appendChild(parterListBtn);
+  content.appendChild(synapseListBtn);
+
+  // structure done,
+  // now we customize the stuff/buttons
+  title.innerHTML = cellname;
+
+  // add accordian functionality
+  // same as in LinkFunctionalityWithHTML
+  div.classList.add('accordianSection');
+  title.classList.add('sectioinTitle');
+  title.classList.add('inactive'); // default content hidden
+  content.classList.add('sectionContent');
+  content.style.display = 'none'; // default content hidden
+
+  title.onclick = () => {
+    const active = title.classList.contains('active')
+                || !title.classList.contains('inactive');
+    content.style.display = active ? 'none' : 'block';
+    title.classList.toggle('active', !active);
+    title.classList.toggle('inactive', active);
   };
 
-  // for the eye icon next to "Remarks" in Maps
-  // (after clicking on a loaded cell)
-  const remarksparams = {
-    userButton:{
-      imgSrc: 'images/hidden.png', // starting image
-      // see also loadMap in MapViewer, .. default visibilities
-      // which sets remarks to be hidden by default
-      onClick : function(image,cellname){
-        self.viewer.toggleRemarksByCell(cellname);
-        let visible = self.viewer.maps[cellname].remarksGrp.visible;
-        image.src = visible ? 'images/visible.png' : 'images/hidden.png';
-        console.log('remarks: ', visible);
-      },
-      title : 'Show/Hide remarks',
-      userData: cellname
+  colorBtn.innerHTML = 'Set Color';
+  colorBtn.value = 'close';
+  colorDiv.style.display = 'none';
+  colorBtn.onclick = () => {
+    const isOpen = colorBtn.value === 'close' ? false : true;
+    if (isOpen) {
+      // perform close, delete everything in colorDiv
+      colorBtn.value = 'close';
+      colorDiv.style.display = 'none';
+      while(colorDiv.lastChild){
+        colorDiv.removeChild(colorDiv.lastChild);
+      };
+      return;
     }
+    // perform open, create color input
+    colorBtn.value = 'open';
+    colorDiv.style.display = 'block';
+
+    if (!self.viewer.isCellLoaded(cellname)) {
+      colorDiv.innerHTML = 'Cell not loaded';
+      return;
+    }
+
+    const colorInput = document.createElement('input');
+    colorDiv.appendChild(colorInput);
+
+    // class no CSS, but used below
+    colorInput.classList.add('colorSelector');
+    colorInput.type = 'color';
+
+    // get color of cell, transform to appropriate format
+    let {r, g, b} = self.viewer.getColor(cellname);
+    r = Math.round(255*r);
+    b = Math.round(255*b);
+    g = Math.round(255*g);
+    let rgb = b | (g << 8) | (r << 16);
+    let hex = '#' + rgb.toString(16);
+
+    colorInput.setAttribute('value',hex);
+    colorInput.spectrum({
+      preferredFormat: "rgb",
+      showInput: true,
+      move: function(color){
+        const {r, g, b} = color.toRgb();
+        self.viewer.setColor(cellname, {r:r/255., g:g/255., b:b/255.});
+      },
+    });
   };
 
-  const infoparams = {
-    openCloseButton:{
-      visible : false,
-      open : 'images/info.png',//'\u{1F6C8}',
-      close: 'images/info.png',//'\u{1F6C8}',
-      title: 'WormAtlas',
-      onOpen : function(content) {
-        var url = walink;
-        self.OpenInfoDialog(url,'WormAtlas');
-      },
-      userData: cellname,
-    }
-  };  
-
-  const partnerListparams = {
-    openCloseButton:{
-      visible : false,
-      open : 'images/info.png',
-      close: 'images/info.png',
-      title: 'Synaptic partners',
-      onOpen : function(content) {
-        const series = self.GetSeriesFromHTML();
-        const url = `../partnerList/?continName=${cellname}&series=${series}`;
-        self.OpenInfoDialog(url,'Synaptic partners');
-      },
-      userData: cellname,
-    }
-  }; 
-
-  const synapseListparams = {
-    openCloseButton:{
-      visible : false,
-      open : 'images/info.png',
-      close: 'images/info.png',
-      title: 'Synapes',
-      onOpen : function(content) {
-        const series = self.GetSeriesFromHTML();
-        const url = `../synapseList/?continName=${cellname}&series=${series}`;
-        self.OpenInfoDialog(url,'Synapse list');
-      },
-      userData: cellname,
-    }
+  // do remarks
+  const remarkVis = this.viewer.isCellLoaded(cellname) ?
+    this.viewer.GetRemarkVis(cellname) : false;
+  remarksBtn.innerHTML = !remarkVis ? 'Hide Remarks' : 'Show Remarks';
+  remarksBtn.onclick = () => {
+    const remarkVis = self.viewer.isCellLoaded(cellname) ?
+      self.viewer.GetRemarkVis(cellname) : false;
+    remarksBtn.innerHTML = !remarkVis ? 'Hide Remarks' : 'Show Remarks';
+    self.viewer.toggleRemarksByCell(cellname, !remarkVis);
   };
 
-  // see Importers in apps/include/importers.js
-  menuObj.AddSubItem(mapsMenuItem,cellname,{
-    openCloseButton:{
-      visible : false,
-      open: 'images/info.png',
-      close: 'images/info.png',
-      onOpen : function(content) {
-        // perhaps it's good to have onClose to clear stuff instead of here
-        while(content.lastChild){
-          content.removeChild(content.lastChild);
-        };
-        menuObj.AddSubItem(content,'Color',colorparams);
-        menuObj.AddSubItem(content,'Remarks',remarksparams);
-        if (walink != undefined){
-          menuObj.AddSubItem(content,'WormAtlas',infoparams);
+  // WormAtlas link
+  walinkBtn.innerHTML = 'WormAtlas';
+  walinkBtn.onclick = () => {
+    const url = cellnameToWALink(cellname);
+    self.OpenInfoDialog(url, 'WormAtlas');
+  };
+
+  // Synaptic Partners
+  parterListBtn.innerHTML = 'Synaptic Parters';
+  parterListBtn.onclick = () => {
+    const series = self.GetSeriesFromHTML();
+    const url = `../partnerList/?continName=${cellname}&series=${series}`;
+    self.OpenInfoDialog(url,'Synaptic Partners');
+  };
+
+  // Synapse List
+  synapseListBtn.innerHTML = 'Synapse List';
+  synapseListBtn.onclick = () => {
+    const series = self.GetSeriesFromHTML();
+    const url = `../synapseList/?continName=${cellname}&series=${series}`;
+    self.OpenInfoDialog(url,'Synapse List');
+  };
+};
+
+/*
+ * params.visDefault:
+ * TODO maybe useless
+ */
+
+ImporterApp.prototype.CreateButton = function(params) {
+  menuContent = document.createElement ('div');
+  menuContent.className = 'menugroup';
+  menuContent.style.display = params.visible ?
+      'block' : 'none';
+
+  // set button image/character
+  // currently not in use to avoid browser support issues
+  //if (params.open.length <= 1) {
+  //  // unicode character as image (typically arrow)
+  //  // also asssumes that if using this option (i.e. no image)
+  //  // then both open and close are like that
+  //  image = document.createElement('div');
+  //  image.style.display = 'inline';
+  //  image.innerHTML = params.visible ?
+  //      params.open : params.close;
+  //}
+  //else {
+  image = document.createElement('img');
+  image.className = 'menubutton';
+  image.title = params.title;
+  image.src = params.visible ?
+      params.open : params.close;
+  //}
+  image.onclick = function () {
+    // close to open
+    if (menuContent.style.display == 'none') {
+      menuContent.style.display = 'block';
+      //if (this.nodeName === 'DIV') { // if use unicode for image
+      //  this.innerHTML = params.open;
+      //} else {
+      this.src = params.open;
+      //}
+      if (params.onOpen !== undefined
+          && params.onOpen !== null) {
+        params.onOpen(menuContent);
+            //params.userData);
+      }
+    } else { // open to close
+      menuContent.style.display = 'none';
+      //if (this.nodeName === 'DIV') { // if use unicode for image
+      //  this.innerHTML = params.close;
+      //} else {
+      this.src = params.close;
+      //}
+      //onClose is never used/given in params!
+      //if (params.onClose !== undefined
+      //    && params.onClose !== null) {
+      //  params.onClose(menuContent,
+      //      params.userData);
+      //}
+    }
+  };
+  
+  menuText.onclick = image.onclick;
+  menuText.style.cursor = 'pointer';
+  menuText.style.display = 'inline';
+};
+
+
+/*
+ * adapted from ImporterMenu.AddSubItem
+ * TODO maybe useless
+ */
+ImporterApp.prototype.AddSubItem = function(parent, name, parameters)
+{
+  // just for cutting displaying width
+  function GetTruncatedName (name) {
+    var maxLength = 20;
+    if (name.length > maxLength) {
+      return name.substr (0, maxLength) + '...';
+    }
+    return name;
+  }
+
+  // one big div containing the menuItem and menuContent divs
+  const menuBigDiv = document.createElement('div');
+  menuBigDiv.className = 'menuBigDiv';
+  parent.appendChild(menuBigDiv);
+
+  // div that will hold the buttons and menuText
+  const menuItem = document.createElement ('div');
+  menuItem.className = 'menuitem';
+  menuBigDiv.appendChild(menuItem);
+
+  const menuText = document.createElement ('div');
+  menuText.className = 'menuitem';
+  menuText.innerHTML = GetTruncatedName (name);
+  menuText.title = name;
+  menuItem.appendChild(menuText);
+
+  var menuContent = null;
+  var openCloseImage = null;
+  var userImage = null;
+    
+  if (parameters === undefined || parameters === null) {
+    // really should be menuBigDiv
+    return menuContent;
+  }
+
+  if (parameters.hasOwnProperty('openCloseButton')) {
+    menuContent = document.createElement ('div');
+    menuContent.className = 'menugroup';
+    menuContent.style.display = parameters.openCloseButton.visible ?
+        'block' : 'none';
+
+    // set button image/character
+    // currently not in use to avoid browser support issues
+    //if (parameters.openCloseButton.open.length <= 1) {
+    //  // unicode character as image (typically arrow)
+    //  // also asssumes that if using this option (i.e. no image)
+    //  // then both open and close are like that
+    //  openCloseImage = document.createElement('div');
+    //  openCloseImage.style.display = 'inline';
+    //  openCloseImage.innerHTML = parameters.openCloseButton.visible ?
+    //      parameters.openCloseButton.open : parameters.openCloseButton.close;
+    //}
+    //else {
+    openCloseImage = document.createElement('img');
+    openCloseImage.className = 'menubutton';
+    openCloseImage.title = parameters.openCloseButton.title;
+    openCloseImage.src = parameters.openCloseButton.visible ?
+        parameters.openCloseButton.open : parameters.openCloseButton.close;
+    //}
+    openCloseImage.onclick = function () {
+      // close to open
+      if (menuContent.style.display == 'none') {
+        menuContent.style.display = 'block';
+        //if (this.nodeName === 'DIV') { // if use unicode for image
+        //  this.innerHTML = parameters.openCloseButton.open;
+        //} else {
+        this.src = parameters.openCloseButton.open;
+        //}
+        if (parameters.openCloseButton.onOpen !== undefined
+            && parameters.openCloseButton.onOpen !== null) {
+          parameters.openCloseButton.onOpen(menuContent);
+              //parameters.openCloseButton.userData);
         }
-        menuObj.AddSubItem(content,'Synaptic partners',partnerListparams);
-        menuObj.AddSubItem(content,'Synapse list',synapseListparams);
-      },
-      title : 'Show/Hide Information',
-      userData : cellname,
-    },
-    userButton : {
-      //visible : true, // is not even used..
-      imgSrc: 'images/visible.png',
-      //onCreate : function(image){
-      //  image.src = 'images/visible.png';
-      //},
-      onClick: function(image,modelName){
-        //var visible = !self.viewer.maps[modelName].visible;
-        const newVisible = !self.viewer.maps[modelName].allGrps.visible;
-        console.log('newVisible: ', newVisible);
-        image.src = newVisible ? 'images/visible.png' : 'images/hidden.png';
-        self.viewer.maps[modelName].visible = newVisible;
-        self.viewer.toggleMaps(modelName, newVisible);
-        // based on old behaviour of toggleMaps:
-        //self.viewer.toggleMaps(modelName, visible);
-        //self.viewer._toggleAllSynapses(modelName,!visible);
-        //self.viewer._toggleRemarks(modelName,bool=false);
-      },
-      title : 'Show/Hide map',
-      userData : cellname,
+      } else { // open to close
+        menuContent.style.display = 'none';
+        //if (this.nodeName === 'DIV') { // if use unicode for image
+        //  this.innerHTML = parameters.openCloseButton.close;
+        //} else {
+        this.src = parameters.openCloseButton.close;
+        //}
+        //onClose is never used/given in params!
+        //if (parameters.openCloseButton.onClose !== undefined
+        //    && parameters.openCloseButton.onClose !== null) {
+        //  parameters.openCloseButton.onClose(menuContent,
+        //      parameters.openCloseButton.userData);
+        //}
+      }
+    };
+    
+    menuText.onclick = openCloseImage.onclick;
+    menuText.style.cursor = 'pointer';
+    menuText.style.display = 'inline';
+  }
+
+  if (parameters.hasOwnProperty('userButton')) {
+    if (!parameters.userButton.hasOwnProperty('onClick')
+        || !parameters.userButton.hasOwnProperty('userData')) {
+      console.error('userButton must have onClick and userData');
     }
-  });
-}
+
+    userImage = document.createElement ('img');
+    userImage.className = 'menubutton';
+    userImage.title = parameters.userButton.title;
+    userImage.src = parameters.userButton.imgSrc;
+    if (parameters.userButton.hasOwnProperty('onCreate')) {
+      parameters.userButton.onCreate(userImage, parameters.userButton.userData);
+    }
+    userImage.onclick = function() {
+      parameters.userButton.onClick(userImage, parameters.userButton.userData);
+    };
+  }
+
+  if (openCloseImage !== null) {
+    //menuItem.appendChild(openCloseImage);
+    menuItem.insertBefore(openCloseImage, menuText);
+  }
+  if (userImage !== null) {
+    //menuItem.appendChild(userImage);
+    menuItem.insertBefore(userImage, menuText);
+  }
+  if (menuContent !== null) {
+    //parent.appendChild(menuContent);
+    menuBigDiv.appendChild(menuContent);
+  }
+
+  // really should be menuBigDiv
+  return menuContent;
+};
+
+
+
+
 
 
 /*
@@ -1026,13 +1229,13 @@ ImporterApp.prototype.Resize = function ()
  
   //var height = window.innerHeight - top.offsetHeight - headerimage.offsetHeight - nav.offsetHeight - 10;
 
-  SetHeight (canvas, 0);
+  SetHeight(canvas, 0);
   //SetWidth (canvas, 0); ??
 
-  SetHeight (left, height);
+  SetHeight(left, height);
 
-  SetHeight (canvas, height);
-  SetWidth (canvas, document.body.clientWidth - left.offsetWidth);
+  SetHeight(canvas, height);
+  SetWidth(canvas, document.body.clientWidth - left.offsetWidth);
   
   this.dialog.Resize();
   this.viewer.resizeDisplayGL();
@@ -1100,7 +1303,7 @@ ImporterApp.prototype.GenerateMenu = function()
       const cellname = document.getElementById('cellname').innerHTML;
       const db = document.getElementById('series-selector').value;
       const syncontin = document.getElementById('syncontin').innerHTML;
-	    const url = `../synapseViewer/?neuron=${cellname}&db=${db}&continNum=${syncontin}`;
+      const url = `../synapseViewer/?neuron=${cellname}&db=${db}&continNum=${syncontin}`;
       const a = document.createElement('a');
       a.target = '_blank';
       a.href = url;
@@ -1124,208 +1327,6 @@ ImporterApp.prototype.GenerateMenu = function()
     parent.appendChild(synCenterViewBtn);
   };
 
-  // Filter synapse section
-  // generally HTML looks like:
-  //<parent>
-  //  <div id='synfiltercheck'>
-  //    <label>
-  //      <input id='PresynapticChkbx' class='synfilter'>
-  //      Pre.
-  //    </label>
-  //    ... Post., Gap ...
-  //  </div>
-  //  <div id='synfiltercellsdialog'> // filterDialog
-  //    <label> // filterDialogLabel
-  //      Cells: 
-  //      <input id='synFilterCells' type='text'>
-  //    </label>
-  //  </div>
-  //  <button> // filterBtn
-  //  <button> // restoreBtn
-  //</parent>
-  function AddSynapseFilter(parent){
-    // checkboxes for filtering by synapse type
-    const filterChecks = document.createElement('div');
-    filterChecks.id = 'synfiltercheck';
-    const synTypeLabel = { // used to be _filters
-      pre:'Pre.', // old key is 'Presynaptic'
-      post:'Post.', // old key is 'Postsynaptic'
-      gap:'Gap', // old key is 'Gap junction'
-    };
-    const synTypeId = {
-      pre:'PresynapticChkbx',
-      post:'PostsynapticChkbx',
-      gap:'GapJunctionChkbx',
-    };
-    for (const synType in synTypeId){
-      const label = document.createElement('label');
-      const chkbx = document.createElement('input');
-      chkbx.type = 'checkbox';
-      chkbx.classList.add('synfilter');
-      chkbx.id = synTypeId[synType];
-      
-      label.appendChild(chkbx);
-      //label.innerHTML = synTypeLabel[synType];
-      label.appendChild(document.createTextNode(synTypeLabel[synType]));
-      filterChecks.appendChild(label);
-    };
-    parent.appendChild(filterChecks);
-
-
-    // text input for searching/filtering by cell
-    const filterDialog = document.createElement('div');
-    filterDialog.id = 'synfiltercellsdialog';
-
-    const filterDialogLabel = document.createElement('label');
-    filterDialogLabel.appendChild(document.createTextNode('Cells: '));
-
-    const filterText = document.createElement('input');
-    filterText.type = 'text';
-    filterText.id = 'synFilterCells';
-
-    filterDialogLabel.appendChild(filterText);
-    filterDialog.appendChild(filterDialogLabel);
-    parent.appendChild(filterDialog);
-
-
-    // buttons for filtering by cells
-    var filterBtn = document.createElement('button');
-    filterBtn.innerHTML = 'Filter';
-    filterBtn.classList.add('filterButton');
-    filterBtn.onclick = function(){
-      //self.viewer.toggleAllSynapseTypeHard(false);
-      var cells = document.getElementById('synFilterCells').value;
-      if (cells != '') {
-        cells = cells.replace(' ','').split(',');
-      } else { // all loaded cells by default
-        //cells = null;
-        cells = self.viewer.getLoadedCells();
-      }
-      for (const synType in synTypeId) {
-        const vis = document.getElementById(synTypeId[synType]).checked;
-        for (const cell of cells) {
-          self.viewer.toggleSynapsesByType(cell,synType,visible=vis);
-        }
-        //if (document.getElementById(synTypeId[synType]).checked){
-        //  //self.viewer.toggleSynapseByType(i,bool=true,cells=cells);
-        //}
-      }
-    };
-    var restoreBtn = document.createElement('button');
-    restoreBtn.innerHTML = 'Restore';
-    restoreBtn.classList.add('filterButton');
-    restoreBtn.onclick = function(){
-      for (const synType in synTypeId) {
-        document.getElementById(synTypeId[synType]).checked = false;
-      }
-      document.getElementById('synFilterCells').value = '';
-      self.viewer.toggleAllSynapseTypeHard(true);
-      //self.viewer.toggleAllSynapses(true);
-    };
-    parent.appendChild(filterBtn);
-    parent.appendChild(restoreBtn); 
-
-
-    // filter by synapse ids/contin numbers
-    var filterContinDialog = document.createElement('div');
-    filterContinDialog.id = 'synfiltercellsdialog';
-    var filterContinDialogLabel = document.createElement('label');
-    filterContinDialogLabel.appendChild(
-      document.createTextNode('Synapse Id(s): '));
-    var filterContinText = document.createElement('input');
-    filterContinText.type = 'text';
-    filterContinText.id = 'synFilterContins';
-    filterContinDialogLabel.appendChild(filterContinText);
-    filterContinDialog.appendChild(filterContinDialogLabel);
-    parent.appendChild(filterContinDialog); 
-
-    // buttons for filtering by synapse ids
-    var filterBtn = document.createElement('button');
-    filterBtn.innerHTML = 'Filter';
-    filterBtn.classList.add('filterContinButton');
-    filterBtn.onclick = function(){
-      self.viewer.toggleAllSynapses(false);
-      const contins = document.getElementById('synFilterContins').value;
-      if (contins != ""){
-        continList = contins.split(',');
-        continList.forEach( contin => {
-          self.viewer.toggleSynapseContin(contin);
-        });
-      }
-      //else {
-      //  contins = null;
-      //}
-      //  
-      //if (contins != null){
-      //  console.log(contins);
-      //  for (var i in contins){
-      //    self.viewer.toggleSynapseContin(contins[i]);
-      //  }
-      //}
-    };
-    var restoreBtn = document.createElement('button');
-    restoreBtn.innerHTML = 'Restore';
-    restoreBtn.classList.add('filterContinButton');
-    restoreBtn.onclick = function(){
-      document.getElementById('synFilterContins').value=null;
-      self.viewer.toggleAllSynapses(true);
-    };
-    parent.appendChild(filterBtn);
-    parent.appendChild(restoreBtn); 
-  };
-
-  // xyz = 'x', 'y', or 'z'
-  function AddSlider(parent,xyz,params){
-    const slider = document.createElement('input');
-    slider.id = xyz + '-slider';
-    slider.classList.add(params.className);
-    slider.type ='range';
-    slider.min = params.min;
-    slider.max = params.max;
-    slider.value = params.value;
-    slider.onchange = function(){
-      const x = parseInt(document.getElementById('x-slider').value);
-      const y = parseInt(document.getElementById('y-slider').value);
-      const z = parseInt(document.getElementById('z-slider').value);
-      params.callback(x,y,z); // used to be negative
-      const xShowVal = document.getElementById('x-slider-show-value');
-      xShowVal.innerHTML = x;
-      const yShowVal = document.getElementById('y-slider-show-value');
-      yShowVal.innerHTML = y;
-      const zShowVal = document.getElementById('z-slider-show-value');
-      zShowVal.innerHTML = z;
-    };
-    slider.oninput = slider.onchange;
-    parent.appendChild(slider);
-  };
-
-  // callback(x,y,z) - updating function when x,y,z-slider
-  function AddMapTranslate(parent,callback){
-    const params = {
-      className:'map-translate',
-      min: -2000,
-      max: 2000,
-      value: 0,
-      callback:callback,
-    };
-    const text = {
-      x: '<-x Left / Right +x>',
-      y: '<-y Vent. / Dors. +y>',
-      z: '<-z Ant. / Post. +z>',
-    };
-    for (const i of ['x','y','z']){
-      console.log('maps', i);
-      const div = document.createElement('div');
-      div.style = 'display: inline';
-      div.append(text[i] + ': ');
-      parent.appendChild(div);
-      const sp = document.createElement('span');
-      sp.innerHTML = 0;
-      sp.id = i + '-slider-show-value';
-      div.appendChild(sp);
-      AddSlider(div,i,params);
-    }
-  };
 
 
   // callback expect boolean argument,
@@ -1601,5 +1602,5 @@ ImporterApp.prototype.SetSeriesInternal = function(db) {
 
 // maps section (the div with class sectionContent)
 ImporterApp.prototype.GetMapsContentDiv = function() {
-  return document.getElementById('mapsSection');
+  return document.getElementById('mapsContentDiv');
 };

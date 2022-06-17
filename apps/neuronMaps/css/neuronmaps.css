@@ -94,6 +94,8 @@ div.selectordialog
     width:95%;
 }
 
+/* sent to /css/importer.css because it's annoying to
+ * search for this
 .panel-header
 {
     background-color: #818181;
@@ -109,6 +111,7 @@ div.selectordialog
     transition: 0.4s;
     margin: 5px;
 }
+*/
 
 /******************************************
  * selectCell, select replaced with

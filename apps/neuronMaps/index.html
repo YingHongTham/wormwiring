@@ -55,6 +55,7 @@
   <script type='text/javascript' src='/apps/include/wa_link.js'></script>
   <script type='text/javascript' src='/apps/include/cellLists.js'></script>
   <script type='text/javascript' src='/apps/include/selectorCells.js'></script>
+	<script type="text/javascript" src="/apps/include/helpDialogItems.js"></script>
 
 	<script type="text/javascript" src="../include/importers.js"></script>
 	<script type="text/javascript" src="../../include/importWW.js"></script>
@@ -93,15 +94,16 @@
   </div>
 
 	<!--holds the stuff on the left -->
-  <div id='left'>
+  <!-- functionality is added in importerapp-alt.js -->
+  <div id='left'><div id='menu'>
     <div class='accordianSection'>
-      <div class='sectionTitle'>Maps</div>
-      <div class='sectionContent' id='mapsSection'>
+      <div class='sectionTitle active'>Maps</div>
+      <div class='sectionContent' id='mapsContentDiv'>
         <!-- where all the cells go -->
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle'>Series Selector</div>
+      <div class='sectionTitle active'>Series Selector</div>
       <div class='sectionContent'>
         <div>
           <!--
@@ -120,15 +122,16 @@
             <option value='n2y'>Male: Adult tail (N2Y)</option>
             <option value='n930'>Male: Adult head (N930)</option>
           </select>
+        </div>
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle'>Synapse Info</div>
+      <div class='sectionTitle active'>Synapse Info</div>
       <div class='sectionContent'>
         <div>
           Cell:
           <span id='synInfoCellname'>---</span>
-        <div>
+        </div>
         <div>
           Synapse type:
           <span id='synInfoType'>---</span>
@@ -160,7 +163,7 @@
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle'>Synapse Filter</div>
+      <div class='sectionTitle active'>Synapse Filter</div>
       <div class='sectionContent'>
         <form name='synFilterType'>
           <label>
@@ -184,43 +187,45 @@
           Synapse (Contin) Id(s):
           <input id='synFilterContins' type='text'>
         </div>
-        <button>Filter</button>
-        <button>Restore</button>
+        <button id='synFilterBtnFilter'>Filter</button>
+        <button id='synFilterBtnRestore'>Restore</button>
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle'>Translate Maps</div>
+      <div class='sectionTitle active'>Translate Maps</div>
       <div class='sectionContent'>
         &lt; -x Left/Right +x &gt; :
         <span id='x-slider-show-value'>0</span>
         <input id='x-slider' class='map-translate'
-          type='range' min='-2000' max='2000'>
+          type='range' min='-2000' max='2000' value='0'>
         &lt; -y Vent./Dors. +y &gt; :
         <span id='y-slider-show-value'>0</span>
         <input id='y-slider' class='map-translate'
-          type='range' min='-2000' max='2000'>
+          type='range' min='-2000' max='2000' value='0'>
         &lt; -z Ant./Post. +z &gt; :
         <span id='z-slider-show-value'>0</span>
         <input id='z-slider' class='map-translate'
-          type='range' min='-2000' max='2000'>
+          type='range' min='-2000' max='2000' value='0'>
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle'>Global Viewer Options</div>
+      <div class='sectionTitle active'>Global Viewer Options</div>
+      <div class='sectionContent'>
         <button id='btnHideGrid'>Hide Grid</button>
         <button id='btnHideAxes'>Hide Axes</button>
         <button id='btnShowAllRmks'>Show All Remarks</button>
         <button id='btnShowAllSynLabels'>Show Synapse Labels</button>
-      <div class='sectionContent'></div>
+      </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle'>Load/Save</div>
-      <div class='sectionContent'></div>
+      <div class='sectionTitle active'>Load/Save</div>
+      <div class='sectionContent'>
+        TODO
+      </div>
     </div>
-    <div id="menu"></div>
-  </div>
+  </div></div>
 	<!-- holds the neuron viewer -->
-  <canvas id="meshviewer" width="0" height="0"></canvas>
+  <canvas id='meshviewer' width='0' height='0'></canvas>
 </body>
 
 </html>

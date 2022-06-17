@@ -1609,6 +1609,10 @@ MapViewer.prototype.toggleRemarksByCell = function(cell, bool=null) {
   this.maps[cell].remarksGrp.visible = bool;
 };
 
+MapViewer.prototype.GetRemarkVis = function(cell) {
+  return this.maps[cell].remarksGrp.visible;
+};
+
 // YH old method; toggle remarks by cell
 MapViewer.prototype._toggleRemarks = function(name,bool=null)
 {
@@ -1648,6 +1652,14 @@ MapViewer.prototype.toggleSynapseLabels = function(name,bool=null) {
     }
   }
   //this.maps[name].synLabels.visible = bool;
+};
+
+// used in particular in LoadMapMenu,
+// which is called after LoadMap in ImporterApp,
+// which is async (waits for xhttp request for data)
+// so when writing items to menu need to check if done loading
+MapViewer.prototype.isCellLoaded = function(cellname) {
+  return this.maps.hasOwnProperty(cellname);
 };
 
 

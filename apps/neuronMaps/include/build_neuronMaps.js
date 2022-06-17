@@ -64,7 +64,7 @@ window.onload = function(){
   // will have keys db,sex,cell
 	const importerApp = new ImporterApp(params);
 	importerApp.Init();
-  // access importerApp in the console (used to be window.aa)
+  // access importerApp in the console
 	window.importerApp = importerApp;
 };
 
