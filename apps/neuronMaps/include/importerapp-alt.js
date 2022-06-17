@@ -21,64 +21,33 @@
  * which calls the Reisze method
  * e.g. used by navigation collapsing
  *
- * TODO one day change selectedNeurons to something else
+ *
+ * finally changed selectedNeurons to cellsInSlctdSrs 
+ * cellsInSlctdSrs is just two arrays
+ * (leave the walink, visied, plotted stuff to elsewhere)
  */
+
+
+// requires /apps/include/cellLists.js, wa_link.js
+if (celllistByDbType === undefined) {
+  console.error('expect cellLists.js');
+}
+if (cellnameWALinkDict === undefined
+    || cellnameToWALink === undefined) {
+  console.error('expect wa_link.js');
+}
+
 
 ImporterApp = function (params)
 {
   this.params = params;
-  this.db = 'N2U'; // not updated, only used as default for loading..
-  this.selectedCell = '';
+  this.db = this.GetSeriesFromHTML();
   this.validCells = []; //used by GetCellDisplay()
-  this.GetCellDisplay(); //what does this really do??
-  this.neuronGroup = null; //who uses this?
-  
-  this.series = {
-    herm : [
-      {value: 'N2U', text: 'Adult head (N2U)'},
-      {value: 'JSE', text: 'Adult tail (JSE)'},
-      {value: 'N2W', text: 'Pharynx (N2W)'},
-      {value: 'JSH', text: 'L4 head (JSH)'}
-    ],
-    male : [
-      {value: 'n2y', text: 'Adult tail (N2Y)'},
-      {value: 'n930', text: 'Adult head (N930)'}
-    ]
-  };
-  // holds the data passed back from retrieve_trace_coord.php
-  // which is a MySQL
-  // the skeleton, synapse locations etc.
-  //data['ADAL'] = { ... }
-  this.data = {};
 
-  // HTML elements of menu items on the left
-  // assigned in GenerateMenu()
-  // e.g. this.menuGroup['maps'] = AddDefaultGroup(...);
-  // YH made redundant by having ImporterMenu object (this.menuObj)
-  // hold the reference to HTML elems
-  // keeping it here for just in case for now
-  this.menuGroup = {};
-  
-  // selectedNeurons are cells to appear in the cell selector dialog
-  // terrible name
-  // they're selected in the sense that
-  // the user selected a series and these are the cells
-  // but they're not the individual cells selected by user
-  // reloaded each time different series is selected
-  // this gives rise to a small problem:
-  // the cell selector dialog highlights cells that are selected,
-  // (by giving them a class 'select')
-  // but this is info is lost when switch to different series and back
-  // need to add this in SetCellSelector/PreloadCells
-  // often run through loop: selectedNeurons[group][i]
-  //  group = 'Neurons' or 'Muscles'
-  //  i = the cell name e.g. 'ADAL'
-  // and selectedNeuron[group][i] is itself an object,
-  // with three properties 'visible', 'plotted', 'walink'
-  // visible = 1 if we should highlight it
-  // plotted = 1 if we have already loaded cell
-  // walink = WormAtlas link
-  this.selectedNeurons = {};
+  // cellsInSlctdSrs are cells in selected db/series
+  // appear in the cell selector dialog
+  // { neuron: [...], muscle: [...] }
+  this.cellsInSlctdSrs = celllistByDbType[this.db];
 
   // starting value of the Synapse Info section
   // will be updated when a synapse is clicked
@@ -174,11 +143,9 @@ ImporterApp = function (params)
 
 
 /*
- * loads all the top buttons, Help, Select Neurons, Clear
- * the left menu is loaded in GenerateMenu
- *
- * no idea why Init function is separate from constructor;
- * in practice it is immediately called after constructor wtf
+ * most of the HTML is already there
+ * (unlike in the original importerapp.js)
+ * Init() adds functionality to stuff
  */
 ImporterApp.prototype.Init = function ()
 {
@@ -192,57 +159,46 @@ ImporterApp.prototype.Init = function ()
   };
 
   //set up the Help, selector, clear menu
-  var top = document.getElementById ('top');
-  var importerButtons = new ImporterButtons (top);
-  importerButtons.AddLogo('Help',()=>{self.OpenHelpDialog();});
-  importerButtons.AddLogo('Select neuron',()=>{self.NeuronSelectorDialog();});
-  importerButtons.AddLogo('2D Viewer',()=>{self.Open2DViewer();});
-  importerButtons.AddLogo('Clear maps',()=>{self.ClearMaps();});
+  const topElem = document.getElementById ('top');
+  const topItems = topElem.children;
+  topItems[0].onclick = () => { this.OpenHelpDialog(); };
+  topItems[1].onclick = () => { this.CellSelectorDialog(); };
+  topItems[2].onclick = () => { this.Open2DViewer(); };
+  topItems[3].onclick = () => { this.ClearMaps(); };
 
   //the small window in which help/selector/synapseviewer is shown
   this.dialog = new FloatingDialog();
   
-  // can't have two callbacks for one event..
-  //window.addEventListener ('resize', this.Resize.bind (this), false);
-  //(see window.addEventListener below)
-  this.Resize();
+  const canvas = this.GetCanvasElem();
   
-  var canvas = document.getElementById('meshviewer');
+  //this.GenerateMenu();
   
-  this.GenerateMenu();
-  
-  var viewer = new MapViewer(canvas, {
-    // YH don't think these two are actually used by viewer
-    //menuObj: this.menuObj, // apps/include/importers.js
-    //menuGroup: this.menuGroup,
-    synClick: this.OpenInfoDialog, // is a FUNCTION that spawns dialog
+  this.viewer = new MapViewer(canvas, {
     app: this, // YH so viewer can refer back
   });
-  this.viewer = viewer;
+  this.viewer.initGL();
   
-  var resizeWindow = function(){
-    viewer.resizeDisplayGL();
-  };
+  //const resizeWindow = function(){
+  //  viewer.resizeDisplayGL();
+  //};
     
+  this.Resize();
+
   var render = function(){
     requestAnimationFrame(render);
     // TODO make animating/pausing part of MapViewer class
     self.viewer.render();
   };
-
-  window.addEventListener('resize', () => {
-    self.Resize();
-    resizeWindow();
-  },false);
-  this.viewer.initGL();
-  this.viewer.resizeDisplayGL();
   render();
   
   if (this.PreloadParamsLoaded()){
     this.PreloadCells2();
-  } else {
-    this.SetCellSelector();
-  };
+  }
+
+  window.addEventListener('resize', () => {
+    self.Resize();
+    //resizeWindow();
+  },false);
 
   document.addEventListener('loadMapComplete', (ev) => {
     console.log(`${ev.detail} loaded into viewer`);
@@ -251,6 +207,12 @@ ImporterApp.prototype.Init = function ()
   document.addEventListener('resizeAll', (ev) => {
     self.Resize();
   });
+
+  const seriesSelector = this.GetSeriesElem();
+  seriesSelector.onchange = () => {
+    const newDb = self.GetSeriesFromHTML();
+    self.SetSeriesInternal(newDb);
+  };
 };
 
 // YH
@@ -299,31 +261,30 @@ ImporterApp.prototype.LoadFromFile = function() {
 
     // update the series selector in menu
     main_this.SetSeriesToHTML(data.db);
-    main_this.SetSexToHTML(data.sex);
 
-    // wait for selectedNeurons[group][cell] to have the attributes:
+    // wait for cellsInSlctdSrs[group][cell] to have the attributes:
     // -walink
     // -visible
     // -plotted
     function LoadMapMenuWhenReady(cell) {
-      if (!main_this.selectedNeurons.Neurons.hasOwnProperty(cell)
-        && !main_this.selectedNeurons.Muscles.hasOwnProperty(cell)) {
+      if (!main_this.cellsInSlctdSrs.Neurons.hasOwnProperty(cell)
+        && !main_this.cellsInSlctdSrs.Muscles.hasOwnProperty(cell)) {
         setTimeout(() => LoadMapMenuWhenReady(cell), 200);
         return;
       }
       var group = 'Neurons';
-      if (!main_this.selectedNeurons[group].hasOwnProperty(cell)) {
+      if (!main_this.cellsInSlctdSrs[group].hasOwnProperty(cell)) {
         group = 'Muscles';
       }
-      if (!main_this.selectedNeurons[group][cell].hasOwnProperty('walink')
-        || !main_this.selectedNeurons[group][cell].hasOwnProperty('visible')
-        || !main_this.selectedNeurons[group][cell].hasOwnProperty('plotted')) {
+      if (!main_this.cellsInSlctdSrs[group][cell].hasOwnProperty('walink')
+        || !main_this.cellsInSlctdSrs[group][cell].hasOwnProperty('visible')
+        || !main_this.cellsInSlctdSrs[group][cell].hasOwnProperty('plotted')) {
         setTimeout(() => LoadMapMenuWhenReady(cell), 200);
         return;
       }
-      main_this.LoadMapMenu(cell, main_this.selectedNeurons[group][cell].walink);
-      main_this.selectedNeurons[group][cell].visible = 1;
-      main_this.selectedNeurons[group][cell].plotted = 1;
+      main_this.LoadMapMenu(cell, main_this.cellsInSlctdSrs[group][cell].walink);
+      main_this.cellsInSlctdSrs[group][cell].visible = 1;
+      main_this.cellsInSlctdSrs[group][cell].plotted = 1;
     }
 
     // expect data.sqlData and data.mapsSettings have same keys
@@ -391,26 +352,24 @@ ImporterApp.prototype.PreloadCells2 = function()
 {
   const db = this.params.db;
   const cell = this.params.cell;
-  const sex = this.params.sex;
 
   //this.LoadMap(db,cell);
   this.LoadMap2(db,cell);
 
   // update the series selector in menu
   this.SetSeriesToHTML(db);
-  this.SetSexToHTML(sex);
 
   // ideally make a deep copy.. or no?
   // if not deep copy, the values of visible/plotted
   // would be persistent even if user changes the db
-  this.selectedNeurons = celllistForSelector[db];
+  this.cellsInSlctdSrs = celllistByDbType[db];
 
-  for (const celltype in this.selectedNeurons){
-    if (cell in this.selectedNeurons[celltype]){
-      this.selectedNeurons[celltype][cell].visible = 1;
-      this.selectedNeurons[celltype][cell].plotted = 1;
+  for (const celltype in this.cellsInSlctdSrs){
+    if (cell in this.cellsInSlctdSrs[celltype]){
+      this.cellsInSlctdSrs[celltype][cell].visible = 1;
+      this.cellsInSlctdSrs[celltype][cell].plotted = 1;
       this.LoadMapMenu(cell,
-        this.selectedNeurons[celltype][cell].walink);
+        this.cellsInSlctdSrs[celltype][cell].walink);
       break;
     }
   }
@@ -424,33 +383,20 @@ ImporterApp.prototype.PreloadCells = function()
   this.LoadMap(this.params.db,this.params.cell);
 
   // update the series selector in menu
-  self.SetSeriesToHTML(this.params.db);
-  self.SetSexToHTML(this.params.sex);
+  this.SetSeriesToHTML(this.params.db);
 
-  // YH don't really see why this is needed..
-  //var sex = document.getElementById('sex-selector').value;
-  //var series = document.getElementById('series-selector')
-  //while(series.length > 0){
-  //  series.remove(series.length-1);
-  //};
-  //for (var i=0;i<self.series[sex].length;i++){
-  //  var opt = document.createElement('option');
-  //  opt.value = self.series[sex][i].value;
-  //  opt.innerHTML = self.series[sex][i].text;
-  //  series.appendChild(opt);
-  //};
   const xhttp = new XMLHttpRequest();    
   const url = `../php/selectorCells.php?sex=${this.params.sex}&db=${this.params.db}`;
   console.log(`PreloadCell getting selectorCells from url ${url}`);
   xhttp.onreadystatechange = function(){
     if (this.readyState == 4 && this.status == 200){
-      self.selectedNeurons = JSON.parse(this.responseText);
-      for (var group in self.selectedNeurons){
-        if (self.params.cell in self.selectedNeurons[group]){
-          self.selectedNeurons[group][self.params.cell].visible = 1;
-          self.selectedNeurons[group][self.params.cell].plotted = 1;
+      self.cellsInSlctdSrs = JSON.parse(this.responseText);
+      for (var group in self.cellsInSlctdSrs){
+        if (self.params.cell in self.cellsInSlctdSrs[group]){
+          self.cellsInSlctdSrs[group][self.params.cell].visible = 1;
+          self.cellsInSlctdSrs[group][self.params.cell].plotted = 1;
           self.LoadMapMenu(self.params.cell,
-            self.selectedNeurons[group][self.params.cell].walink);
+            self.cellsInSlctdSrs[group][self.params.cell].walink);
         }
       }
     }
@@ -464,14 +410,9 @@ ImporterApp.prototype.PreloadCells = function()
 
 ImporterApp.prototype.OpenHelpDialog = function()
 {
-  //var dialogText = [
-  //  '<div class="container">',
-  //  '</div>',
-  //  ].join ('');
   this.dialog.Open({
     className: 'dialog',
     title : 'Help',
-    //text : dialogText,
     buttons : [
       {
         text : 'close',
@@ -559,13 +500,6 @@ ImporterApp.prototype.AddHelpPanel = function(parent,params)
 ImporterApp.prototype.OpenInfoDialog = function(url,title)
 {
   console.log(`opening info dialog for ${url}`);
-  //var dialogText = [
-  //  '<div class="importerdialog">',
-  //  '<iframe src="'+url+'"',
-  //  'id="infoFrame"></iframe>',
-  //  '</div>',
-  //  ].join ('');
-  //dialog = new FloatingDialog ();
   this.dialog.Open ({
     className: 'infoFrame',
     title : title,
@@ -592,12 +526,13 @@ ImporterApp.prototype.OpenInfoDialog = function(url,title)
  * which sends request to php for the neuron data,
  * skeleton, synapses etc
  *
+ * old: NeuronSelectorDialog
+ *
  * now using LoadMap2 instead of LoadMap
  */
-ImporterApp.prototype.NeuronSelectorDialog = function()
+ImporterApp.prototype.CellSelectorDialog = function()
 {
   const self = this;
-  const dialogText = '<div class="selectordialog"></div>';
   this.dialog.Open({
     className: 'cell-selector',
     title : 'Cell Selector',
@@ -607,16 +542,23 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
       text : 'load',
       callback : function (dialog) {
         const series = self.GetSeriesFromHTML();
-        for (var group in self.selectedNeurons){
-          for (var i in self.selectedNeurons[group]){
-            if (self.selectedNeurons[group][i].visible == 1
-                && self.selectedNeurons[group][i].plotted == 0){
-              self.LoadMap2(series,i);
-              self.LoadMapMenu(i,self.selectedNeurons[group][i].walink);
-              self.selectedNeurons[group][i].plotted = 1;
-            }
-          }
-        }
+        const selectedCells = Array.from(
+          document.getElementsByClassName('cellDiv cellDivSelected')
+        );
+        selectedCells.forEach( el => {
+          const cell = el.value;
+          self.LoadMap2(series,cell);
+          self.LoadMapMenu(cell,cellnameToWALink(cell));
+        });
+        //for (const celltype in self.cellsInSlctdSrs){
+        //  for (const cell of self.cellsInSlctdSrs[celltype]){
+        //    if (!self.viewer.maps.hasOwnProperty(cell)) {
+        //      console.log(cell,cellnameToWALink(cell));
+        //      //self.LoadMap2(series,cell);
+        //      //self.LoadMapMenu(cell,cellnameToWALink(cell));
+        //    }
+        //  }
+        //}
         self.dialog.Close();
       }
     }, {
@@ -628,12 +570,9 @@ ImporterApp.prototype.NeuronSelectorDialog = function()
     ]
   });
 
-  //this.SetCellSelector(); // what was this for again??
-  //adds cells from selected database to the dialog after created
-  //const selector = document.getElementsByClassName('selectordialog')[0];
+  //adds cells from selected database to the dialog
   const contentDiv = this.dialog.GetContentDiv();
-  for (const celltype in this.selectedNeurons){ // Neurons/Muscles
-    //this.AddSelectPanel(selector,group);
+  for (const celltype in this.cellsInSlctdSrs){
     contentDiv.appendChild(this.AddSelectPanel(celltype));
   }
 };
@@ -669,10 +608,10 @@ ImporterApp.prototype.ClearMaps = function() {
 
   this.data = {};
 
-  for (var group in this.selectedNeurons){
-    for (var i in this.selectedNeurons[group]){
-      //if (this.selectedNeurons[group][i].visible == 1){
-      this.selectedNeurons[group][i].visible = 0;
+  for (var group in this.cellsInSlctdSrs){
+    for (var i in this.cellsInSlctdSrs[group]){
+      //if (this.cellsInSlctdSrs[group][i].visible == 1){
+      this.cellsInSlctdSrs[group][i].visible = 0;
       //}
     }
   }
@@ -685,7 +624,7 @@ ImporterApp.prototype.ClearMaps = function() {
  * @param {string} db: database from which to select
  *
  * does not create entry in menu on the left,
- * that's handled by LoadMapMenu (see NeuronSelectorDialog)
+ * that's handled by LoadMapMenu (see CellSelectorDialog)
  *
  * I don't like how neurons, and all it's traces, positions etc
  * are stored twice, once in ImporterApp (.data)
@@ -814,15 +753,16 @@ ImporterApp.prototype.LoadMapCallback = function(db, mapname, callback)
 
 /*
  * loads menu entry for cell in 'Maps'
- * @param {String} mapname - name of cell
+ * @param {String} cellname - name of cell
  * @param {String} walink - WormAtlas link address for this cell
  */
-ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
+ImporterApp.prototype.LoadMapMenu = function(cellname,walink)
 {
   var self = this;
   var menuObj = this.menuObj;
   //var menuGroup = this.menuGroup.maps;    
-  const mapsMenuItem = this.menuObj.mainItems['Maps'].content;
+  //const mapsMenuItem = this.menuObj.mainItems['Maps'].content;
+  const mapsMenuItem = this.GetMapsContentDiv();
 
   // define params for sub items under each cell entry in Maps
   // the action happens at the end
@@ -833,7 +773,6 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
 	    open: 'images/opened.png',//'\u25b2',
 	    close: 'images/closed.png',//'\u25bc',
       title: 'Skeleton color',
-      //onOpen : function(content, mapname) {
       onOpen : function(content) {
         while(content.lastChild){
           content.removeChild(content.lastChild);
@@ -842,7 +781,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         // class no CSS, but used below
         colorInput.classList.add('colorSelector');
         colorInput.setAttribute('type','text');
-        var {r, g, b} = self.viewer.getColor(mapname);
+        var {r, g, b} = self.viewer.getColor(cellname);
         var r = Math.round(255*r);
         var b = Math.round(255*b);
         var g = Math.round(255*g);
@@ -855,11 +794,11 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
           showInput: true,
           move: function(color){
             const {r, g, b} = color.toRgb();
-            self.viewer.setColor(mapname, {r:r/255., g:g/255., b:b/255.});
+            self.viewer.setColor(cellname, {r:r/255., g:g/255., b:b/255.});
           }
         });
       },
-      userData: mapname,
+      userData: cellname,
     }
   };
 
@@ -870,21 +809,14 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       imgSrc: 'images/hidden.png', // starting image
       // see also loadMap in MapViewer, .. default visibilities
       // which sets remarks to be hidden by default
-      // mapname is cell name..
-      onClick : function(image,mapname){
-        //if (self.viewer.maps[mapname].remarks.length === 0) {
-        //  console.log('no remarks');
-        //  return;
-        //}
-
-        //self.viewer._toggleRemarks(mapname);
-        self.viewer.toggleRemarksByCell(mapname);
-        let visible = self.viewer.maps[mapname].remarksGrp.visible;
+      onClick : function(image,cellname){
+        self.viewer.toggleRemarksByCell(cellname);
+        let visible = self.viewer.maps[cellname].remarksGrp.visible;
         image.src = visible ? 'images/visible.png' : 'images/hidden.png';
         console.log('remarks: ', visible);
       },
       title : 'Show/Hide remarks',
-      userData: mapname
+      userData: cellname
     }
   };
 
@@ -894,12 +826,11 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       open : 'images/info.png',//'\u{1F6C8}',
       close: 'images/info.png',//'\u{1F6C8}',
       title: 'WormAtlas',
-      //onOpen : function(content,mapName){
       onOpen : function(content) {
         var url = walink;
         self.OpenInfoDialog(url,'WormAtlas');
       },
-      userData: mapname,
+      userData: cellname,
     }
   };  
 
@@ -909,13 +840,12 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       open : 'images/info.png',
       close: 'images/info.png',
       title: 'Synaptic partners',
-      //onOpen : function(content,mapName){
       onOpen : function(content) {
         const series = self.GetSeriesFromHTML();
-        const url = `../partnerList/?continName=${mapname}&series=${series}`;
+        const url = `../partnerList/?continName=${cellname}&series=${series}`;
         self.OpenInfoDialog(url,'Synaptic partners');
       },
-      userData: mapname,
+      userData: cellname,
     }
   }; 
 
@@ -925,23 +855,21 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
       open : 'images/info.png',
       close: 'images/info.png',
       title: 'Synapes',
-      //onOpen : function(content,mapname){
       onOpen : function(content) {
         const series = self.GetSeriesFromHTML();
-        const url = `../synapseList/?continName=${mapname}&series=${series}`;
+        const url = `../synapseList/?continName=${cellname}&series=${series}`;
         self.OpenInfoDialog(url,'Synapse list');
       },
-      userData: mapname,
+      userData: cellname,
     }
   };
 
   // see Importers in apps/include/importers.js
-  menuObj.AddSubItem(mapsMenuItem,mapname,{
+  menuObj.AddSubItem(mapsMenuItem,cellname,{
     openCloseButton:{
       visible : false,
       open: 'images/info.png',
       close: 'images/info.png',
-      //onOpen : function(content,mapName){
       onOpen : function(content) {
         // perhaps it's good to have onClose to clear stuff instead of here
         while(content.lastChild){
@@ -956,7 +884,7 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         menuObj.AddSubItem(content,'Synapse list',synapseListparams);
       },
       title : 'Show/Hide Information',
-      userData : mapname,
+      userData : cellname,
     },
     userButton : {
       //visible : true, // is not even used..
@@ -977,38 +905,21 @@ ImporterApp.prototype.LoadMapMenu = function(mapname,walink)
         //self.viewer._toggleRemarks(modelName,bool=false);
       },
       title : 'Show/Hide map',
-      userData : mapname,
+      userData : cellname,
     }
   });
 }
 
-/*
- * retrieves cells of given series/db from selectorCells.php
- * and stores in this.selectedNeurons
- */
-ImporterApp.prototype.SetCellSelector = function()
-{
-  var self = this;
-  var sex = document.getElementById('sex-selector').value
-  var db = document.getElementById('series-selector').value;  
-  var xhttp = new XMLHttpRequest();    
-  var url = '../php/selectorCells.php?sex='+sex+'&db='+db;
-  console.log(`SetCellSelector getting selectorCells from url ${url}`);
-  xhttp.onreadystatechange = function(){
-    if (this.readyState == 4 && this.status == 200){
-      self.selectedNeurons = JSON.parse(this.responseText);
-      //console.log(self.selectedNeurons);
-    };
-  };
-  xhttp.open("GET",url,true);
-  xhttp.send();  
-};
 
 /*
  * adds the entries in the Cell Selector Dialog
  * celltype = Neurons or Muscles
- * called by NeuronSelectorDialog, i.e. when click on 'Select neuron'
- * html structure (celltype='Neurons'):
+ * called by CellSelectorDialog, i.e. when click on 'Select neuron'
+ * each cell is in one div, with class 'cellDiv',
+ * when click, adds class 'cellDivSelected';
+ * we used this in CellSelectorDialog to get selected cells
+ *
+ * html structure (for celltype='neuron'):
  *  <div> // bigDiv
  *    <button> // header
  *      Neurons
@@ -1018,48 +929,48 @@ ImporterApp.prototype.SetCellSelector = function()
  *    </div>
  *  </div>
  */
-//ImporterApp.prototype.AddSelectPanel = function(parent,celltype) {
 ImporterApp.prototype.AddSelectPanel = function(celltype) {
-  const self = this;
-
   const bigDiv = document.createElement('div');
 
   // large button, click to expand/collapse list
-  const header = document.createElement('button');
-  header.classList.add('panel-header');
-  header.setAttribute('type','button');
-  header.setAttribute('data-toggle','collapse');
-  header.setAttribute('data-target','#'+celltype);
-  header.innerHTML = celltype;
+  const panelHeader = document.createElement('button');
+  panelHeader.classList.add('panel-header');
+  //panelHeader.setAttribute('type','button');
+  //panelHeader.setAttribute('data-toggle','collapse');
+  //panelHeader.setAttribute('data-target','#'+celltype);
+  panelHeader.innerHTML = celltype === 'neuron' ? 'Neurons' : 'Muscles';
+  // add onclick attribute after panel
 
   // div containing the cell entries
   const panel = document.createElement('div');
-  panel.id = celltype;
-  panel.classList.add('collapse');
+  panel.style.display = 'none';
+  //panel.classList.add('collapse');
   // add cell entries to panel div
-  for (const cell in this.selectedNeurons[celltype]){
+  for (const cell of this.cellsInSlctdSrs[celltype]){
     const cellDiv = document.createElement('div');
     cellDiv.classList.add('cellDiv');
     //cellDiv.id = cell;
+    cellDiv.value = cell;
     cellDiv.innerHTML = cell;
     panel.appendChild(cellDiv);
 
     // highlight if previously selected/loaded this cell
-    if ( this.selectedNeurons[celltype][cell].visible == 1
-        || this.data.hasOwnProperty(cell) ) {
+    if ( this.viewer.maps.hasOwnProperty(cell) ) {
       cellDiv.classList.add('cellDivSelected');
     }
 
     // toggle selectedness
     cellDiv.onclick = () => {
-      self.selectedNeurons[celltype][cell].visible = 
-        !self.selectedNeurons[celltype][cell].visible;
       cellDiv.classList.toggle('cellDivSelected');
     };
-
   };
 
-  bigDiv.appendChild(header);
+  panelHeader.onclick = () => {
+    const disp = panel.style.display;
+    panel.style.display = (disp === 'none') ? 'block' : 'none';
+  };
+
+  bigDiv.appendChild(panelHeader);
   bigDiv.appendChild(panel);
 
   return bigDiv;
@@ -1068,11 +979,6 @@ ImporterApp.prototype.AddSelectPanel = function(celltype) {
 ImporterApp.prototype.SetDB = function(_db)
 {
     this.db = _db;
-}
-
-ImporterApp.prototype.SetCell = function(_cell)
-{
-    this.selectedCell = _cell;
 }
 
 ImporterApp.prototype.HelpButton = function()
@@ -1089,41 +995,6 @@ ImporterApp.prototype.HelpButton = function()
   return HelpText;
 }
 
-
-/*
- * no one seems to call this
- */
-ImporterApp.prototype.NeuronSelector = function()
-{
-  var VolSelectorText = [
-    '<div class="cellclass-heading',
-    '<a class="cellclass" data-toggle="neurons" href="#neurons">Neurons</a>',
-  ].join(''); // no </div>?
-    
-  return VolSelectorText;
-};
-
-/*
- * what does this do??
- * asks for some cells, then push to validCells,
- * but no one else uses validCells??
- */
-ImporterApp.prototype.GetCellDisplay = function()
-{
-  var self = this;
-  var oReq = new XMLHttpRequest();
-  oReq.addEventListener("load",function(){
-    var list = this.responseText.split('\n');
-    for (l of list){
-      var tmp = l.split(',');
-      for (_tmp of tmp){
-        self.validCells.push(_tmp);
-      }
-    }
-  });
-  //oReq.open("GET","./models/volcells.txt");
-  //oReq.send();
-}
 
 
 ImporterApp.prototype.Resize = function ()
@@ -1149,7 +1020,7 @@ ImporterApp.prototype.Resize = function ()
 
   let top = document.getElementById ('top'); // 'Help' etc
   let left = document.getElementById ('left');
-  let canvas = document.getElementById ('meshviewer');
+  let canvas = this.GetCanvasElem();
 
   let height = window.innerHeight - top.offsetHeight - headerNav.offsetHeight - headerNavCollapse.offsetHeight - 10;
  
@@ -1164,6 +1035,7 @@ ImporterApp.prototype.Resize = function ()
   SetWidth (canvas, document.body.clientWidth - left.offsetWidth);
   
   this.dialog.Resize();
+  this.viewer.resizeDisplayGL();
 };
 
 /*
@@ -1172,6 +1044,8 @@ ImporterApp.prototype.Resize = function ()
  * each created and returned by AddDefaultGroup
  *
  * all the action happens at the end of the function
+ *
+ * takes the place of GenerateMenu in importerapp.js
  */
 ImporterApp.prototype.GenerateMenu = function()
 {
@@ -1190,41 +1064,6 @@ ImporterApp.prototype.GenerateMenu = function()
   //  return group;
   //};
 
-  function AddSexSelector(menu,menuGrp,name) {
-    menu.AddSelector(menuGrp,name,{
-      options:[
-        {value:'herm',text:'Hermaphrodite'},
-        {value:'male',text:'Male'}
-      ],
-      onChange: function(){
-        var sex = document.getElementById('sex-selector').value;
-        var series = document.getElementById('series-selector')
-        while(series.length > 0){
-          series.remove(series.length-1);
-        };
-        for (var i=0;i<self.series[sex].length;i++){
-          var opt = document.createElement('option');
-          opt.value = self.series[sex][i].value;
-          opt.innerHTML = self.series[sex][i].text;
-          series.appendChild(opt);
-        };
-        self.SetCellSelector();
-      },
-      id : 'sex-selector'
-      //again this looks sketchy as there may be many with this id
-    });
-  };
-
-  function AddSeriesSelector(menu,menuGrp,name){
-    menu.AddSelector(menuGrp,name,{
-      options:self.series.herm,
-      onChange: () => {
-        document.dispatchEvent(new Event('dbChange'));
-        self.SetCellSelector();
-      },
-      id : 'series-selector'
-    });
-  };
 
   // menu item that displays synapse info when mouse hovers over synapse
   // this is achieved by emitting an event
@@ -1733,19 +1572,34 @@ ImporterApp.prototype.GetSynapseInfoContin2 = function() {
 
 
 
+/*=====================================================
+ * getters/setters
+ */
+
+ImporterApp.prototype.GetCanvasElem = function() {
+  return document.getElementById('meshviewer');
+};
+
 
 // series/sex get/set from/to HTML
+ImporterApp.prototype.GetSeriesElem = function() {
+  return document.getElementById('series-selector');
+};
 ImporterApp.prototype.GetSeriesFromHTML = function() {
-  return document.getElementById('series-selector').value;
+  const dbEl = this.GetSeriesElem();
+  return dbEl.value;
 };
 ImporterApp.prototype.SetSeriesToHTML = function(db) {
-  const dbEl = document.getElementById('series-selector');
+  const dbEl = this.GetSeriesElem();
   dbEl.value = db;
 };
-ImporterApp.prototype.GetSexFromHTML = function() {
-  return document.getElementById('sex-selector').value;
+// set series for the class
+ImporterApp.prototype.SetSeriesInternal = function(db) {
+  this.db = db;
+  this.cellsInSlctdSrs = celllistByDbType[db];
 };
-ImporterApp.prototype.SetSexToHTML = function(sex) {
-  const sexEl = document.getElementById('sex-selector');
-  sexEl.value = sex;
+
+// maps section (the div with class sectionContent)
+ImporterApp.prototype.GetMapsContentDiv = function() {
+  return document.getElementById('mapsSection');
 };

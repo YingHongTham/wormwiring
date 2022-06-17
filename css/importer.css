@@ -37,7 +37,10 @@ html, body
 	overflow : auto;
 }
 
-#logo
+/* kinda sketchy, the id 'logo' is put on multiple div's
+ * changed to class 'topItem' */
+/* #logo */
+.topItem
 {
 	color : #ffffff;
 	background : linear-gradient(#FF7AA9, #D1004A)  #E82F71;
@@ -219,3 +222,68 @@ a:hover
 {
     background-color:#00cc00;
 }
+
+
+/*============================================================
+ * stuff stolen from myself (node-mysql)
+ */
+
+/*
+ * Accordian menu
+ * adapted from https://www.w3schools.com/howto/howto_js_accordion.asp
+ * Each menu item is in a div class .accordianSection,
+ * which contains two divs, .sectionTitle and .sectionContent
+ * the .active class is added/removed from sectionTitle when clicked on
+ * (event handling added in the javascript, importer.js)
+ */
+
+ /* Style the buttons that are used to open and close the accordion panel */
+.accordianSection {
+	position: relative;
+  background-color: #C0C0C0;
+  cursor: pointer;
+  padding: 8px;
+  width: 200px;
+  text-align: left;
+  border: none;
+  outline: none;
+  transition: 0.4s;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.active, .sectionTitle:hover {
+  background-color: #A0A0A0;
+  text-align: left;
+}
+
+/* Style the accordion panel. Note: hidden by default */
+.sectionContent {
+  background-color: #D0D0D0;
+  display: block;
+  overflow: hidden;
+} 
+
+/* adds a (+) at the end of .sectionTitle */
+.sectionTitle::after {
+  content: '\02795'; /* Unicode character for "plus" sign (+) */
+  float: right;
+}
+
+
+/* adds a (-) at the end of .active */
+.active::after {
+  content: "\2796"; /* Unicode character for "minus" sign (-) */
+}
+
+/* The +/- and active should be handled by js, confusing */
+.sectionTitleNew:hover {
+  background-color: #ccc;
+  text-align: left;
+}
+
+.plusminus {
+  float: right;
+  font-weight: bold;
+}
+
+

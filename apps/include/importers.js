@@ -53,6 +53,7 @@ ImporterButtons.prototype.AddLogo = function (title, onClick)
 {
 	var logoDiv = document.createElement ('div');
 	logoDiv.id = 'logo';
+  logoDiv.classList.add('topItem');
 	logoDiv.innerHTML = title;
 	logoDiv.onclick = onClick;
 	this.parent.appendChild (logoDiv);

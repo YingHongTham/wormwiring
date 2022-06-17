@@ -11,7 +11,7 @@
  *  viewer = new MapViewer(canvas, {
  *    menuObj: this.menuObj, // not used??
  *    menuGroup: this.menuGroup, // not used??
- *    synClick: this.InfoDialog,
+ *    synClick: this.OpenInfoDialog, // not used??
  *    app: this,
  * });
  */
