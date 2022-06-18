@@ -762,13 +762,15 @@ MapViewer.prototype.loadMap2 = function(data)
    *      contin: 3860,
    *      zLow: syn.zLow, // lowest and highest z of synapse
    *      zHigh: syn.zHigh,
-   *      cellname: this = maps[cellname]
+   *      cellname: cell on which this synapse is shown
+   *        (i.e. this is part of self.maps[cellname])
    *      partner: other cell(s) on other side of synapse
    *        (if we have RICL -> AVAL,ADAL
    *        and cellname = ADAL (so type = post),
    *        then partner is just RICL)
    *      obj: object that synapse is attached to
    *        (use its coordinates to position synapse sphere)
+   *      sphere: THREE Object
    *    },
    *    ...
    *  }
@@ -1520,10 +1522,92 @@ MapViewer.prototype.toggleSkeleton = function(name, visible=null)
   this.maps[name].skeletonGrp.visible = visible;
 };
 
+/*
+ * filter synapses from view
+ * performed on all cells
+ *
+ * note that this operation is subtractive only
+ * in that if previously we applied a filter,
+ * we do not automatically restore visibility of a synapse
+ * if it is not filtered by the new filter
+ *
+ * @param {Array} typesSelected - 'pre','post', and/or 'gap'
+ * @param {Array} cells - cells which a synapse should touch
+ *  at least one of
+ * @param {Array} contins - strictest, only show synapses in this list
+ *
+ * in each of the variables, if the array given is empty,
+ * then we do not filter based on that
+ */
+MapViewer.prototype.FilterSynapses = function(typesSelected, cells, contins) {
+  this.FilterSynapsesByType(typesSelected);
+  this.FilterSynapsesByCells(cells);
+  this.FilterSynapsesByContins(contins);
+};
+MapViewer.prototype.FilterSynapsesByType = function(typesSelected) {
+  if (typesSelected.length === 0) return;
+  for (const cell in this.maps) {
+    for (const type of ['pre','post','gap']) {
+      if (!typesSelected.includes(type)) {
+        this.maps[cell][type+'Grp'].visible = false;
+      }
+    }
+  }
+};
+MapViewer.prototype.FilterSynapsesByCells = function(cells) {
+  const self = this;
+  cells = cells.filter(c =>
+    this.menu.app.cellsInSlctdSrs.neuron.includes(c)
+    || this.menu.app.cellsInSlctdSrs.muscle.includes(c));
+  if (cells.length === 0) return;
+  const cellsSet = new Set(cells);
+  for (const cell in this.maps) {
+    for (const contin in this.maps[cell].allSynData) {
+      const syn = this.maps[cell].allSynData[contin];
+      const synCells = [syn.pre].concat(syn.post.split(','));
+
+      let isBad = true;
+      for (const c of synCells) {
+        if (cellsSet.has(c)) {
+          isBad = false;
+          break;
+        }
+      }
+      if (isBad) {
+        syn.sphere.visible = false;
+      }
+    }
+  }
+};
+MapViewer.prototype.FilterSynapsesByContins = function(contins) {
+  if (contins.length === 0) return;
+  for (const cell in this.maps) {
+    for (const contin in this.maps[cell].allSynData) {
+      const continNum = parseInt(contin);
+      if (!contins.includes(continNum)) {
+        this.maps[cell].allSynData[contin].sphere.visible = false;
+      }
+    }
+  }
+};
+// a bit different from old methods of toggleAllSynapses etc
+// because in FilterSynapses, affect visibility of both
+// the groups (preGrp etc) and individual sphere objects
+MapViewer.prototype.RestoreSynapses = function() {
+  for (const cell in this.maps) {
+    const map = this.maps[cell];
+    map.preGrp.visible = true;
+    map.postGrp.visible = true;
+    map.gapGrp.visible = true;
+    for (const contin in map.allSynData) {
+      map.allSynData[contin].sphere.visible = true;
+    }
+  }
+};
 
 MapViewer.prototype.toggleAllSynapses = function(visible=null)
 {
-  for (var name in this.maps){
+  for (const name in this.maps){
     this.toggleSynapses(name,visible);
   }
 };
@@ -1623,12 +1707,18 @@ MapViewer.prototype._toggleRemarks = function(name,bool=null)
   }
 };
 
-MapViewer.prototype.toggleGrid = function() {
-  this.gridHelper.visible = !this.gridHelper.visible;
+MapViewer.prototype.toggleGrid = function(bool=null) {
+  if (typeof(bool) !== 'boolean') {
+    bool = !this.gridHelper.visible;
+  }
+  this.gridHelper.visible = bool;
 };
 
-MapViewer.prototype.toggleAxes = function() {
-  this.axesText.visible = !this.axesText.visible;
+MapViewer.prototype.toggleAxes = function(bool=null) {
+  if (typeof(bool) !== 'boolean') {
+    bool = !this.axesText.visible;
+  }
+  this.axesText.visible = bool;
 };
 
 MapViewer.prototype.toggleAllSynapseLabels = function(bool=null) {

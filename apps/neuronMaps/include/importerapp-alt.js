@@ -19,7 +19,7 @@
  *
  * Resizing:
  * we added an event listener for 'resizeAll' to document
- * which calls the Reisze method
+ * which calls the Resize method
  * e.g. used by navigation collapsing
  *
  *
@@ -69,15 +69,15 @@ ImporterApp = function (params)
   this.synapseInfoClicked = Object.assign({}, this.defaultSynapseInfo);
   this.synapseClicked = { cellname: null, contin: null };
 
-  // but wait, there's more...
-  // many more members defined in Init()
-
   // object dealing with the viewer inside canvas
   this.viewer = null; // initialized properly in Init()
 
   // the small floating window in which
   // help/selector/2Dviewer/synapseviewer is shown
   this.dialog = new FloatingDialog();
+
+  // more intialization; but no new member variables declared
+  this.Init();
 };
 
 
@@ -88,9 +88,24 @@ ImporterApp = function (params)
  */
 ImporterApp.prototype.Init = function ()
 {
+  this.InitLinkFunctionalityWithHTML();
+  this.InitViewerStuff();
+
+  // now we 'preload' cell from build_neuronMaps.js
+  //if (this.PreloadParamsLoaded()){
+  //  this.PreloadCells2();
+  //}
+};
+
+
+ImporterApp.prototype.InitViewerStuff = function() {
+  // need to resize canvas before init viewer
+  // since initially canvas.width and height are 0
+  this.ResizeOnlyCanvasLeft();
+
   const self = this;
 
-  if (!Detector.webgl){
+  if (!Detector.webgl) {
     var warning = Detector.getWebGLErrorMessage();
     console.log(warning);
     //alert(warning);
@@ -99,50 +114,38 @@ ImporterApp.prototype.Init = function ()
 
   const canvas = this.GetCanvasElem();
   
-  //this.GenerateMenu();
-  
   this.viewer = new MapViewer(canvas, {
     app: this, // YH so viewer can refer back
   });
   this.viewer.initGL();
   
-  //const resizeWindow = function(){
-  //  viewer.resizeDisplayGL();
-  //};
-    
-  this.Resize();
-
-  var render = function(){
+  let render = function() {
     requestAnimationFrame(render);
     // TODO make animating/pausing part of MapViewer class
     self.viewer.render();
   };
   render();
   
-  if (this.PreloadParamsLoaded()){
-    this.PreloadCells2();
-  }
-
   window.addEventListener('resize', () => {
     self.Resize();
-    //resizeWindow();
   },false);
 
-  document.addEventListener('loadMapComplete', (ev) => {
-    console.log(`${ev.detail} loaded into viewer`);
-  });
+  // no need for now
+  //document.addEventListener('loadMapComplete', (ev) => {
+  //  console.log(`${ev.detail} loaded into viewer`);
+  //});
 
-  document.addEventListener('resizeAll', (ev) => {
-    self.Resize();
-  });
+  // no need? resize should be from window
+  //document.addEventListener('resizeAll', (ev) => {
+  //  self.Resize();
+  //});
   
-  this.LinkFunctionalityWithHTML();
 };
 
 /*
  * making the buttons and menu work
  */
-ImporterApp.prototype.LinkFunctionalityWithHTML = function() {
+ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   const self = this;
 
   // set up the top menu, Help, cell selector etc.
@@ -183,6 +186,29 @@ ImporterApp.prototype.LinkFunctionalityWithHTML = function() {
     self.SetSeriesInternal(newDb);
   };
 
+  // link buttons in Synapse Info
+  const openSynapseEMViewer = document.getElementById('openSynapseEMViewer');
+  openSynapseEMViewer.onclick = () => {
+    const cellname = self.synapseClicked.cellname;
+    const contin = self.synapseClicked.contin;
+    if (contin === null) return;
+    const db = self.db;
+    const url = `/apps/synapseViewer/?neuron=${cellname}&db=${db}&continNum=${contin}`;
+    const a = document.createElement('a');
+    a.target = '_blank';
+    a.href = url;
+    a.click();
+  };
+  const centerViewOnSynapse = document.getElementById('centerViewOnSynapse');
+  centerViewOnSynapse.onclick = () => {
+    const cellname = self.synapseClicked.cellname;
+    const contin = self.synapseClicked.contin;
+    if (contin === null) return;
+    const obj = self.viewer.SynapseContinToObj(cellname, contin);
+    const pos = self.viewer.GetObjCoordActual(cellname, obj);
+    self.viewer.SetCameraTarget(pos);
+  };
+
   // link synapse filter, add button functionality
   const synFilterBtnFilter = document.getElementById('synFilterBtnFilter');
   synFilterBtnFilter.onclick = () => {
@@ -200,13 +226,13 @@ ImporterApp.prototype.LinkFunctionalityWithHTML = function() {
     let continsStr = synFilterContins.value.split(',');
     let contins = [];
     for (const cStr of continsStr) {
-      let c= parseInt(cStr);
+      let c = parseInt(cStr);
       if (!isNaN(c))
         contins.push(c);
     }
 
-    // TODO make mapViewer respond
     console.log(typesSelected, cells, contins);
+    self.viewer.FilterSynapses(typesSelected, cells, contins);
   };
 
   // Restore
@@ -223,7 +249,7 @@ ImporterApp.prototype.LinkFunctionalityWithHTML = function() {
     const synFilterContins = document.getElementById('synFilterContins');
     synFilterContins.value = '';
 
-    //TODO make mapViewer respond
+    self.viewer.RestoreSynapses();
   };
 
 
@@ -240,16 +266,45 @@ ImporterApp.prototype.LinkFunctionalityWithHTML = function() {
       pos[i] = val;
     }
     self.viewer.translateMapsTo(pos.x,pos.y,pos.z);
-  };
+  }
   for (const i of ['x','y','z']) {
-    console.log(i+'-slider');
     const slider = document.getElementById(i+'-slider');
     slider.onchange = MapsTranslateSliderOnChange;
     slider.oninput = slider.onchange;
   };
 
-
+  // link Global Viewer Options
+  const btnToggleGrid = document.getElementById('btnToggleGrid');
+  btnToggleGrid.onclick = () => {
+    const on = btnToggleGrid.value === 'on';
+    btnToggleGrid.value = !on ? 'on' : 'off';
+    btnToggleGrid.innerHTML = !on ? 'Hide Grid' : 'Show Grid';
+    self.viewer.toggleGrid(!on);
+  };
+  const btnToggleAxes = document.getElementById('btnToggleAxes');
+  btnToggleAxes.onclick = () => {
+    const on = btnToggleAxes.value === 'on';
+    btnToggleAxes.value = !on ? 'on' : 'off';
+    btnToggleAxes.innerHTML = !on ? 'Hide Axes' : 'Show Axes';
+    self.viewer.toggleAxes(!on);
+  };
+  const btnToggleAllRmks = document.getElementById('btnToggleAllRmks');
+  btnToggleAllRmks.onclick = () => {
+    const on = btnToggleAllRmks.value === 'on';
+    btnToggleAllRmks.value = !on ? 'on' : 'off';
+    btnToggleAllRmks.innerHTML = !on ? 'Hide All Remarks' : 'Show All Remarks';
+    self.viewer.toggleAllRemarks(!on);
+  };
+  const btnToggleAllSynLabels = document.getElementById('btnToggleAllSynLabels');
+  btnToggleAllSynLabels.onclick = () => {
+    const on = btnToggleAllSynLabels.value === 'on';
+    btnToggleAllSynLabels.value = !on ? 'on' : 'off';
+    btnToggleAllSynLabels.innerHTML = !on ? 'Hide All Synapse Labels' : 'Show All Synapse Labels';
+    self.viewer.toggleAllSynapseLabels(!on);
+  };
 };
+
+
 
 // YH
 ImporterApp.prototype.AddLoadSave = function() {
@@ -370,21 +425,21 @@ ImporterApp.prototype.SaveToFile = function() {
   a.click();
 };
 
-// recall that the params here are a bit different from
-// those given in url;
-// see build_neuronMaps.js for how it was preprocessed
-ImporterApp.prototype.PreloadParamsLoaded = function() {
-  return 'cell' in this.params
-      && 'db' in this.params
-      && 'sex' in this.params;
-};
+// no longer needed, preloading handled by build_neuronMaps.js
+//// recall that the params here are a bit different from
+//// those given in url;
+//// see build_neuronMaps.js for how it was preprocessed
+//ImporterApp.prototype.PreloadParamsLoaded = function() {
+//  return 'cell' in this.params
+//      && 'db' in this.params
+//      && 'sex' in this.params;
+//};
 
-// loads cell given in url
-// new method, gets cell lists from a JS file
-ImporterApp.prototype.PreloadCells2 = function()
+
+ImporterApp.prototype.PreloadCells2 = function(db, cell)
 {
-  const db = this.params.db;
-  const cell = this.params.cell;
+  //const db = this.params.db;
+  //const cell = this.params.cell;
 
   // update the series selector in menu
   this.SetSeriesToHTML(db);
@@ -392,7 +447,7 @@ ImporterApp.prototype.PreloadCells2 = function()
   //this.cellsInSlctdSrs = celllistByDbType[db];
 
   this.LoadMap2(db,cell);
-  this.LoadMapMenu2(cell);
+  //this.LoadMapMenu2(cell); // put into LoadMap2
 };
 
 
@@ -546,6 +601,9 @@ ImporterApp.prototype.OpenInfoDialog = function(url,title)
  * which sends request to php for the neuron data,
  * skeleton, synapses etc
  *
+ * use adding cellDivSelected class to cellDiv's
+ * as means of identifying selected cells
+ *
  * old: NeuronSelectorDialog
  *
  * now using LoadMap2 instead of LoadMap
@@ -558,7 +616,7 @@ ImporterApp.prototype.CellSelectorDialog = function()
     title : 'Cell Selector',
     //text : dialogText,
     buttons : [{
-      // loads selected cells (indicated by visible=1,plotted=0)
+      // loads selected cells
       text : 'load',
       callback : function (dialog) {
         const series = self.GetSeriesFromHTML();
@@ -567,18 +625,10 @@ ImporterApp.prototype.CellSelectorDialog = function()
         );
         selectedCells.forEach( el => {
           const cell = el.value;
+          console.log('dialog: ', cell);
           self.LoadMap2(series,cell);
-          self.LoadMapMenu(cell,cellnameToWALink(cell));
+          //self.LoadMapMenu2(cell); // putinto LoadMap2
         });
-        //for (const celltype in self.cellsInSlctdSrs){
-        //  for (const cell of self.cellsInSlctdSrs[celltype]){
-        //    if (!self.viewer.maps.hasOwnProperty(cell)) {
-        //      console.log(cell,cellnameToWALink(cell));
-        //      //self.LoadMap2(series,cell);
-        //      //self.LoadMapMenu(cell,cellnameToWALink(cell));
-        //    }
-        //  }
-        //}
         self.dialog.Close();
       }
     }, {
@@ -586,8 +636,7 @@ ImporterApp.prototype.CellSelectorDialog = function()
       callback : function (dialog) {
         self.dialog.Close();
       }
-    }
-    ]
+    }],
   });
 
   //adds cells from selected database to the dialog
@@ -635,63 +684,7 @@ ImporterApp.prototype.ClearMaps = function() {
       //}
     }
   }
-}
-
-/*
- * calls php to ask mysql for synapses and stuff
- * and loads it to viewer by its method loadMap
- * @param {string} mapname: neuron/muscle name that we want
- * @param {string} db: database from which to select
- *
- * does not create entry in menu on the left,
- * that's handled by LoadMapMenu (see CellSelectorDialog)
- *
- * I don't like how neurons, and all it's traces, positions etc
- * are stored twice, once in ImporterApp (.data)
- * and another time in mapViewer.
- * Store it once!
- *
- * after loadMap into viewer, center view on neuron
- *
- * YH
- * modified retrieve_trace_coord.php to return
- * some data about OBJ_Remarks
- * also added emitting event when loaded
- */
-ImporterApp.prototype.LoadMap = function(db,mapname)
-{
-  var self = this;
-  console.log(db + ', ' + mapname);
-  var url = '../php/retrieve_trace_coord.php?neuron='+mapname+'&db='+db;
-  console.log('retrieving skeleton map via '+url);
-  var xhttp = new XMLHttpRequest();    
-  console.time(`Retrieve ${mapname}`);
-  xhttp.onreadystatechange = function(){
-    if (this.readyState == 4 && this.status == 200){
-      console.timeEnd(`Retrieve ${mapname}`);
-      console.time(`Load to viewer ${mapname}`);
-
-      //console.log(this.responseText);
-
-      self.data[mapname] = JSON.parse(this.responseText);
-      self.viewer.loadMap(self.data[mapname]);
-      // (also translates cell by slider data)
-
-      // put these into loadMap since that's sync
-      //self.viewer.translateOneMapsToThisPos(mapname);
-      //self.viewer.SetCameraTarget(self.viewer.GetAveragePosition(mapname));
-
-      console.timeEnd(`Load to viewer ${mapname}`);
-
-      // YH maybe don't need this
-      document.dispatchEvent(new CustomEvent('loadMapComplete', {
-        detail: mapname,
-      }));
-    }
-  };
-  xhttp.open("GET",url,true);
-  xhttp.send();
-}
+};
 
 
 /*
@@ -704,27 +697,22 @@ ImporterApp.prototype.LoadMap = function(db,mapname)
  */
 ImporterApp.prototype.LoadMap2 = function(db,cell)
 {
-  const main_this = this;
+  const self = this;
   const url = `../php/retrieve_trace_coord_alt.php?db=${db}&cell=${cell}`;
   console.log('retrieving skeleton map via '+url);
   const xhttp = new XMLHttpRequest();    
   console.time(`Retrieve ${cell}`);
   xhttp.onreadystatechange = function(){
     if (this.readyState == 4 && this.status == 200){
-      //console.timeEnd(`Retrieve ${cell}`);
-      //console.time(`Load to viewer ${cell}`);
+      console.timeEnd(`Retrieve ${cell}`);
+      console.time(`Load to viewer ${cell}`);
 
-      //console.log(this.responseText);
       let data = JSON.parse(this.responseText);
-      main_this.viewer.loadMap2(data);
-      data = {};
-      // some of loadMap2 might take stuff
-      // from data by reference,
-      // so set to {} to avoid affecting that
+      self.viewer.loadMap2(data);
+      self.LoadMapMenu2(cell);
 
-      //console.timeEnd(`Load to viewer ${cell}`);
+      console.timeEnd(`Load to viewer ${cell}`);
 
-      //// YH maybe don't need this
       //document.dispatchEvent(new CustomEvent('loadMapComplete', {
       //  detail: cell,
       //}));
@@ -760,18 +748,20 @@ ImporterApp.prototype.LoadMapCallback = function(db, mapname, callback)
   };
   xhttp.open("GET",url,true);
   xhttp.send();
-}
+};
 
 
 /*
  * loads menu entry for cell in 'Maps'
+ * assumes loadMap2 has been run
+ *
  * @param {String} cellname - name of cell
  *
  * each cell entry should be of the form:
  *  <div> // div
  *    <div>Cellname</div> // title
  *    <div> // content
- *      <button>Color</button>
+ *      <input type='color'>
  *      <button>Show Remarks</button>
  *      <button>WormAtlas</button>
  *      <button>Synaptic Partners</button>
@@ -792,15 +782,17 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   div.appendChild(title);
   div.appendChild(content);
 
-  const colorBtn = document.createElement('button');
-  const colorDiv = document.createElement('div');
+  //const colorBtn = document.createElement('button');
+  //const colorDiv = document.createElement('div');
+  const colorInput = document.createElement('Input');
   const remarksBtn = document.createElement('button');
   const walinkBtn = document.createElement('button');
   const parterListBtn = document.createElement('button');
   const synapseListBtn = document.createElement('button');
 
-  content.appendChild(colorBtn);
-  content.appendChild(colorDiv);
+  //content.appendChild(colorBtn);
+  //content.appendChild(colorDiv);
+  content.appendChild(colorInput);
   content.appendChild(remarksBtn);
   content.appendChild(walinkBtn);
   content.appendChild(parterListBtn);
@@ -811,7 +803,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   title.innerHTML = cellname;
 
   // add accordian functionality
-  // same as in LinkFunctionalityWithHTML
+  // same as in InitLinkFunctionalityWithHTML
   div.classList.add('accordianSection');
   title.classList.add('sectioinTitle');
   title.classList.add('inactive'); // default content hidden
@@ -826,54 +818,76 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
     title.classList.toggle('inactive', active);
   };
 
-  colorBtn.innerHTML = 'Set Color';
-  colorBtn.value = 'close';
-  colorDiv.style.display = 'none';
-  colorBtn.onclick = () => {
-    const isOpen = colorBtn.value === 'close' ? false : true;
-    if (isOpen) {
-      // perform close, delete everything in colorDiv
-      colorBtn.value = 'close';
-      colorDiv.style.display = 'none';
-      while(colorDiv.lastChild){
-        colorDiv.removeChild(colorDiv.lastChild);
-      };
-      return;
-    }
-    // perform open, create color input
-    colorBtn.value = 'open';
-    colorDiv.style.display = 'block';
+  // now do each item in content
+  // color input
+  colorInput.type = 'color';
 
-    if (!self.viewer.isCellLoaded(cellname)) {
-      colorDiv.innerHTML = 'Cell not loaded';
-      return;
-    }
+  // get color of cell, transform to appropriate format
+  let {r, g, b} = self.viewer.getColor(cellname);
+  r = Math.round(255*r);
+  b = Math.round(255*b);
+  g = Math.round(255*g);
+  let rgb = b | (g << 8) | (r << 16);
+  let hex = '#' + rgb.toString(16);
 
-    const colorInput = document.createElement('input');
-    colorDiv.appendChild(colorInput);
+  colorInput.setAttribute('value',hex);
+  colorInput.addEventListener('change', (ev) => {
+    const color = ev.target.value;
+    let {r, g, b} = hexToRGB(color);
+    self.viewer.setColor(cellname,
+      {r:r/255., g:g/255., b:b/255.});
+  }, false);
+  
 
-    // class no CSS, but used below
-    colorInput.classList.add('colorSelector');
-    colorInput.type = 'color';
 
-    // get color of cell, transform to appropriate format
-    let {r, g, b} = self.viewer.getColor(cellname);
-    r = Math.round(255*r);
-    b = Math.round(255*b);
-    g = Math.round(255*g);
-    let rgb = b | (g << 8) | (r << 16);
-    let hex = '#' + rgb.toString(16);
+  //colorBtn.innerHTML = 'Set Color';
+  //colorBtn.value = 'close';
+  //colorDiv.style.display = 'none';
+  //colorBtn.onclick = () => {
+  //  const isOpen = colorBtn.value === 'close' ? false : true;
+  //  if (isOpen) {
+  //    // perform close, delete everything in colorDiv
+  //    colorBtn.value = 'close';
+  //    colorDiv.style.display = 'none';
+  //    while(colorDiv.lastChild){
+  //      colorDiv.removeChild(colorDiv.lastChild);
+  //    };
+  //    return;
+  //  }
+  //  // perform open, create color input
+  //  colorBtn.value = 'open';
+  //  colorDiv.style.display = 'block';
 
-    colorInput.setAttribute('value',hex);
-    colorInput.spectrum({
-      preferredFormat: "rgb",
-      showInput: true,
-      move: function(color){
-        const {r, g, b} = color.toRgb();
-        self.viewer.setColor(cellname, {r:r/255., g:g/255., b:b/255.});
-      },
-    });
-  };
+  //  if (!self.viewer.isCellLoaded(cellname)) {
+  //    colorDiv.innerHTML = 'Cell not loaded';
+  //    return;
+  //  }
+
+  //  const colorInput = document.createElement('input');
+  //  colorDiv.appendChild(colorInput);
+
+  //  // class no CSS, but used below
+  //  colorInput.classList.add('colorSelector');
+  //  colorInput.type = 'color';
+
+  //  // get color of cell, transform to appropriate format
+  //  let {r, g, b} = self.viewer.getColor(cellname);
+  //  r = Math.round(255*r);
+  //  b = Math.round(255*b);
+  //  g = Math.round(255*g);
+  //  let rgb = b | (g << 8) | (r << 16);
+  //  let hex = '#' + rgb.toString(16);
+
+  //  colorInput.setAttribute('value',hex);
+  //  colorInput.spectrum({
+  //    preferredFormat: "rgb",
+  //    showInput: true,
+  //    move: function(color){
+  //      const {r, g, b} = color.toRgb();
+  //      self.viewer.setColor(cellname, {r:r/255., g:g/255., b:b/255.});
+  //    },
+  //  });
+  //};
 
   // do remarks
   const remarkVis = this.viewer.isCellLoaded(cellname) ?
@@ -1199,9 +1213,7 @@ ImporterApp.prototype.HelpButton = function()
 }
 
 
-
-ImporterApp.prototype.Resize = function ()
-{
+ImporterApp.prototype.ResizeOnlyCanvasLeft = function () {
   function SetWidth (elem, value)
   {
     elem.width = value;
@@ -1217,26 +1229,21 @@ ImporterApp.prototype.Resize = function ()
   let headerNav = document.getElementById ('header-nav');
   let headerNavCollapse = document.getElementById ('collapse-header-nav');
 
-  // now both of these are under headerNav
-  //var headerimage = document.getElementById ('headerimage');
-  //var nav = document.getElementById ('nav');
-
   let top = document.getElementById ('top'); // 'Help' etc
   let left = document.getElementById ('left');
   let canvas = this.GetCanvasElem();
 
   let height = window.innerHeight - top.offsetHeight - headerNav.offsetHeight - headerNavCollapse.offsetHeight - 10;
- 
-  //var height = window.innerHeight - top.offsetHeight - headerimage.offsetHeight - nav.offsetHeight - 10;
 
-  SetHeight(canvas, 0);
-  //SetWidth (canvas, 0); ??
 
   SetHeight(left, height);
 
-  SetHeight(canvas, height);
   SetWidth(canvas, document.body.clientWidth - left.offsetWidth);
-  
+  SetHeight(canvas, height);
+};
+
+ImporterApp.prototype.Resize = function () {
+  this.ResizeOnlyCanvasLeft();
   this.dialog.Resize();
   this.viewer.resizeDisplayGL();
 };
@@ -1521,14 +1528,14 @@ ImporterApp.prototype.UpdateSynapseInfo2 = function(cellname,contin) {
   }
   const synData = this.viewer.GetSynData(cellname,contin);
   const pos = this.viewer.GetObjCoordAbsolute(cellname,synData.obj);
-  document.getElementById('cellname').innerHTML = cellname;
-  document.getElementById('syntype').innerHTML = synData.type;
-  document.getElementById('synsource').innerHTML = synData.pre;
-  document.getElementById('syntarget').innerHTML = synData.post;
-  document.getElementById('synweight').innerHTML = synData.zHigh - synData.zLow + 1;
-  document.getElementById('synsection').innerHTML = `(${synData.zLow},${synData.zHigh})`;
-  document.getElementById('syncontin').innerHTML = contin;
-  document.getElementById('synposition').innerHTML =
+  document.getElementById('synInfoCellname').innerHTML = cellname;
+  document.getElementById('synInfoType').innerHTML = synData.type;
+  document.getElementById('synInfoSource').innerHTML = synData.pre;
+  document.getElementById('synInfoTarget').innerHTML = synData.post;
+  document.getElementById('synInfoWeight').innerHTML = synData.zHigh - synData.zLow + 1;
+  document.getElementById('synInfoSections').innerHTML = `(${synData.zLow},${synData.zHigh})`;
+  document.getElementById('synInfoContin').innerHTML = contin;
+  document.getElementById('synInfoPosition').innerHTML =
     `x: ${pos.x}, y: ${pos.y}, z: ${pos.z}`;
 };
 
@@ -1539,14 +1546,14 @@ ImporterApp.prototype.UpdateSynapseInfo2 = function(cellname,contin) {
 ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
   this.synapseClicked.cellname = null;
   this.synapseClicked.contin = null;
-  document.getElementById('cellname').innerHTML = '---';
-  document.getElementById('syntype').innerHTML = '---';
-  document.getElementById('synsource').innerHTML = '---';
-  document.getElementById('syntarget').innerHTML = '---';
-  document.getElementById('synweight').innerHTML = '---';
-  document.getElementById('synsection').innerHTML = '---';
-  document.getElementById('syncontin').innerHTML = '---';
-  document.getElementById('synposition').innerHTML = '---';
+  document.getElementById('synInfoCellname').innerHTML = '---';
+  document.getElementById('synInfoType').innerHTML = '---';
+  document.getElementById('synInfoSource').innerHTML = '---';
+  document.getElementById('synInfoTarget').innerHTML = '---';
+  document.getElementById('synInfoWeight').innerHTML = '---';
+  document.getElementById('synInfoSections').innerHTML = '---';
+  document.getElementById('synInfoContin').innerHTML = '---';
+  document.getElementById('synInfoPosition').innerHTML = '---';
 };
 
 
@@ -1604,3 +1611,29 @@ ImporterApp.prototype.SetSeriesInternal = function(db) {
 ImporterApp.prototype.GetMapsContentDiv = function() {
   return document.getElementById('mapsContentDiv');
 };
+
+
+/*=======================================================
+ * auxiliary stuff
+ */
+
+// expect hexStr of form either:
+// #05f2Dc
+// #06d --> #0066dd
+function hexToRGB(hexStr) {
+  const rgb = { r: 0, g: 0, b: 0};
+  if (hexStr.length === 7) {
+    rgb.r = parseInt(hexStr[1] + hexStr[2], 16);
+    rgb.g = parseInt(hexStr[3] + hexStr[4], 16);
+    rgb.b = parseInt(hexStr[5] + hexStr[6], 16);
+  }
+  else if (hexStr.length === 4) {
+    rgb.r = parseInt(hexStr[1] + hexStr[1], 16);
+    rgb.g = parseInt(hexStr[2] + hexStr[2], 16);
+    rgb.b = parseInt(hexStr[3] + hexStr[3], 16);
+  }
+  else {
+    rgb = null;
+  }
+  return rgb;
+}

@@ -38,7 +38,9 @@ window.onload = function(){
     params.cell = params.neuron;
   }
 
-  // clear bad db value, and deduce sex from db
+  // fix db case, and deduce sex from db
+  // if db bad, delete from params
+  // sex no longer needed
   if (params.hasOwnProperty('db')) {
     params.db = params.db.toUpperCase();
     if (['N2U','JSE','N2W','JSH'].includes(params.db)) {
@@ -48,22 +50,26 @@ window.onload = function(){
       params.db = params.db.toLowerCase();
     }
     else {
-      params.db = '';
+      delete params.db;
     }
   }
-
-	// banner and wwnavbar no longer used
-	//    new ImporterWW("banner","wwnavbar");
 
   // used to be 'mousemove', seems a bit excessive
   window.addEventListener('mousedown', () => {
     window.dispatchEvent(new Event('resize'));
   });
 
-  // params, if url does have enough query data,
-  // will have keys db,sex,cell
-	const importerApp = new ImporterApp(params);
-	importerApp.Init();
+  //// params, if url does have enough query data,
+  //// will have keys db,sex,cell
+  //// old behaviour (see importerapp.js)
+  //
+  // changed behaviour, 'preload' cells from here
+	const importerApp = new ImporterApp();
+  if (params.hasOwnProperty('db')
+    && params.hasOwnProperty('cell')) {
+    importerApp.PreloadCells2(params.db, params.cell);
+  }
+
   // access importerApp in the console
 	window.importerApp = importerApp;
 };
