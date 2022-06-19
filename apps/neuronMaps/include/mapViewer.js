@@ -1013,14 +1013,9 @@ MapViewer.prototype.loadMap2 = function(data)
   };
 
   // translate cell by the slider values
-  // and update camera
+  // and update view/camera
   this.translateOneMapsToThisPos(map.name);
-  const avePos = this.GetAveragePosition2(map.name);
-  this.SetCameraTarget(avePos);
-  this.camera.position.x = avePos.x;
-  this.camera.position.y = avePos.y + 1000;
-  this.camera.position.z = avePos.z;
-  this.updateCamera();
+  this.CenterViewOnCell(map.name);
 };
 
 // TODO? pass cellType as optional value
@@ -1509,6 +1504,10 @@ MapViewer.prototype.toggleMaps = function(name, visible=null) {
   this.maps[name].allGrps.visible = visible;
 }
 
+MapViewer.prototype.mapIsVisible = function(name) {
+  return this.maps[name].allGrps.visible;
+};
+
 /*
  * used to be toggleMaps;
  * but then 'maps' is not used consistently,
@@ -1555,7 +1554,6 @@ MapViewer.prototype.FilterSynapsesByType = function(typesSelected) {
   }
 };
 MapViewer.prototype.FilterSynapsesByCells = function(cells) {
-  const self = this;
   cells = cells.filter(c =>
     this.menu.app.cellsInSlctdSrs.neuron.includes(c)
     || this.menu.app.cellsInSlctdSrs.muscle.includes(c));
@@ -1878,35 +1876,6 @@ MapViewer.prototype.SetCameraTarget = function(target) {
   this.updateCamera();
 };
 
-// get average position of cell, used for recentering view on LoadMap
-MapViewer.prototype.GetAveragePosition = function(name) {
-  const len = this.maps[name].skeletonGrp.children.length;
-  if (len === 0) {
-    return;
-  }
-  const tot = new THREE.Vector3(0,0,0);
-  for (const line of this.maps[name].skeletonGrp.children) {
-    const [v0, v1] = line.geometry.vertices;
-    tot.add(v0);
-    tot.add(v1);
-  }
-  //tot.scale(0.5 / len); // #vertices = 2*#lines
-  tot.x = tot.x * 0.5 / len;
-  tot.y = tot.y * 0.5 / len;
-  tot.z = tot.z * 0.5 / len;
-  console.log(tot);
-
-  // further translate by whatever allGrps was hit by
-  // (translateOneMapsToThisPos only affects the allGrps
-  // the parent group containing the skeleton)
-  allGrpsPos = this.maps[name].allGrps.position;
-  tot.x += allGrpsPos.x;
-  tot.y += allGrpsPos.y;
-  tot.z += allGrpsPos.z;
-
-  return tot;
-};
-
 // get average position of cell
 // used for recentering view on LoadMap2
 // new version
@@ -1965,6 +1934,15 @@ MapViewer.prototype.GetObjCoordActual = function(cellname,obj) {
     trans.z + coord.z);
 };
 
+
+MapViewer.prototype.CenterViewOnCell = function(cellname) {
+  const avePos = this.GetAveragePosition2(cellname);
+  this.SetCameraTarget(avePos);
+  this.camera.position.x = avePos.x;
+  this.camera.position.y = avePos.y + 1000;
+  this.camera.position.z = avePos.z;
+  this.updateCamera();
+};
 
 /*
  * loads cells into 2D Viewer with Cytoscape

@@ -1,27 +1,18 @@
 /*
- * ImporterMenu class from apps/include/importers.js
- * note confusing terminology, series can refer to database N2U etc
+ * new version of ImporterApp,
+ * where we expect index.html to have most of the elements,
+ * and we just need to link functionality to those elements
+ * TODO perhaps do the same to FloatingDialog to
+ *
+ * note confusing terminology:
+ * series can refer to database N2U etc
  * or also the regions of the worm, VC, NR etc..
+ * we try to use db for the former sense
  *
  * expect some libraries:
  * apps/include/floatingdialog.js - for FloatingDialog class
  *
- * css used: /css/importer.css
- *
- * note to self: viewer must be initialized after GenerateMenu()
- * because it needs references to the menu items...
- *
- * @param {Object} params - stuff from url
- * (e.g. when clicking on neuron from the Interactive Diagram,
- * opens the link https://wormwiring.org/apps/neuronMaps/?cell=RMDDR&sex=herm&db=N2U )
- *  this was preprocessed in build_neuronMaps.js
- *
- *
- * Resizing:
- * we added an event listener for 'resizeAll' to document
- * which calls the Resize method
- * e.g. used by navigation collapsing
- *
+ * css used: /css/importer.css (mostly?)
  *
  * finally changed selectedNeurons to cellsInSlctdSrs 
  * cellsInSlctdSrs is just two arrays
@@ -29,7 +20,7 @@
  */
 
 
-// requires /apps/include/cellLists.js, wa_link.js
+// requires /apps/include/cellLists.js, wa_link.js, etc.
 if (celllistByDbType === undefined) {
   console.error('expect cellLists.js');
 }
@@ -37,21 +28,24 @@ if (cellnameWALinkDict === undefined
     || cellnameToWALink === undefined) {
   console.error('expect wa_link.js');
 }
-
 if (helpDialogItems === undefined) {
   console.error('expect helpDialogItems.js');
 }
+if (typeof(FloatingDialog) === undefined) {
+  console.error('expect floatingdialog.js');
+}
 
-ImporterApp = function (params)
+ImporterApp = function()
 {
-  this.params = params;
   this.db = this.GetSeriesFromHTML();
-  this.validCells = []; //used by GetCellDisplay()
 
   // cellsInSlctdSrs are cells in selected db/series
   // appear in the cell selector dialog
   // { neuron: [...], muscle: [...] }
   this.cellsInSlctdSrs = celllistByDbType[this.db];
+
+  // actually user selected cells, unlike before
+  this.selectedCells = new Set();
 
   // starting value of the Synapse Info section
   // will be updated when a synapse is clicked
@@ -176,7 +170,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     };
   });
 
-
+  //=================================================
   // link series-selector to this.db and this.cellsInSlctdSrs
   // make the HTML the source/"ground truth" for db value
   const seriesSelector = this.GetSeriesElem();
@@ -186,6 +180,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     self.SetSeriesInternal(newDb);
   };
 
+  //=================================================
   // link buttons in Synapse Info
   const openSynapseEMViewer = document.getElementById('openSynapseEMViewer');
   openSynapseEMViewer.onclick = () => {
@@ -209,6 +204,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     self.viewer.SetCameraTarget(pos);
   };
 
+  //=================================================
   // link synapse filter, add button functionality
   const synFilterBtnFilter = document.getElementById('synFilterBtnFilter');
   synFilterBtnFilter.onclick = () => {
@@ -219,8 +215,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     });
 
     const synFilterCells = document.getElementById('synFilterCells');
-    let cells = synFilterCells.value.split(',');
-    // TODO clean spaces, make case insensitive
+    let cells = synFilterCells.value.replace(' ','').split(',');
 
     const synFilterContins = document.getElementById('synFilterContins');
     let continsStr = synFilterContins.value.split(',');
@@ -231,7 +226,6 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
         contins.push(c);
     }
 
-    console.log(typesSelected, cells, contins);
     self.viewer.FilterSynapses(typesSelected, cells, contins);
   };
 
@@ -253,7 +247,9 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   };
 
 
+  //=================================================
   // link Translate Maps sliders
+
   // give all three sliders same response to change:
   // set the shown value and apply viewer.translateMapsTo
   function MapsTranslateSliderOnChange() {
@@ -273,6 +269,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     slider.oninput = slider.onchange;
   };
 
+  //=================================================
   // link Global Viewer Options
   const btnToggleGrid = document.getElementById('btnToggleGrid');
   btnToggleGrid.onclick = () => {
@@ -625,7 +622,10 @@ ImporterApp.prototype.CellSelectorDialog = function()
         );
         selectedCells.forEach( el => {
           const cell = el.value;
-          console.log('dialog: ', cell);
+          if (self.selectedCells.has(cell)) {
+            return;
+          }
+          self.selectedCells.add(cell);
           self.LoadMap2(series,cell);
           //self.LoadMapMenu2(cell); // putinto LoadMap2
         });
@@ -697,6 +697,7 @@ ImporterApp.prototype.ClearMaps = function() {
  */
 ImporterApp.prototype.LoadMap2 = function(db,cell)
 {
+  this.selectedCells.add(cell);
   const self = this;
   const url = `../php/retrieve_trace_coord_alt.php?db=${db}&cell=${cell}`;
   console.log('retrieving skeleton map via '+url);
@@ -782,9 +783,13 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   div.appendChild(title);
   div.appendChild(content);
 
+  const image = document.createElement('img');
+  title.appendChild(image);
+
   //const colorBtn = document.createElement('button');
   //const colorDiv = document.createElement('div');
   const colorInput = document.createElement('Input');
+  const centerViewBtn = document.createElement('button');
   const remarksBtn = document.createElement('button');
   const walinkBtn = document.createElement('button');
   const parterListBtn = document.createElement('button');
@@ -793,6 +798,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   //content.appendChild(colorBtn);
   //content.appendChild(colorDiv);
   content.appendChild(colorInput);
+  content.appendChild(centerViewBtn);
   content.appendChild(remarksBtn);
   content.appendChild(walinkBtn);
   content.appendChild(parterListBtn);
@@ -800,12 +806,15 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
 
   // structure done,
   // now we customize the stuff/buttons
-  title.innerHTML = cellname;
+  title.append(cellname);
 
+	image.src = 'images/visible.png';
+
+  //===============================================
   // add accordian functionality
   // same as in InitLinkFunctionalityWithHTML
   div.classList.add('accordianSection');
-  title.classList.add('sectioinTitle');
+  title.classList.add('sectionTitle');
   title.classList.add('inactive'); // default content hidden
   content.classList.add('sectionContent');
   content.style.display = 'none'; // default content hidden
@@ -818,6 +827,16 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
     title.classList.toggle('inactive', active);
   };
 
+  //===============================================
+  // eye image for visibility
+  image.onclick = (e) => {
+    e.stopPropagation(); // prevent title being clicked
+    const vis = self.viewer.mapIsVisible(cellname);
+    self.viewer.toggleMaps(cellname, !vis);
+    image.src = vis ? 'images/hidden.png' : 'images/visible.png';
+  };
+
+  //===============================================
   // now do each item in content
   // color input
   colorInput.type = 'color';
@@ -837,62 +856,22 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
     self.viewer.setColor(cellname,
       {r:r/255., g:g/255., b:b/255.});
   }, false);
+
+
+  //===============================================
+  // button for centering view on cell
+  centerViewBtn.innerHTML = 'Center View';
+  centerViewBtn.onclick = () => {
+    self.viewer.CenterViewOnCell(cellname);
+  };
   
 
-
-  //colorBtn.innerHTML = 'Set Color';
-  //colorBtn.value = 'close';
-  //colorDiv.style.display = 'none';
-  //colorBtn.onclick = () => {
-  //  const isOpen = colorBtn.value === 'close' ? false : true;
-  //  if (isOpen) {
-  //    // perform close, delete everything in colorDiv
-  //    colorBtn.value = 'close';
-  //    colorDiv.style.display = 'none';
-  //    while(colorDiv.lastChild){
-  //      colorDiv.removeChild(colorDiv.lastChild);
-  //    };
-  //    return;
-  //  }
-  //  // perform open, create color input
-  //  colorBtn.value = 'open';
-  //  colorDiv.style.display = 'block';
-
-  //  if (!self.viewer.isCellLoaded(cellname)) {
-  //    colorDiv.innerHTML = 'Cell not loaded';
-  //    return;
-  //  }
-
-  //  const colorInput = document.createElement('input');
-  //  colorDiv.appendChild(colorInput);
-
-  //  // class no CSS, but used below
-  //  colorInput.classList.add('colorSelector');
-  //  colorInput.type = 'color';
-
-  //  // get color of cell, transform to appropriate format
-  //  let {r, g, b} = self.viewer.getColor(cellname);
-  //  r = Math.round(255*r);
-  //  b = Math.round(255*b);
-  //  g = Math.round(255*g);
-  //  let rgb = b | (g << 8) | (r << 16);
-  //  let hex = '#' + rgb.toString(16);
-
-  //  colorInput.setAttribute('value',hex);
-  //  colorInput.spectrum({
-  //    preferredFormat: "rgb",
-  //    showInput: true,
-  //    move: function(color){
-  //      const {r, g, b} = color.toRgb();
-  //      self.viewer.setColor(cellname, {r:r/255., g:g/255., b:b/255.});
-  //    },
-  //  });
-  //};
-
-  // do remarks
-  const remarkVis = this.viewer.isCellLoaded(cellname) ?
-    this.viewer.GetRemarkVis(cellname) : false;
-  remarksBtn.innerHTML = !remarkVis ? 'Hide Remarks' : 'Show Remarks';
+  //===============================================
+  // show/hide remarks
+  //const remarkVis = this.viewer.isCellLoaded(cellname) ?
+  //  this.viewer.GetRemarkVis(cellname) : false;
+  //remarksBtn.innerHTML = !remarkVis ? 'Hide Remarks' : 'Show Remarks';
+  remarksBtn.innerHTML = 'Show Remarks';
   remarksBtn.onclick = () => {
     const remarkVis = self.viewer.isCellLoaded(cellname) ?
       self.viewer.GetRemarkVis(cellname) : false;
@@ -900,6 +879,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
     self.viewer.toggleRemarksByCell(cellname, !remarkVis);
   };
 
+  //===============================================
   // WormAtlas link
   walinkBtn.innerHTML = 'WormAtlas';
   walinkBtn.onclick = () => {
@@ -907,6 +887,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
     self.OpenInfoDialog(url, 'WormAtlas');
   };
 
+  //===============================================
   // Synaptic Partners
   parterListBtn.innerHTML = 'Synaptic Parters';
   parterListBtn.onclick = () => {
@@ -915,6 +896,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
     self.OpenInfoDialog(url,'Synaptic Partners');
   };
 
+  //===============================================
   // Synapse List
   synapseListBtn.innerHTML = 'Synapse List';
   synapseListBtn.onclick = () => {
