@@ -668,22 +668,11 @@ ImporterApp.prototype.Open2DViewer = function()
 };
 
 ImporterApp.prototype.ClearMaps = function() {
-  //const menuMaps = this.menuGroup['maps'];
-  const menuMaps = this.menuObj.mainItems['Maps'].content;
-  while(menuMaps.lastChild){
-    menuMaps.removeChild(menuMaps.lastChild);
+  const mapsContentDiv = this.GetMapsContentDiv();
+  while(mapsContentDiv.lastChild){
+    mapsContentDiv.removeChild(mapsContentDiv.lastChild);
   };
   this.viewer.clearMaps();
-
-  this.data = {};
-
-  for (var group in this.cellsInSlctdSrs){
-    for (var i in this.cellsInSlctdSrs[group]){
-      //if (this.cellsInSlctdSrs[group][i].visible == 1){
-      this.cellsInSlctdSrs[group][i].visible = 0;
-      //}
-    }
-  }
 };
 
 
