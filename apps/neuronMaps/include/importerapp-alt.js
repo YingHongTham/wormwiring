@@ -13,6 +13,7 @@
  * apps/include/floatingdialog.js - for FloatingDialog class
  *
  * css used: /css/importer.css (mostly?)
+ * class 'panel-group' is from bootstrap.css
  *
  * finally changed selectedNeurons to cellsInSlctdSrs 
  * cellsInSlctdSrs is just two arrays
@@ -102,11 +103,8 @@ ImporterApp.prototype.InitViewerStuff = function() {
 
   const canvas = this.GetCanvasElem();
   
-  this.viewer = new MapViewer(canvas, {
-    app: this, // YH so viewer can refer back
-  });
-  this.viewer.initGL();
-  
+  this.viewer = new MapViewer(canvas, this);
+
   let render = function() {
     requestAnimationFrame(render);
     // TODO make animating/pausing part of MapViewer class
@@ -182,13 +180,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     const cellname = self.synapseClicked.cellname;
     const contin = self.synapseClicked.contin;
     if (contin === null) return;
-    const obj = self.viewer.SynapseContinToObj(cellname, contin);
-    const pos = self.viewer.GetObjCoordActual(cellname, obj);
-    self.viewer.SetCameraTarget(pos);
-    self.viewer.camera.position.x = pos.x;
-    self.viewer.camera.position.y = pos.y + 100;
-    self.viewer.camera.position.z = pos.z;
-    self.viewer.updateCamera();
+    self.viewer.CenterViewOnSynapse(cellname,contin);
   };
 
   //=================================================
@@ -240,13 +232,11 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   // give all three sliders same response to change:
   // set the shown value and apply viewer.translateMapsTo
   function MapsTranslateSliderOnChange() {
-    const pos = { x: 0, y: 0, z: 0 };
+    const pos = self.GetTranslationSliderValue();
+    // need to update the number showing the value too
     for (const i of ['x','y','z']) {
-      const slider = document.getElementById(i+'-slider');
       const span = document.getElementById(i+'-slider-show-value');
-      const val = parseInt(slider.value);
-      span.innerHTML = val;
-      pos[i] = val;
+      span.innerHTML = pos[i];
     }
     self.viewer.translateMapsTo(pos.x,pos.y,pos.z);
   }
@@ -367,7 +357,7 @@ ImporterApp.prototype.LoadFromFile = function() {
       main_this.data[cell] = data.sqlData[cell];
       main_this.viewer.loadMap(main_this.data[cell]);
       // update color (viewer.loadMap is sync, so this is OK)
-      main_this.viewer.setColor(
+      main_this.viewer.SetSkeletonColor(
         cell,
         data.mapsSettings[cell].color
       );
@@ -422,9 +412,6 @@ ImporterApp.prototype.SaveToFile = function() {
 
 ImporterApp.prototype.PreloadCells2 = function(db, cell)
 {
-  //const db = this.params.db;
-  //const cell = this.params.cell;
-
   // update the series selector in menu
   this.SetSeriesToHTML(db);
   this.SetSeriesInternal(db);
@@ -433,38 +420,6 @@ ImporterApp.prototype.PreloadCells2 = function(db, cell)
   this.LoadMap2(db,cell);
   //this.LoadMapMenu2(cell); // put into LoadMap2
 };
-
-
-// old method of preloading cell
-ImporterApp.prototype.PreloadCells = function()
-{
-  var self = this;
-  this.LoadMap(this.params.db,this.params.cell);
-
-  // update the series selector in menu
-  this.SetSeriesToHTML(this.params.db);
-
-  const xhttp = new XMLHttpRequest();    
-  const url = `../php/selectorCells.php?sex=${this.params.sex}&db=${this.params.db}`;
-  console.log(`PreloadCell getting selectorCells from url ${url}`);
-  xhttp.onreadystatechange = function(){
-    if (this.readyState == 4 && this.status == 200){
-      self.cellsInSlctdSrs = JSON.parse(this.responseText);
-      for (var group in self.cellsInSlctdSrs){
-        if (self.params.cell in self.cellsInSlctdSrs[group]){
-          self.cellsInSlctdSrs[group][self.params.cell].visible = 1;
-          self.cellsInSlctdSrs[group][self.params.cell].plotted = 1;
-          self.LoadMapMenu(self.params.cell,
-            self.cellsInSlctdSrs[group][self.params.cell].walink);
-        }
-      }
-    }
-  };
-    
-  xhttp.open("GET",url,true);
-  xhttp.send(); 
-};
-
 
 
 ImporterApp.prototype.OpenHelpDialog = function()
@@ -485,7 +440,6 @@ ImporterApp.prototype.OpenHelpDialog = function()
   const contentDiv = this.dialog.GetContentDiv();
     
   const panelGroup = document.createElement('div');
-  //panelGroup.id = 'accordion'; where used?
   panelGroup.classList.add('panel-group');
   // panel-group is from bootstrap.css
   for (const helpItem of helpDialogItems) {
@@ -818,7 +772,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   colorInput.type = 'color';
 
   // get color of cell, transform to appropriate format
-  let {r, g, b} = self.viewer.getColor(cellname);
+  let {r, g, b} = self.viewer.GetSkeletonColor(cellname);
   r = Math.round(255*r);
   b = Math.round(255*b);
   g = Math.round(255*g);
@@ -829,7 +783,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   colorInput.addEventListener('change', (ev) => {
     const color = ev.target.value;
     let {r, g, b} = hexToRGB(color);
-    self.viewer.setColor(cellname,
+    self.viewer.SetSkeletonColor(cellname,
       {r:r/255., g:g/255., b:b/255.});
   }, false);
 
@@ -837,6 +791,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   //===============================================
   // button for centering view on cell
   centerViewBtn.innerHTML = 'Center View';
+  //centerViewBtn.classList.add('mapBtn');
   centerViewBtn.onclick = () => {
     self.viewer.CenterViewOnCell(cellname);
   };
@@ -1359,6 +1314,16 @@ ImporterApp.prototype.SetSeriesInternal = function(db) {
 // maps section (the div with class sectionContent)
 ImporterApp.prototype.GetMapsContentDiv = function() {
   return document.getElementById('mapsContentDiv');
+};
+
+ImporterApp.prototype.GetTranslationSliderValue = function() {
+  const pos = { x: 0, y: 0, z: 0 };
+  for (const i of ['x','y','z']) {
+    const slider = document.getElementById(i+'-slider');
+    const val = parseInt(slider.value);
+    pos[i] = val;
+  }
+  return pos;
 };
 
 

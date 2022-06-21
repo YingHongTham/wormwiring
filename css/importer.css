@@ -269,9 +269,16 @@ a:hover
   transition: 0.4s;
 }
 
+.sectionTitle {
+  background-color: #909090;
+  text-align: left;
+  border-style: solid none none none;
+}
+
 /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
-.active, .sectionTitle:hover {
-  background-color: #A0A0A0;
+
+.sectionTitle:hover {
+  background-color: #808080;
   text-align: left;
 }
 
@@ -301,3 +308,9 @@ a:hover
 }
 
 
+/* button in the maps section, e.g. 'WormAtlas'
+ * not used for now */
+.mapBtn {
+  border-radius: 5px;
+  padding: 2px;
+}

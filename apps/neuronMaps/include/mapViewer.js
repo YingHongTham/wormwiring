@@ -1,59 +1,57 @@
-// apps/include/three/threex.resizewindow.js
-//
 // note confusing terminology, series can refer to database N2U etc
 // or also the regions of the worm: VC, NR, DC, VC2, RIG, LEF
-//
-// YH fixed php to ensure return integers for position/objNums etc
-// so got rid of stuff with parseInt
 
-/* @constructor
- * usage (in importerapp.js):
- *  viewer = new MapViewer(canvas, {
- *    menuObj: this.menuObj, // not used??
- *    menuGroup: this.menuGroup, // not used??
- *    synClick: this.OpenInfoDialog, // not used??
- *    app: this,
- * });
- */
-
-// requires plotParams.js
-// cytoscape-3.21.1.min.js
-// (and probably more)
+// requires:
+// apps/include/plotParams.js
+// apps/include/cytoscape-3.21.1.min.js
+// apps/include/three/threex.windowresize.js
 
 if (plotMinMaxValues === undefined) {
   console.error('require /apps/include/plotParams.js');
 }
-
 if (cytoscape === undefined) {
   console.error('require /apps/include/cytoscape-3.21.1.min.js');
 }
+if (typeof(THREEx.WindowResize) === undefined) {
+  console.error('require /apps/include/three/threex.windowresize.js');
+}
 
+/*
+ * @constructor
+ * usage (in importerapp.js):
+ *  viewer = new MapViewer(canvas, this);
+ *  (here this refers to ImporterApp;
+ *  allows methods here to get stuff from HTML via ImporterApp)
+ */
 
-MapViewer = function(_canvas,_menu,_debug=false)
+MapViewer = function(canvas,app)
 {
-  //Parameters
+  this.canvas = canvas;
+  this.app = app;
+
+  // Parameters
   // TODO figure out these scalings.. is it correct?
+  // (refer to actual EM micrographs)
   this.XYScale = 0.05;
-  this.SynScale = 0.4;
-  this.SynMax = 20;
-  this.SkelColor = 0x4683b2;
-  this.PreColor = 0xfa5882;
-  this.PostColor = 0xbf00ff;
-  this.GapColor = 0x00ffff;
-  this.CBColor = 0xff0000;
-  this.SkelWidth = 2;
-  this.CBWidth = 5;
-  // some default value of translation, probably to avoid the origin..
-  // don't think it is ever updated
-  // also.. why??
-  this.translate = {
-    x:0,//200,
-    y:0,//100,
-    z:0
-  };
-  this.defaultTextColor = "rgba(255,0,0,0.95)";
+  this.synMax = 20; // limit on synapse radius in viewer
+  this.synScale = 0.4; // radius = synScale * num sections
+
+  this.skelColor = 0x4683b2;
+  this.preColor = 0xfa5882;
+  this.postColor = 0xbf00ff;
+  this.gapColor = 0x00ffff;
+  this.cellbodyColor = 0xff0000;
+
+  this.skelWidth = 2;
+  this.cellbodyWidth = 5;
+
   this.remarksColor = "rgba(0,255,25,0.95)";
-  this.objRemarksColor = "rgba(0,255,25,0.95)";
+  this.defaultTextColor = "rgba(255,0,0,0.95)";
+  this.defaultArrowColor = 0x5500ff;
+
+  // for smoothness of synapse sphere
+  this.sphereWidthSegments = 5;
+  this.sphereHeightSegments = 5;
 
   // plotParam as returned in map object by retrieve_trace_coord
   // is the same for all cells in a given db
@@ -70,40 +68,48 @@ MapViewer = function(_canvas,_menu,_debug=false)
     zmin: 0,
   };
   
-  // keeps track of movement of skeleton etc by the user (slider)
-  // (see this.translateMapsTo)
-  // note this is NOT the view origin of the camera,
-  // i.e. moving the slider changes this,
-  // but the camera and angle stays put, so the skeleton moves
-  // (relative to the grid also)
-  // note also that this should always be negative of *-slider values
-  // (i.e. this.position.x = doc.get..Id('x-slider').value
-  this.position = new THREE.Vector3(100,0,0);
+  // keeps track of movement of skeleton etc by the user
+  // in Translate Maps section, using id='x-slider' etc
+  // (see this.translateMapsTo/By)
+  // note this is NOT the view target of the camera,
+  // i.e. the cell moves relative to the grid,
+  // but the camera and view target remain fixed
+  //
+  // should always be equal to this.GetTranslateOnMaps
+  const transPos = this.app.GetTranslationSliderValue();
+  this.position = new THREE.Vector3(
+    transPos.x, transPos.y, transPos.z);
+
   
   // skelMaterial a bit redundant
   // as each skeleton will need its own Material
   // (which allows individual color change)
   // TODO maybe can optimize this by only create material if change color
-  this.skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor, linewidth: this.SkelWidth });
-  this.cbMaterial = new THREE.LineBasicMaterial({color:this.CBColor,linewidth:this.CBWidth});
-  this.preMaterial = new THREE.MeshLambertMaterial({color:this.PreColor});
-  this.postMaterial = new THREE.MeshLambertMaterial({color:this.PostColor});
-  this.gapMaterial = new THREE.MeshLambertMaterial({color:this.GapColor});
+  this.skelMaterial = new THREE.LineBasicMaterial({ color: this.skelColor, linewidth: this.skelWidth });
+  this.cbMaterial = new THREE.LineBasicMaterial({color:this.cellbodyColor,linewidth:this.cellbodyWidth});
+  this.preMaterial = new THREE.MeshLambertMaterial({color:this.preColor});
+  this.postMaterial = new THREE.MeshLambertMaterial({color:this.postColor});
+  this.gapMaterial = new THREE.MeshLambertMaterial({color:this.gapColor});
+
+  this.maps = {}; // see loadMap2 for expected form
   
-  this.maxY = 0;
-  this.minX = 0;
-  this.aspectRation = 1;
-  this.sphereWidthSegments = 5; // for smoothness
-  this.sphereHeightSegments = 5; // of synapse sphere
-  
-  this.debug = _debug;
-  this.menu = _menu;
-  this.canvas = _canvas;
-  
-  
-  this.recalcAspectRatio();
-  
-  this.scene = null;
+  // but wait! there's more!
+  this.initGL();
+};
+
+/*
+ * initialize the viewer
+ */
+MapViewer.prototype.initGL = function()
+{
+  // in order to make an object visible,
+  // add it to scene or one of its descendents
+  // (a lot like DOM Tree)
+  this.scene = new THREE.Scene();
+
+  //============================================
+  // camera/renderer
+
   this.cameraDefaults = {
     posCamera: new THREE.Vector3( -250.0, 225.0, 1000.0),
     posCameraTarget: new THREE.Vector3( 0, 0, 0),
@@ -111,53 +117,42 @@ MapViewer = function(_canvas,_menu,_debug=false)
     far: 10000,
     fov: 45
   };
-  this.camera = null;
 
-  // where the camera is looking
+  this.aspectRatio = 1;
+  this.recalcAspectRatio();
+
+  // where the camera is currently looking
   this.cameraTarget = this.cameraDefaults.posCameraTarget;
-  this.controls = null;
-  
-  this.textLabels = [];
-  this.maps = {}; // see loadMap for expected form
-  this.gridHelper = null; // defined in initGL
-  this.axesText = new THREE.Group(); // also has arrows
 
-  // YH see toggleRemarks
-  // this default value should be same as the value in AddToggleButton
-  // (search self.viewer.toggleRemarks in importerapp.js)
-  //this.remarksAllVisible = false;
-  // however, for synapse label we need because
-  // we can have them individually and collectively toggled..
-  this.synapseLabelsAllVisible = false;
-};
-
-MapViewer.prototype.initGL = function()
-{
-  this.renderer = new THREE.WebGLRenderer({
-    canvas: this.canvas,
-    antialias: true,
-    autoClear: true
-  });
-  //this.renderer.setClearColor(0x050505);
-  this.renderer.setClearColor(0xffffff);
-    
-  this.scene = new THREE.Scene();
-    
   this.camera = new THREE.PerspectiveCamera(
     this.cameraDefaults.fov,
     this.aspectRatio,
     this.cameraDefaults.near,
     this.cameraDefaults.far);
-  this.resetCamera();
+  this.resetCamera(); // sets pos/target to default
+  
+  this.renderer = new THREE.WebGLRenderer({
+    canvas: this.canvas,
+    antialias: true,
+    autoClear: true
+  });
+  this.renderer.setClearColor(0xffffff);
+
+  // allows user to control camera position/target
   this.controls = new THREE.OrbitControls(this.camera,this.renderer.domElement);
-  //this.controls = new THREE.TrackballControls(this.camera,this.renderer.domElement); // z-axis not preserved
+
+  //=======================================
+  // used to set up mouse events to be able to interact with
+  // objects in the viewer
+  // in particular, the synapses
   this.domEvents = new THREEx.DomEvents(this.camera,this.renderer.domElement);
 
+  //===============================================
   // lighting is not necessary for line objects,
   // but is necessary for spheres.. so it seems..
-  var ambientLight = new THREE.AmbientLight(0x404040);
-  var directionalLight1 = new THREE.DirectionalLight(0xC0C090);
-  var directionalLight2 = new THREE.DirectionalLight(0xC0C090);
+  const ambientLight = new THREE.AmbientLight(0x404040);
+  const directionalLight1 = new THREE.DirectionalLight(0xC0C090);
+  const directionalLight2 = new THREE.DirectionalLight(0xC0C090);
   
   directionalLight1.position.set(-100,-50,100);
   directionalLight2.position.set(100,50,-100);
@@ -166,11 +161,27 @@ MapViewer.prototype.initGL = function()
   this.scene.add(directionalLight2);
   this.scene.add(ambientLight);
   
+  //=====================================
+  // the 2D grid in the x-z plane
   this.gridHelper = new THREE.GridHelper(10000,100,0xFF4444,0x404040);
   this.scene.add(this.gridHelper);
 
-  // TODO high z is anterior or posterior?
+
+  //========================================
+  // axes arrows and text labeling axes
+  this.axesText = new THREE.Group();
   this.scene.add(this.axesText);
+
+  const origin = new THREE.Vector3(0,0,0);
+  const arrowColor = 0x5500ff;
+  const length = 300;
+  this.axesText.add( new THREE.ArrowHelper(
+      new THREE.Vector3(0,0,-1), origin, length, arrowColor));
+  this.axesText.add( new THREE.ArrowHelper(
+      new THREE.Vector3(1,0,0), origin, length, arrowColor));
+  this.axesText.add( new THREE.ArrowHelper(
+      new THREE.Vector3(0,-1,0), origin, length, arrowColor));
+
   const axesTextDist = 200;
   this.axesText.add( this.addText('Anterior (-z)', {
     pos: new THREE.Vector3(0,0,-axesTextDist),
@@ -183,181 +194,8 @@ MapViewer.prototype.initGL = function()
     pos: new THREE.Vector3(0,-axesTextDist,0),
     rotate: { x: -Math.PI/2 },
   }));
-  // YH adding arrow for the axesText too
-  const origin = new THREE.Vector3(0,0,0);
-  const arrowColor = 0x5500ff;
-  const length = 300;
-  this.axesText.add( new THREE.ArrowHelper(
-      new THREE.Vector3(0,0,-1), origin, length, arrowColor));
-  this.axesText.add( new THREE.ArrowHelper(
-      new THREE.Vector3(1,0,0), origin, length, arrowColor));
-  this.axesText.add( new THREE.ArrowHelper(
-      new THREE.Vector3(0,-1,0), origin, length, arrowColor));
-
-  // put event listener for cell loaded here?
 };
 
-/*
- * usage: labels for obj with remarks, coordinate label (anterior etc)
- *
- * by default (no rotations), text appears in
- * x-y plane,
- * perpendicular to Anterior-Posterior axis
- *
- * @param {string} text
- * @param {Object} params -
- *  keys:
- *    pos: THREE.Vector3 (required)
- *    rotate: {x,y,z} (optional, default x-y plane)
- *      rotates by right-hand rule, e.g.
- *      x=-pi/2 means turn text from face +z to face +y
- *    scale: {x,y,z} (optional, default {1,1,1})
- *      (for rotate and scale, allowed to omit some,
- *        e.g. scale = {x:1})
- *    font: optional (default "Bold 20px Arial")
- *    color: optional (default this.defaultTextColor)
- * old:
- * @param {Array} container - contains references to the
- *    THREE mesh/text object created displaying the text
- *    (addText push-es the object into this container)
- *
- * 
- * YH modified to also return the THREE object, clearer logic
- * let the caller deal with saving to whatever container they want
- */
-//MapViewer.prototype.addText = function(text,params,container=null)
-MapViewer.prototype.addText = function(text,params) {
-  // some hard-coded values, probably good to change in future
-  const defaultTextFont = "Bold 20px Arial";
-  const textHeight = 30;
-
-  // text is written onto a canvas element,
-  // and somehow THREE creates a texture from it
-  const textCanvas = document.createElement('canvas');
-  const ctx = textCanvas.getContext('2d');
-  ctx.clearRect(0, 0, textCanvas.width, textCanvas.height);
-  const font = ('font' in params) ?
-    params.font : defaultTextFont;
-  ctx.font = font;
-  const fillStyle = ('color' in params) ?
-    params.color : this.defaultTextColor;
-  ctx.fillStyle = fillStyle;
-
-  textCanvas.width = ctx.measureText(text).width;
-  textCanvas.height = textHeight;
-
-  // browser bugs: this is reset to default after measureText!
-  ctx.font = font;
-  ctx.fillStyle = fillStyle;
-
-  ctx.fillText(text, 0, textCanvas.height - 5);
-    
-  // textCanvas contents will be used for a texture
-  const texture = new THREE.Texture(textCanvas) 
-  texture.needsUpdate = true;
-
-  // material for the rectangle in which text is written
-  // hence set to transparent
-  const material = new THREE.MeshBasicMaterial({
-    map: texture,
-    side:THREE.DoubleSide
-  });
-  material.transparent = true;
-
-  const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(textCanvas.width, textCanvas.height),
-    material
-  );
-
-  // text mesh object created, now do some transformation
-
-  // scale the text
-  // text can't go smaller than a certain font size
-  // (would become too blurry)
-  if ('scale' in params) {
-    const m = new THREE.Matrix4();
-    m.makeScale(
-      'x' in params.scale ? params.scale.x : 1,
-      'y' in params.scale ? params.scale.y : 1,
-      'z' in params.scale ? params.scale.z : 1
-    );
-    mesh.applyMatrix(m);
-  }
-
-  // note apparently must scale first;
-  // seems scaling after rotating undoes rotation?
-  if ('rotate' in params) {
-    const rot = params.rotate;
-    if ('x' in rot) { mesh.rotateX(rot.x); }
-    if ('y' in rot) { mesh.rotateY(rot.y); }
-    if ('z' in rot) { mesh.rotateZ(rot.z); }
-  }
-
-  if ('visible' in params) {
-    mesh.visible = params.visible
-  };
-
-  // position is of the center of the canvas
-  mesh.position.set(params.pos.x,params.pos.y,params.pos.z);
-
-  return mesh;
-}
-
-/*
- * @param {Object} params - almost same as addText
- *  but with additional keys
- * @param {Vector3} params.offset - THREE.Vector3 (required)
- * @param {boolean} params.arrowhead: boolean, if false, use line segment (optional)
- * @param {Number} params.arrowColor: (optional) default is 0x5500ff
- *  }
- *  text object is set to pos + offset
- *  and arrow points from text object to pos
- */
-MapViewer.prototype.addTextWithArrow = function(text,params) {
-  // return value
-  const group = new THREE.Group();
-
-  const offset = params.offset.clone();
-  const pos = params.pos.clone();
-
-  // make a copy of params for this.addText
-  // without offset
-  const textParams = {};
-  for (const key in params) {
-    if (key === 'offset' || key === 'arrowOptions') {
-      continue;
-    }
-    if (['rotate', 'scale'].includes(key)) {
-      textParams[key] = Object.assign({}, params[key]);
-    } else if (key === 'pos') {
-      textParams[key] = params[key].clone();
-    } else {
-      textParams[key] = params[key];
-    }
-  }
-  textParams.pos.add(offset);
-
-  group.add(this.addText(text,textParams));
-
-  const arrowColor = ('arrowColor' in params) ?
-      params.arrowColor : 0x5500ff;
-  const length = offset.length();
-  offset.normalize();
-  offset.negate();
-
-  if (params.arrowhead === false) {
-    const geometry = new THREE.BufferGeometry().setFromPoints(
-        [textParams.pos, pos]);
-    const material = new THREE.LineBasicMaterial({ color: arrowColor });
-    const line = new THREE.Line( geometry, material );
-    group.add(line);
-  }
-  else {
-    group.add(new THREE.ArrowHelper(offset, textParams.pos, length, arrowColor));
-  }
-
-  return group;
-};
 
 MapViewer.prototype.clearMaps = function()
 {
@@ -365,8 +203,7 @@ MapViewer.prototype.clearMaps = function()
     this.scene.remove(this.maps[name].allGrps);
   };
   this.maps = {};
-}
-
+};
 
 /*
  * new version of loadMap,
@@ -430,15 +267,15 @@ MapViewer.prototype.loadMap2 = function(data)
   // scale/translate obj coords
   const plotMinMax = plotMinMaxValues[data.db];
   this.plotParam.xmid = 0.5*(plotMinMax.xMin+plotMinMax.xMax);
-  this.plotParam.xmin = Math.min(this.minX,plotMinMax.xMin);
+  this.plotParam.xmin = plotMinMax.xMin;
   this.plotParam.ymid = 0.5*(plotMinMax.yMin+plotMinMax.yMax);
-  this.plotParam.ymax = Math.max(this.maxY,plotMinMax.yMax);
+  this.plotParam.ymax = plotMinMax.yMax;
   this.plotParam.zmid = 0.5*(plotMinMax.zMin+plotMinMax.zMax);
   this.plotParam.zmin = plotMinMax.zMin;
 
   // linewidth actually no longer supported
-  var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor,
-    linewidth: this.SkelWidth});
+  var skelMaterial = new THREE.LineBasicMaterial({ color: this.skelColor,
+    linewidth: this.skelWidth});
 
 
   /*
@@ -512,6 +349,7 @@ MapViewer.prototype.loadMap2 = function(data)
     skeletonGraph: {},
     skeletonLines: [],
     skeletonGrp: new THREE.Group(),
+    cellbodyGrp: new THREE.Group(),
     skelMaterial : skelMaterial,
     synObjs: new THREE.Group(),
     preGrp: new THREE.Group(),
@@ -527,6 +365,7 @@ MapViewer.prototype.loadMap2 = function(data)
   const map = this.maps[data.name];
   this.scene.add(map.allGrps);
   map.allGrps.add(map.skeletonGrp);
+  map.allGrps.add(map.cellbodyGrp);
   map.allGrps.add(map.synObjs);
   map.allGrps.add(map.synLabels);
   map.allGrps.add(map.remarksGrp);
@@ -566,15 +405,14 @@ MapViewer.prototype.loadMap2 = function(data)
   // color cellbody edges
   // that is, edges whose both ends are in cellbody
   // just add as a collection of line segments,
-  // one for each edge, to skeletonGrp
-  // (very few edges compared to whole skeleton)
+  // one for each edge, to cellbodyGrp
   const cellbodyList = Object.values(data.cellbody);
   for (const edge of cellbodyList) {
     const lineGeometry = new THREE.Geometry();
     lineGeometry.vertices.push(
       map.objCoord[edge[0]], map.objCoord[edge[1]]);
     const line = new THREE.Line(lineGeometry,this.cbMaterial);
-    map.skeletonGrp.add(line);
+    map.cellbodyGrp.add(line);
   }
 
 
@@ -603,10 +441,7 @@ MapViewer.prototype.loadMap2 = function(data)
       else {
         let synDataP = Object.assign({}, synData);
         synDataP.obj = syn.preObj;
-        //synDataP.pos = new THREE.Vector3();
-        //synDataP.pos.copy(map.objCoord[syn.preObj]);
         synDataP.partner = syn.post;
-        //allSyn.push(synDataP);
         map.allSynData[synData.contin] = synDataP;
       }
     }
@@ -617,10 +452,7 @@ MapViewer.prototype.loadMap2 = function(data)
       else {
         let synDataP = Object.assign({}, synData);
         synDataP.obj = syn.postObj;
-        //synDataP.pos = new THREE.Vector3();
-        //synDataP.pos.copy(map.objCoord[syn.postObj]);
         synDataP.partner = syn.pre;
-        //allSyn.push(synDataP);
         map.allSynData[synData.contin] = synDataP;
       }
     }
@@ -740,12 +572,14 @@ MapViewer.prototype.loadMap2 = function(data)
   this.CenterViewOnCell(map.name);
 };
 
-// TODO? pass cellType as optional value
 MapViewer.prototype.getLoadedCells = function() {
   return Object.keys(this.maps);
 };
 
 /*
+ * TODO this is fucked up, now it's inverted in y too?
+ * fuck me
+ *
  * @param {Object} vec - Vector3, or object with keys x,y,z
  * @param {Object} params - default value is this.plotParam
  */
@@ -754,8 +588,8 @@ MapViewer.prototype.applyPlotParamsTransform = function(vec,params=null) {
     params = this.plotParam;
   }
   return new THREE.Vector3(
-    (params.xmin - vec.x - params.xmid)*this.XYScale + this.translate.x,
-    (params.ymax - vec.y - params.ymid)*this.XYScale + this.translate.y,
+    (params.xmin - vec.x - params.xmid)*this.XYScale,
+    (params.ymax - vec.y - params.ymid)*this.XYScale,
     vec.z - params.zmin
   );
 };
@@ -764,7 +598,8 @@ MapViewer.prototype.applyPlotParamsTransform = function(vec,params=null) {
 /*
  * add the cell skeleton to THREE scene
  * uses this.maps[name].skeletonLines
- * as computed in loadMap2
+ * as computed by BreakGraphIntoLineSubgraphs
+ * (see loadMap2)
  *
  * takes the place of this.addSkeleton(..) in importerapp.js
  *
@@ -792,53 +627,57 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
  * and synapse label in viewer)
  *
  * no return, adds Sphere to:
- * -this.maps[name].synObjs, THREE.Group already added to scene
- * -this.maps[name].synapses, same but organized by other cell
+ * -this.maps[name].synObjs - THREE.Group already in scene
+ * -this.maps[name].allSynData[contin] - for easy ref
+ *    (see Filter Synapses section)
  * 
- * (usually I prefer to return the object
- * and leave the adding to viewer to the caller,
- * but here because there are lots of other stuff like
- * event listeners and synapse labels in the viewer,
- * easier to add to viewer here)
- *
  * also adds text labels to each synapse,
+ * stored and added to this.maps[name].synLabels,
+ * which is a THREE.Group already in scene
  * not visible by default, but responds to mouse:
  * -if only hover, becomes visible and disappears afterwards
  * -if clicked, stays visible after no hover
- * stored and added to this.maps[name].synLabels,
- * which is a THREE.Group already in scene
  * 
+ * (usually I prefer to return the object
+ * and leave the adding to viewer(scene) to the caller,
+ * but here because there are lots of other stuff like
+ * event listeners and synapse labels in the viewer,
+ * easier to add to viewer(scene) here)
+ *
  * @param {String} name - cell name
  *  (sphere object appears attached to this cell)
  * @param {Object} synapse - processed from data[synType]; see loadMap2
  */
 MapViewer.prototype.addOneSynapse2 = function(name,synData)
 {
-  // main diff with addOneSynapse; no need to transform
   const synPos = this.maps[name].objCoord[synData.obj];
   const synType = synData.type;
   const numSections = synData.zHigh - synData.zLow + 1;
-  const radius = Math.min(this.SynMax,numSections*this.SynScale);
-  const partner = synData['partner'];
-  const zLow = synData['zLow'];
-  const zHigh = synData['zHigh'];
-  const contin = synData['continNum'];
-  const source = synData['pre'];
-  const target = synData['post'];
+  const radius = Math.min(this.synMax,numSections*this.synScale);
+  const partner = synData.partner;
+  const contin = synData.contin;
 
+  //=============================
+  // create and add the synapse to viewer via Group
   const geometry = new THREE.SphereGeometry(radius,this.sphereWidthSegments,this.sphereHeightSegments);
   const sphereMaterial = this[`${synType}Material`];
   const sphere = new THREE.Mesh(geometry,sphereMaterial);
+
   sphere.name = contin;
   sphere.position.copy(synPos);
   sphere.material.transparent = true;
 
   // add sphere to scene via pre/post/gap Group
+  // and to allSynData for easy individual synapse reference
+  // (in particular for Filter Synapses section)
   this.maps[name][`${synType}Grp`].add(sphere);
   this.maps[name].allSynData[synData.contin].sphere = sphere;
 
+  //=========================
+  // text label for synapse
+
   // function for determining the offset for synLabel
-  // previously defined based on input z value
+  // purely for visual purposes
   function offsetx() {
     if (this.count === undefined) {
       this.count = 0;
@@ -866,34 +705,39 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
   synLabelObj.visible = false;
   this.maps[name].synLabels.add(synLabelObj);
 
-  const self = this;
-
+  //===================================
   // mouse events over synapses
   // updates the synapse info section
-  this.domEvents.addEventListener(sphere,'mouseover',function(event){
+  const self = this;
+
+  this.domEvents.addEventListener(sphere,'mouseover',function() {
     synLabelObj.visible = true;
-    self.menu.app.UpdateSynapseInfo2(synData.cellname, synData.contin);
-    self.renderer.render(self.scene,self.camera);
+    self.app.UpdateSynapseInfo2(synData.cellname, synData.contin);
+    //self.renderer.render(self.scene,self.camera);
+    self.render();
   });
-  this.domEvents.addEventListener(sphere,'mouseout',function(event){
-    if (self.menu.app.GetSynapseInfoContin2() !== synData.contin) {
+  this.domEvents.addEventListener(sphere,'mouseout',function() {
+    if (self.app.GetSynapseInfoContin2() !== synData.contin) {
       synLabelObj.visible = false;
     }
-    self.menu.app.RestoreSynapseInfo2();
-    self.renderer.render(self.scene,self.camera);
+    self.app.RestoreSynapseInfo2();
+    //self.renderer.render(self.scene,self.camera);
+    self.render();
   });
 
-  this.domEvents.addEventListener(sphere,'click',function(event){
-    if (self.menu.app.GetSynapseInfoContin2() === synData.contin) {
+  this.domEvents.addEventListener(sphere,'click',function() {
+    // if click same synapse, 'unclick' it
+    if (self.app.GetSynapseInfoContin2() === synData.contin) {
       synLabelObj.visible = false;
-      self.menu.app.RestoreSynapseInfoToDefault2();
+      self.app.RestoreSynapseInfoToDefault2();
     }
     else {
       self.toggleSynapseLabels(synData.cellname, false);
       synLabelObj.visible = true;
-      self.menu.app.UpdateClickedSynapseInfo2(synData.cellname, synData.contin);
+      self.app.UpdateClickedSynapseInfo2(synData.cellname, synData.contin);
     }
-    self.renderer.render(self.scene,self.camera);
+    //self.renderer.render(self.scene,self.camera);
+    self.render();
   });
 };
 
@@ -902,6 +746,10 @@ MapViewer.prototype.GetSynData = function(cellname,contin) {
   return synData;
 }
 
+
+//======================================================
+// stuff related to translations/position of cell/skeleton
+// in particular the Translate Maps section
 
 /*
  * translate this.position to given x,y,z
@@ -916,12 +764,9 @@ MapViewer.prototype.GetSynData = function(cellname,contin) {
  */
 MapViewer.prototype.translateMapsTo = function(x,y,z)
 {
-  //var posnew = new THREE.Vector3(x,y,z);
-  //var delta =  this.position.clone();
-  //delta.sub(posnew);
-  //this.position = posnew.clone();
   const delta = new THREE.Vector3(x,y,z);
   delta.sub(this.position);
+
   this.position.set(x,y,z);
 
   const m = new THREE.Matrix4();
@@ -965,6 +810,7 @@ MapViewer.prototype.translateOneMapsToThisPos = function(cellname) {
 
 /*
  * translate only one cell
+ * add x,y,z to current position
  */
 MapViewer.prototype.translateOneMapsBy = function(cellname,x,y,z) {
   const m = new THREE.Matrix4()
@@ -1017,38 +863,6 @@ MapViewer.prototype.transformStuffOneCell = function(m, name) {
 
 
 
-
-
-/*
- * new, toggles visible of all stuff,
- * but keep subgroups hidden if they were separately hidden
- * (e.g. if toggle remarks to hidden,
- * doing toggleMaps(name, true) will still keep it hidden)
- */
-MapViewer.prototype.toggleMaps = function(name, visible=null) {
-  if (typeof(visible) !== 'boolean') {
-    visible = !this.maps[name].allGrps.visible;
-  }
-  this.maps[name].allGrps.visible = visible;
-}
-
-MapViewer.prototype.mapIsVisible = function(name) {
-  return this.maps[name].allGrps.visible;
-};
-
-/*
- * used to be toggleMaps;
- * but then 'maps' is not used consistently,
- * as this.maps[name] refers to all the stuff, not just skeleton
- */
-MapViewer.prototype.toggleSkeleton = function(name, visible=null)
-{
-  if (typeof(visible) !== 'boolean') {
-    visible = !this.maps[name].skeletonGrp.visible;
-  }
-  this.maps[name].skeletonGrp.visible = visible;
-};
-
 //========================================================
 // for Synapse Filter section
 
@@ -1086,8 +900,8 @@ MapViewer.prototype.FilterSynapsesByType = function(typesSelected) {
 };
 MapViewer.prototype.FilterSynapsesByCells = function(cells) {
   cells = cells.filter(c =>
-    this.menu.app.cellsInSlctdSrs.neuron.includes(c)
-    || this.menu.app.cellsInSlctdSrs.muscle.includes(c));
+    this.app.cellsInSlctdSrs.neuron.includes(c)
+    || this.app.cellsInSlctdSrs.muscle.includes(c));
   if (cells.length === 0) return;
   const cellsSet = new Set(cells);
   for (const cell in this.maps) {
@@ -1135,6 +949,39 @@ MapViewer.prototype.RestoreSynapses = function() {
   }
 };
 
+
+//=====================================================
+// toggle visibility of cell/skeleton
+
+/*
+ * new, toggles visible of all stuff of a cell,
+ * note subgroups stay hidden if they were separately hidden
+ * (e.g. if toggle remarks to hidden,
+ * doing toggleMaps(name, true) will still keep it hidden)
+ */
+MapViewer.prototype.toggleMaps = function(name, visible=null) {
+  if (typeof(visible) !== 'boolean') {
+    visible = !this.maps[name].allGrps.visible;
+  }
+  this.maps[name].allGrps.visible = visible;
+}
+
+MapViewer.prototype.mapIsVisible = function(name) {
+  return this.maps[name].allGrps.visible;
+};
+
+/*
+ * only toggle visibility of skeleton of one cell
+ * seems like not used for now
+ */
+MapViewer.prototype.toggleSkeleton = function(name, visible=null)
+{
+  if (typeof(visible) !== 'boolean') {
+    visible = !this.maps[name].skeletonGrp.visible;
+  }
+  this.maps[name].skeletonGrp.visible = visible;
+};
+
 //===========================================================
 // toggle synapses
 // not really in use for now,
@@ -1176,7 +1023,6 @@ MapViewer.prototype.toggleAllRemarks = function(bool=null) {
   }
 };
 
-// YH better version of _toggleRemarks
 MapViewer.prototype.toggleRemarksByCell = function(cell, bool=null) {
   console.log('in toggleRemarksByCell: ', bool);
   if (typeof(bool) !== 'boolean') {
@@ -1205,25 +1051,39 @@ MapViewer.prototype.toggleAxes = function(bool=null) {
 };
 
 MapViewer.prototype.toggleAllSynapseLabels = function(bool=null) {
+  if (typeof(bool) !== 'boolean') {
+    bool = !this.GetAllSynapseLabelsVisible();
+  }
   for (const name in this.maps){
     this.toggleSynapseLabels(name, bool);
   };
 };
 
-MapViewer.prototype.toggleSynapseLabels = function(name,bool=null) {
+MapViewer.prototype.toggleSynapseLabels = function(cellname,bool=null) {
   if (typeof(bool) !== 'boolean') {
-    //bool = !this.maps[name].synLabels.visible;
-    bool = !this.synapseLabelsAllVisible;
+    bool = !this.GetSynapseLabelsVisible(cellname);
   }
-  this.synapseLabelsAllVisible = bool;
-  for (const synLabel of this.maps[name].synLabels.children) {
+  for (const synLabel of this.maps[cellname].synLabels.children) {
     synLabel.visible = bool;
-    if (this.menu.app.GetSynapseInfoContin2() === synLabel.name) {
+    if (this.app.GetSynapseInfoContin2() === synLabel.name) {
       // keep label visible if that synapse was clicked
       synLabel.visible = true;
     }
   }
-  //this.maps[name].synLabels.visible = bool;
+};
+
+MapViewer.prototype.GetAllSynapseLabelsVisible = function() {
+  for (const cellname in this.maps) {
+    if (!this.GetSynapseLabelsVisible(cellname))
+      return false;
+  }
+  return true;
+};
+MapViewer.prototype.GetSynapseLabelsVisible = function(cellname) {
+  for (const synLabel of this.maps[cellname].synLabels.children) {
+    if (!synLabel.visible) return false;
+  }
+  return true;
 };
 
 
@@ -1238,52 +1098,6 @@ MapViewer.prototype.isCellLoaded = function(cellname) {
   return this.maps.hasOwnProperty(cellname);
 };
 
-
-MapViewer.prototype.resizeDisplayGL = function(){
-  // YH
-  //OrbitControls doesn't have resize
-  //this.controls.handleResize();
-  //this.recalcAspectRatio();
-  //this.renderer.setSize(this.canvas.offsetWidth,this.canvas.offsetHeight,false);
-  //this.updateCamera();
-
-  // YH
-  const renderer = this.renderer;
-  const camera = this.camera;
-  const canvas = this.canvas;
-  // from apps/include/three/threex.resizewindow.js
-  THREEx.WindowResize(renderer, camera, () => {
-    return {
-      width: canvas.offsetWidth,
-      height: canvas.offsetHeight,
-    };
-  });
-};
-
-MapViewer.prototype.recalcAspectRatio = function(){
-  this.aspectRatio = (this.canvas.offsetHeight === 0) ? 1 : this.canvas.offsetWidth / this.canvas.offsetHeight;
-};
-
-MapViewer.prototype.resetCamera = function(){
-  this.camera.position.copy(this.cameraDefaults.posCamera);
-  this.cameraTarget.copy(this.cameraDefaults.posCameraTarget);
-  this.updateCamera();
-};
-
-MapViewer.prototype.updateCamera = function(){
-  this.camera.apsect = this.aspectRatio;
-  this.camera.lookAt(this.cameraTarget);
-  this.camera.updateProjectionMatrix();
-};
-
-MapViewer.prototype.render = function(){  
-  if (! this.renderer.autoClear){
-    this.renderer.clear();
-  };
-  this.controls.update();
-  this.renderer.render(this.scene,this.camera);
-};
-
 MapViewer.prototype.dumpJSON = function() {
   return {
     mapsSettings: this.dumpMapsJSON(),
@@ -1295,32 +1109,28 @@ MapViewer.prototype.dumpJSON = function() {
 // (usual RGB color / 255)
 // note: color selector thing is created when user clicks button,
 // so we just need to modify the color directly on the object
-MapViewer.prototype.setColor = function(cell, color) {
+MapViewer.prototype.SetSkeletonColor = function(cell, color) {
   for (const obj of this.maps[cell].skeletonGrp.children) {
-    if (!obj.cellBody) {
-      obj.material.color.r = color.r;
-      obj.material.color.g = color.g;
-      obj.material.color.b = color.b;
-    }
+    obj.material.color.r = color.r;
+    obj.material.color.g = color.g;
+    obj.material.color.b = color.b;
   }
 };
 
 /*
  * get skeleton color
- * note it is out of 1.0
- * should x 255 and round
+ * note it is out of 1.0, for rgb should *255 and round
  */
-MapViewer.prototype.getColor = function(cell) {
-  for (const obj of this.maps[cell].skeletonGrp.children) {
-    if (!obj.cellBody) {
-      return {
-        r: obj.material.color.r,
-        g: obj.material.color.g,
-        b: obj.material.color.b,
-      };
-    }
+MapViewer.prototype.GetSkeletonColor = function(cell) {
+  if (this.maps[cell].skeletonGrp.children.length === 0) {
+    return { r: 0, g: 0, b: 0 };
   }
-  return { r: 0, g: 0, b: 0 };
+  const obj = this.maps[cell].skeletonGrp.children[0];
+  return {
+    r: obj.material.color.r,
+    g: obj.material.color.g,
+    b: obj.material.color.b,
+  };
 };
 
 // return color of maps
@@ -1328,45 +1138,25 @@ MapViewer.prototype.dumpMapsJSON = function() {
   const mapsSettings = {};
   for (const cell in this.maps) {
     mapsSettings[cell] = {
-      color: this.getColor(cell),
+      color: this.GetSkeletonColor(cell),
     };
   }
   return mapsSettings;
 };
 
-// return camera position/lookAt origin
-MapViewer.prototype.dumpCameraJSON = function() {
-  const cameraSettings = {
-    position: this.camera.position,
-    viewOrigin: this.controls.target, // where camera is looking
-  };
-  return cameraSettings;
-};
+//========================================================
+// stuff related to getting positions of stuff
+// we store the coords of obj in this.maps[cell].objCoord
+// but the actual coordinates as appearing in the viewer
+// also adds a translation that the user can perform
+// in the Translate Maps section
+// we say posiiton/coord "in viewer" for the latter,
+// and "absolute" for the former
+// (note the absolute coord's have already been transformed
+// under plotParams)
 
-MapViewer.prototype.SetCameraFromJSON = function(cameraSettings) {
-  this.camera.position.x = cameraSettings.position.x;
-  this.camera.position.y = cameraSettings.position.y;
-  this.camera.position.z = cameraSettings.position.z;
-  this.SetCameraTarget(cameraSettings.viewOrigin);
-  this.updateCamera();
-};
-
-/*
- * @param {Object} target - THREE.Vector3 or just {x: , y: , z: }
- */
-MapViewer.prototype.SetCameraTarget = function(target) {
-  this.controls.target.x = target.x;
-  this.controls.target.y = target.y;
-  this.controls.target.z = target.z;
-  this.cameraTarget.x = target.x;
-  this.cameraTarget.y = target.y;
-  this.cameraTarget.z = target.z;
-  this.updateCamera();
-};
-
-// get average position of cell
+// get average position of cell in viewer
 // used for recentering view on LoadMap2
-// new version
 MapViewer.prototype.GetAveragePosition2 = function(name) {
   // maybe easier to just do objCoord directly,
   // but in the future might add objs that are
@@ -1385,10 +1175,6 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
   tot.y = tot.y / count;
   tot.z = tot.z / count;
 
-  //// further translate by whatever allGrps was hit by
-  //// (translateOneMapsToThisPos only affects the allGrps
-  //// the parent group containing the skeleton)
-  //allGrpsPos = this.maps[name].allGrps.position;
   const trans = this.GetTranslateOnMaps(name);
   tot.x += trans.x;
   tot.y += trans.y;
@@ -1406,14 +1192,15 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
 // but this returns as THREE, importer app no THREE
 // also, it should really be independent of cell
 // but in all use cases, there is reference to a cell
+//
+// should be equal to this.position actually..
 MapViewer.prototype.GetTranslateOnMaps = function(cellname) {
-  console.log(cellname);
   return this.maps[cellname].allGrps.position;
 };
 
 // get obj's coordinates as seen in 3D viewer,
 // i.e. taking into account translations too
-MapViewer.prototype.GetObjCoordActual = function(cellname,obj) {
+MapViewer.prototype.GetObjCoordInViewer = function(cellname,obj) {
   const trans = this.GetTranslateOnMaps(cellname);
   const coord = this.GetObjCoordAbsolute(cellname,obj);
   return new THREE.Vector3(
@@ -1427,14 +1214,118 @@ MapViewer.prototype.GetObjCoordAbsolute = function(cellname, objNum) {
 };
 
 
-MapViewer.prototype.CenterViewOnCell = function(cellname) {
-  const avePos = this.GetAveragePosition2(cellname);
-  this.SetCameraTarget(avePos);
-  this.camera.position.x = avePos.x;
-  this.camera.position.y = avePos.y + 1000;
-  this.camera.position.z = avePos.z;
+//========================================================
+// stuff related to camera
+
+MapViewer.prototype.resizeDisplayGL = function(){
+  const renderer = this.renderer;
+  const camera = this.camera;
+  const canvas = this.canvas;
+  // from apps/include/three/threex.windowresize.js
+  THREEx.WindowResize(renderer, camera, () => {
+    return {
+      width: canvas.offsetWidth,
+      height: canvas.offsetHeight,
+    };
+  });
+};
+
+MapViewer.prototype.recalcAspectRatio = function(){
+  this.aspectRatio = (this.canvas.offsetHeight === 0) ? 1 : this.canvas.offsetWidth / this.canvas.offsetHeight;
+};
+
+MapViewer.prototype.resetCamera = function(){
+  this.camera.position.copy(this.cameraDefaults.posCamera);
+  this.cameraTarget.copy(this.cameraDefaults.posCameraTarget);
   this.updateCamera();
 };
+
+// must be called everytime camera positions/target changes
+MapViewer.prototype.updateCamera = function(){
+  this.camera.apsect = this.aspectRatio;
+  this.camera.lookAt(this.cameraTarget);
+  this.camera.updateProjectionMatrix();
+};
+
+MapViewer.prototype.render = function(){  
+  if (! this.renderer.autoClear){
+    this.renderer.clear();
+  };
+  this.controls.update();
+  this.renderer.render(this.scene,this.camera);
+};
+
+
+
+/*
+ * make camera point at a position
+ *
+ * @param {THREE.Vector3} target - where to point
+ *    ( or just {x: , y: , z: } )
+ */
+MapViewer.prototype.SetCameraTarget = function(target) {
+  this.controls.target.x = target.x;
+  this.controls.target.y = target.y;
+  this.controls.target.z = target.z;
+  this.cameraTarget.x = target.x;
+  this.cameraTarget.y = target.y;
+  this.cameraTarget.z = target.z;
+  this.updateCamera();
+};
+
+/*
+ * set position of camera
+ *
+ * @param {THREE.Vector3} pos - position of camera
+ *    ( or just {x: , y: , z: } )
+ */
+MapViewer.prototype.SetCameraPosition = function(pos) {
+  this.camera.position.x = pos.x;
+  this.camera.position.y = pos.y;
+  this.camera.position.z = pos.z;
+  this.updateCamera();
+};
+
+MapViewer.prototype.CenterViewOnCell = function(cellname) {
+  const pos = this.GetAveragePosition2(cellname);
+  this.SetCameraTarget(pos);
+  pos.y += 1000;
+  this.SetCameraPosition(pos);
+  this.updateCamera();
+};
+
+
+MapViewer.prototype.CenterViewOnSynapse = function(cellname,contin) {
+  const obj = this.SynapseContinToObj(cellname, contin);
+  const pos = this.GetObjCoordInViewer(cellname, obj);
+  this.SetCameraTarget(pos);
+  pos.y += 100;
+  this.SetCameraPosition(pos);
+  this.updateCamera();
+};
+
+
+MapViewer.prototype.SetCameraFromJSON = function(cameraSettings) {
+  this.camera.position.x = cameraSettings.position.x;
+  this.camera.position.y = cameraSettings.position.y;
+  this.camera.position.z = cameraSettings.position.z;
+  this.SetCameraTarget(cameraSettings.viewOrigin);
+  this.updateCamera();
+};
+
+// return camera position/lookAt origin
+MapViewer.prototype.dumpCameraJSON = function() {
+  const cameraSettings = {
+    position: this.camera.position,
+    viewOrigin: this.controls.target, // where camera is looking
+  };
+  return cameraSettings;
+};
+
+
+
+//========================================================
+// 2D viewer stuff
 
 /*
  * loads cells into 2D Viewer with Cytoscape
@@ -1503,9 +1394,10 @@ MapViewer.prototype.load2DViewer = function(elem) {
     const id = evt.target.id();
     const cell = id.split('-')[0];
     const obj = parseInt(id.split('-')[1]);
-    //const contin = continByObj[obj][0];
-    const pos = self.GetObjCoordActual(cell, obj);
+    const pos = self.GetObjCoordInViewer(cell, obj);
     self.SetCameraTarget(pos);
+    pos.y += 100;
+    self.SetCameraPosition(pos);
   });
 };
 
@@ -1808,10 +1700,169 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
 
 
 // get the skeleton obj that a synapse is attached to
-// usually combined with GetObjCoordActual
+// usually combined with GetObjCoordInViewer
 MapViewer.prototype.SynapseContinToObj = function(cellname, contin) {
   return this.maps[cellname].allSynData[contin].obj;
 };
+
+//==========================================================
+// text in viewer
+
+/*
+ * usage: labels for obj with remarks, coordinate label (anterior etc)
+ *
+ * by default (no rotations), text appears in
+ * x-y plane,
+ * perpendicular to Anterior-Posterior axis
+ *
+ * @param {string} text
+ * @param {Object} params -
+ *  keys:
+ *    pos: THREE.Vector3 (required)
+ *    rotate: {x,y,z} (optional, default x-y plane)
+ *      rotates by right-hand rule, e.g.
+ *      x=-pi/2 means turn text from face +z to face +y
+ *    scale: {x,y,z} (optional, default {1,1,1})
+ *      (for rotate and scale, allowed to omit some,
+ *        e.g. scale = {x:1})
+ *    font: optional (default "Bold 20px Arial")
+ *    color: optional (default this.defaultTextColor)
+ */
+MapViewer.prototype.addText = function(text,params) {
+  // some hard-coded values, probably good to change in future
+  const defaultTextFont = "Bold 20px Arial";
+  const textHeight = 30;
+
+  // text is written onto a canvas element,
+  // and somehow THREE creates a texture from it
+  const textCanvas = document.createElement('canvas');
+  const ctx = textCanvas.getContext('2d');
+  ctx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+  const font = ('font' in params) ?
+    params.font : defaultTextFont;
+  ctx.font = font;
+  const fillStyle = ('color' in params) ?
+    params.color : this.defaultTextColor;
+  ctx.fillStyle = fillStyle;
+
+  textCanvas.width = ctx.measureText(text).width;
+  textCanvas.height = textHeight;
+
+  // browser bugs: this is reset to default after measureText!
+  ctx.font = font;
+  ctx.fillStyle = fillStyle;
+
+  ctx.fillText(text, 0, textCanvas.height - 5);
+    
+  // textCanvas contents will be used for a texture
+  const texture = new THREE.Texture(textCanvas) 
+  texture.needsUpdate = true;
+
+  // material for the rectangle in which text is written
+  // hence set to transparent
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    side:THREE.DoubleSide
+  });
+  material.transparent = true;
+
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(textCanvas.width, textCanvas.height),
+    material
+  );
+
+  // text mesh object created, now do some transformation
+
+  // scale the text
+  // (font size of text can't be set to smaller than
+  // say 10pt; would become too blurry)
+  if ('scale' in params) {
+    const m = new THREE.Matrix4();
+    m.makeScale(
+      'x' in params.scale ? params.scale.x : 1,
+      'y' in params.scale ? params.scale.y : 1,
+      'z' in params.scale ? params.scale.z : 1
+    );
+    mesh.applyMatrix(m);
+  }
+
+  // note apparently must scale first;
+  // seems scaling after rotating undoes rotation?
+  if ('rotate' in params) {
+    const rot = params.rotate;
+    if ('x' in rot) { mesh.rotateX(rot.x); }
+    if ('y' in rot) { mesh.rotateY(rot.y); }
+    if ('z' in rot) { mesh.rotateZ(rot.z); }
+  }
+
+  if ('visible' in params) {
+    mesh.visible = params.visible
+  };
+
+  // position is of the center of the canvas
+  mesh.position.set(params.pos.x,params.pos.y,params.pos.z);
+
+  return mesh;
+}
+
+/*
+ * similar to addText, but the text is set to position
+ * params.pos + params.offset,
+ * and an arrow points from text to position params.pos
+ *
+ * @param {Object} params - almost same as addText
+ *  but with additional keys
+ * @param {Vector3} params.offset - THREE.Vector3 (required)
+ * @param {Boolean} params.arrowhead: boolean, if false, use line segment (optional)
+ * @param {Number} params.arrowColor: (optional) default is 0x5500ff
+ *  }
+ */
+MapViewer.prototype.addTextWithArrow = function(text,params) {
+  // return value
+  const group = new THREE.Group();
+
+  const offset = params.offset.clone();
+  const pos = params.pos.clone();
+
+  // make a copy of params for this.addText
+  // without offset
+  const textParams = {};
+  for (const key in params) {
+    if (key === 'offset' || key === 'arrowOptions') {
+      continue;
+    }
+    if (['rotate', 'scale'].includes(key)) {
+      textParams[key] = Object.assign({}, params[key]);
+    } else if (key === 'pos') {
+      textParams[key] = params[key].clone();
+    } else {
+      textParams[key] = params[key];
+    }
+  }
+  textParams.pos.add(offset);
+
+  group.add(this.addText(text,textParams));
+
+  const arrowColor = ('arrowColor' in params) ?
+      params.arrowColor : this.defaultArrowColor;
+  const length = offset.length();
+  offset.normalize();
+  offset.negate();
+
+  if (params.arrowhead === false) {
+    const geometry = new THREE.BufferGeometry().setFromPoints(
+        [textParams.pos, pos]);
+    const material = new THREE.LineBasicMaterial({ color: arrowColor });
+    const line = new THREE.Line( geometry, material );
+    group.add(line);
+  }
+  else {
+    group.add(new THREE.ArrowHelper(offset, textParams.pos, length, arrowColor));
+  }
+
+  return group;
+};
+
 
 
 
