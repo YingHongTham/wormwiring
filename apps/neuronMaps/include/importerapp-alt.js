@@ -84,11 +84,6 @@ ImporterApp.prototype.Init = function ()
 {
   this.InitLinkFunctionalityWithHTML();
   this.InitViewerStuff();
-
-  // now we 'preload' cell from build_neuronMaps.js
-  //if (this.PreloadParamsLoaded()){
-  //  this.PreloadCells2();
-  //}
 };
 
 
@@ -102,7 +97,6 @@ ImporterApp.prototype.InitViewerStuff = function() {
   if (!Detector.webgl) {
     var warning = Detector.getWebGLErrorMessage();
     console.log(warning);
-    //alert(warning);
     alert('WebGL failed to load, viewer may not work');
   };
 
@@ -123,17 +117,6 @@ ImporterApp.prototype.InitViewerStuff = function() {
   window.addEventListener('resize', () => {
     self.Resize();
   },false);
-
-  // no need for now
-  //document.addEventListener('loadMapComplete', (ev) => {
-  //  console.log(`${ev.detail} loaded into viewer`);
-  //});
-
-  // no need? resize should be from window
-  //document.addEventListener('resizeAll', (ev) => {
-  //  self.Resize();
-  //});
-  
 };
 
 /*
@@ -202,6 +185,10 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     const obj = self.viewer.SynapseContinToObj(cellname, contin);
     const pos = self.viewer.GetObjCoordActual(cellname, obj);
     self.viewer.SetCameraTarget(pos);
+    self.viewer.camera.position.x = pos.x;
+    self.viewer.camera.position.y = pos.y + 100;
+    self.viewer.camera.position.z = pos.z;
+    self.viewer.updateCamera();
   };
 
   //=================================================
@@ -1219,174 +1206,9 @@ ImporterApp.prototype.Resize = function () {
   this.viewer.resizeDisplayGL();
 };
 
-/*
- * Generates the menu to the left of the viewer
- * the menu is structured into several items(divs),
- * each created and returned by AddDefaultGroup
- *
- * all the action happens at the end of the function
- *
- * takes the place of GenerateMenu in importerapp.js
- */
-ImporterApp.prototype.GenerateMenu = function()
-{
-  var self = this;
-  // sent to ImporterMenu in apps/include/importers.js
-  // AddDefaultGroup returns the HTML element
-  //function AddDefaultGroup(menu, name, visible=false) {
-  //  var group = menu.AddGroup(name, {
-  //    openCloseButton : {
-  //      visible : visible,
-  //      open : 'images/opened.png',
-  //      close : 'images/closed.png',
-  //      title : 'Show/Hide ' + name
-  //    }
-  //  });
-  //  return group;
-  //};
-
-
-  // menu item that displays synapse info when mouse hovers over synapse
-  // this is achieved by emitting an event
-  // (using THREEx.DomEvents library)
-  // elems here have id which the callback uses to identify and update
-  // (see MapViewer.addOneSynapse)
-  function AddSynapseInfo(parent){
-    var synElems = {
-      cellname: 'Cell: ',
-      syntype: 'Synapse type: ',
-      synsource: 'Source: ',
-      syntarget: 'Target: ',
-      synweight: '# EM sections: ',
-      synsection: 'Sections: ',
-      syncontin: 'Synapse Id/Contin number: ',
-      synposition: 'Coordinates: ',
-    };
-    for (var i in synElems){
-      var left = document.createElement('div');
-      var right = document.createElement('div');
-      left.classList.add('synLeft');
-      right.classList.add('synRight');
-      right.innerHTML = '---';  
-      left.innerHTML = synElems[i];
-      right.id = i;
-      parent.appendChild(left);
-      parent.appendChild(right);
-    }
-
-    // YH adding button to see synapse viewer
-    const synViewerBtn = document.createElement('button');
-    synViewerBtn.innerHTML = 'Details (EM Viewer)';
-    synViewerBtn.onclick = () => {
-      const cellname = document.getElementById('cellname').innerHTML;
-      const db = document.getElementById('series-selector').value;
-      const syncontin = document.getElementById('syncontin').innerHTML;
-      const url = `../synapseViewer/?neuron=${cellname}&db=${db}&continNum=${syncontin}`;
-      const a = document.createElement('a');
-      a.target = '_blank';
-      a.href = url;
-      a.click();
-      // note url is relative to floatingdialog.js...
-      //self.OpenInfoDialog(url,'Synapse viewer');
-    };
-    parent.appendChild(synViewerBtn);
-
-    // YH adding button to center view on synapse
-    const synCenterViewBtn = document.createElement('button');
-    synCenterViewBtn.innerHTML = 'Center View on Synapse';
-    synCenterViewBtn.onclick = () => {
-      const cellname = self.synapseClicked.cellname;
-      const contin = self.synapseClicked.contin;
-      if (contin === null) return;
-      const obj = self.viewer.SynapseContinToObj(cellname, contin);
-      const pos = self.viewer.GetObjCoordActual(cellname, obj);
-      self.viewer.SetCameraTarget(pos);
-    };
-    parent.appendChild(synCenterViewBtn);
-  };
-
-
-
-  // callback expect boolean argument,
-  // which corresponds to on/off state (on = true)
-  // (usage: application of viewer.toggleRemarks or toggleAxes)
-  // isOn determines default on/offText
-  function AddToggleButton(parent,onText,offText,isOn,callback){
-    var remarkBtn = document.createElement('button');
-    remarkBtn.innerHTML = isOn ? onText : offText;
-    remarkBtn.value = isOn ? '1' : '0'; // HTML turns to string
-    remarkBtn.classList.add('filterbutton');
-    //remarkBtn.id = 'remarkBtn';
-    remarkBtn.onclick = function() {
-      console.log('remarkBtn before: ', remarkBtn.value);
-      const curState = Boolean(parseInt(remarkBtn.value));
-      const newState = !curState;
-      remarkBtn.value = newState ? '1' : '0';
-      remarkBtn.innerHTML = newState ? onText : offText;
-      console.log('remarkBtn after: ', remarkBtn.value);
-      callback(newState);
-    };
-    parent.appendChild(remarkBtn);
-  };
-
-  //add menu on the left
-  //in apps/include/importers.js
-  const menu = document.getElementById('menu');
-  this.menuObj = new ImporterMenu(menu);
-  
-  this.menuGroup['maps'] =
-      this.menuObj.AddDefaultGroup('Maps',visible=true);
-
-  this.menuGroup['series-selector'] =
-      this.menuObj.AddDefaultGroup('Series selector',visible=true);
-  AddSexSelector(this.menuObj,this.menuGroup['series-selector'],'Sex');
-  AddSeriesSelector(this.menuObj,this.menuGroup['series-selector'],'Series');
-
-  this.menuGroup['synapse-info'] =
-      this.menuObj.AddDefaultGroup('Synapse info',visible=true);
-  AddSynapseInfo(this.menuGroup['synapse-info']);
-
-
-  this.menuGroup['synapse-filter'] =
-      this.menuObj.AddDefaultGroup('Synapse filter',visible=true);
-  AddSynapseFilter(this.menuGroup['synapse-filter']);
-
-  this.menuGroup['map-translate'] =
-      this.menuObj.AddDefaultGroup('Map translate',visible=true);
-  AddMapTranslate(this.menuGroup['map-translate'],
-    function(x,y,z){self.viewer.translateMapsTo(x,y,z);});
-
-  this.menuGroup['comments'] =
-      this.menuObj.AddDefaultGroup('Comments',visible=true);
-
-  AddToggleButton(this.menuGroup['comments'],
-    'Hide Grid', 'Show Grid', true,
-    (state) => { self.viewer.toggleGrid(); });
-
-  AddToggleButton(this.menuGroup['comments'],
-    'Hide Axes', 'Show Axes', true, // used to be Axes ON, Axes OFF
-    (state) => { self.viewer.toggleAxes(); });
-
-  // see maps[..].remarks in MapViewer.loadMap
-  AddToggleButton(this.menuGroup['comments'],
-    'Hide All Remarks', 'Show All Remarks', false, // used to be Remarks ON/OFF
-    (state) => { self.viewer.toggleAllRemarks(state); } );
-
-  // YH
-  AddToggleButton(this.menuGroup['comments'],
-    'Hide Synapse Labels', 'Show Synapse Labels', false,
-    (state) => {self.viewer.toggleAllSynapseLabels(state);});
-
-  // YH
-  this.menuGroup['load-save'] =
-      this.menuObj.AddDefaultGroup('Load/Save',visible=true);
-  this.AddLoadSave();
-};
 
 // translation = {x: .., y: .., z: ..}
 ImporterApp.prototype.SetMapsTranslate = function(translation) {
-  console.log('translation: ', translation);
-
   const xEl = document.getElementById('x-slider');
   const yEl = document.getElementById('y-slider');
   const zEl = document.getElementById('z-slider');
@@ -1397,8 +1219,8 @@ ImporterApp.prototype.SetMapsTranslate = function(translation) {
 
   // trigger the usual function to update the viewer
   xEl.onchange();
-  yEl.onchange();
-  zEl.onchange();
+  //yEl.onchange(); // all have same onchange()
+  //zEl.onchange();
 };
 
 
@@ -1415,59 +1237,8 @@ ImporterApp.prototype.GetMapsTranslate = function() {
 };
 
 
-/*==============================
- * old way of updating synapse info section
- */
-
-/*
- * YH
- * update the synapse info section of menu
- *
- * @param {Object} info - synapse info,
- * should be of the form this.synapseInfoClicked
- * (or inferred from code below..)
- */
-ImporterApp.prototype.UpdateSynapseInfo = function(info) {
-  document.getElementById('cellname').innerHTML = info.cellname;
-  document.getElementById('syntype').innerHTML = info.syntype;
-  document.getElementById('synsource').innerHTML = info.synsource;
-  document.getElementById('syntarget').innerHTML = info.syntarget;
-  document.getElementById('synweight').innerHTML = info.synweight;
-  document.getElementById('synsection').innerHTML = info.synsection;
-  document.getElementById('syncontin').innerHTML = info.syncontin;
-  document.getElementById('synposition').innerHTML =
-    `x: ${info.synposition.x}, y: ${info.synposition.y}, z: ${info.synposition.z}`;
-};
-
-
-// returns Synapse Info to last clicked synapse
-ImporterApp.prototype.RestoreSynapseInfo = function() {
-  const info = this.synapseInfoClicked;
-  this.UpdateSynapseInfo(info);
-};
-
-// update clicked synapse and the synapse info panel
-ImporterApp.prototype.UpdateClickedSynapseInfo = function(info) {
-  Object.assign(this.synapseInfoClicked, info); // copy
-  this.UpdateSynapseInfo(info);
-};
-
-// reset synapse info to default
-ImporterApp.prototype.ResetDefaultSynapseInfo = function() {
-  Object.assign(this.synapseInfoClicked, this.defaultSynapseInfo); // copy
-  this.UpdateSynapseInfo(this.defaultSynapseInfo);
-};
-
-ImporterApp.prototype.GetSynapseInfoContin = function() {
-  return this.synapseInfoClicked.syncontin;
-};
-
-
-// end old way of updating synapse info section
-
-
 /*============================================
- * YH new and improved way
+ * YH new and improved way of updating synapse info
  * we don't pass around the info object,
  * just need to give cellname and contin num of synapse
  * blazingly fast
@@ -1499,15 +1270,22 @@ ImporterApp.prototype.UpdateSynapseInfo2 = function(cellname,contin) {
   }
   const synData = this.viewer.GetSynData(cellname,contin);
   const pos = this.viewer.GetObjCoordAbsolute(cellname,synData.obj);
-  document.getElementById('synInfoCellname').innerHTML = cellname;
-  document.getElementById('synInfoType').innerHTML = synData.type;
-  document.getElementById('synInfoSource').innerHTML = synData.pre;
-  document.getElementById('synInfoTarget').innerHTML = synData.post;
-  document.getElementById('synInfoWeight').innerHTML = synData.zHigh - synData.zLow + 1;
-  document.getElementById('synInfoSections').innerHTML = `(${synData.zLow},${synData.zHigh})`;
-  document.getElementById('synInfoContin').innerHTML = contin;
-  document.getElementById('synInfoPosition').innerHTML =
-    `x: ${pos.x}, y: ${pos.y}, z: ${pos.z}`;
+  document.getElementById('synInfoCellname').innerHTML
+    = cellname;
+  document.getElementById('synInfoType').innerHTML
+    = synData.type;
+  document.getElementById('synInfoSource').innerHTML
+    = synData.pre;
+  document.getElementById('synInfoTarget').innerHTML
+    = synData.post;
+  document.getElementById('synInfoWeight').innerHTML
+    = synData.zHigh - synData.zLow + 1;
+  document.getElementById('synInfoSections').innerHTML
+    = `(${synData.zLow},${synData.zHigh})`;
+  document.getElementById('synInfoContin').innerHTML
+    = contin;
+  document.getElementById('synInfoPosition').innerHTML
+    = `x: ${pos.x}, y: ${pos.y}, z: ${pos.z}`;
 };
 
 /*

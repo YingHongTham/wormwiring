@@ -60,7 +60,7 @@ MapViewer = function(_canvas,_menu,_debug=false)
   // this is updated each time a cell is retrieved,
   // TODO better to only update when db changes
   // regardless, makes more sense to be an attribute here
-  // rather than passed around for this.applyParamsTranslate(..)
+  // rather than passed around for this.applyPlotParamsTransform(..)
   this.plotParam = {
     xmid: 0,
     xmin: 0,
@@ -79,20 +79,9 @@ MapViewer = function(_canvas,_menu,_debug=false)
   // note also that this should always be negative of *-slider values
   // (i.e. this.position.x = doc.get..Id('x-slider').value
   this.position = new THREE.Vector3(100,0,0);
-      
-  // no need anymore!
-  // in old php, returns $data object,
-  // with keys for the series/regions, like 'NR' and 'VC',
-  // and keys not for skeleton, like 'preSynapse' etc.
-  // but YH changed php so the series/region keys are
-  // put into its own key $data['skeleton']
-  //this.non_series_keys = ["plotParam","cellBody",
-  //  "preSynapse","postSynapse",
-  //  "gapJunction","remarks","nmj",
-  //  "name","series",
-  //  "objRemarks","db"]; // YH added
   
-  // redundant as each skeleton will need its own Material
+  // skelMaterial a bit redundant
+  // as each skeleton will need its own Material
   // (which allows individual color change)
   // TODO maybe can optimize this by only create material if change color
   this.skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor, linewidth: this.SkelWidth });
@@ -378,278 +367,12 @@ MapViewer.prototype.clearMaps = function()
   this.maps = {};
 }
 
-/*
- * loads cell into viewer
- * synchronous
- *
- * loads/processes map (data from retrieve_trace_coord.php)
- * into this.maps[map.name] and into viewer object
- *
- * note that the map data is also stored directly in ImporterApp object
- * as importerApp.data[mapname]
- *
- * (map.name = mapname = name of neuron/muscle)
- *
- * @param {Object} map - object returned by retrieve_trace_coord.php
- * keys are the series NR, VC, ... and this.non_series_keys
- * (this notion of series should be called 'region'..)
- *
- * map expected of following form:
- * {
- *  name: 'ADAR'
- *  db: 'N2U' // YH added to avoid confusion with 'NR','VC',..
- *  series: 'N2U' // database
- *  NR: {
- *    // edge from
- *    // (NR.x[k][0], NR.y[k][0], NR.z[k][0]) to
- *    // (NR.x[k][1], NR.y[k][1], NR.z[k][1])
- *    x: [
- *      [-1588, -1612],
- *      ...
- *    ],
- *    y: [
- *      [735, 762],
- *      ...
- *    ],
- *    z: [
- *      [60, 61],
- *      ...
- *    ],
- *    cb: [
- *      0, // whether is cellbody (0/1)
- *      ...
- *    ]
- *  }
- *  VC: //similar to NR
- *  // potentially other series (region) names: DC, VC2, RIG, LEF
- *  cellBody: sub-skeleton consisting of those part of cell body (no cb)
- *  plotParam: { // max/mins of given series(db)
- *    xScaleMax: -205
- *    xScaleMin: -8907
- *    yScaleMax: 7023 // note that old code php returns strings
- *    yScaleMin: 45
- *    zScaleMax: 2551
- *    zScaleMin: 2
- *  }
- *  preSynapse: [
- *    {
- *      continNum: "5872",
- *      x: -1089,
- *      y: "1847",
- *      z: "219",
- *      label: "AVBR,RIMR",
- *      numSections: "5",
- *      pre: "ADAR",
- *      post: "AVBR,RIMR",
- *      zLow: "217"
- *      zHigh: "221",
- *    },
- *    ...
- *  ]
- *  postSynapse: same as preSynapse
- *  gapJunction: same as preSynapse
- *  remarks: [ // about endpoints of the skeleton
- *    {
- *      objNum: "477998"
- *      x: -1588
- *      y: "735"
- *      z: "60"
- *      remarks: "end"
- *      series: "NR"
- *    },
- *    ...
-*   ]
- * }
- *
- * TODO maybe also add map.cellType?
- * do in ImporterApp:
- * var group = 'Neurons';
- * if (!main_this.selectedNeurons[group].hasOwnProperty(cell))
-     group = 'Muscles';
- *
- * @param {Array} map.objRemarks - OBJ_Remarks,
- *  each entry is object, with keys:
- *  -objNum, x,y,z, and remarks
- */
-MapViewer.prototype.loadMap = function(map)
-{
-  const self = this;
-
-  const plotMinMax = plotMinMaxValues[map.db];
-
-  this.plotParam.xmid = 0.5*(plotMinMax.xMin + plotMinMax.xMax);
-  this.plotParam.xmin = Math.min(this.minX,plotMinMax.xMin);
-  this.plotParam.ymid = 0.5*(plotMinMax.yMin + plotMinMax.yMax);
-  this.plotParam.ymax = Math.max(this.maxY, plotMinMax.yMax);
-  this.plotParam.zmid = 0.5*(plotMinMax.zMin + plotMinMax.zMax);
-  this.plotParam.zmin = plotMinMax.zMin;
-
-  // old method
-  //this.plotParam.xmid = 0.5*(map.plotParam.xScaleMin + map.plotParam.xScaleMax);
-  //this.plotParam.xmin = Math.min(this.minX,map.plotParam.xScaleMin);
-  //this.plotParam.ymid = 0.5*(map.plotParam.yScaleMin + map.plotParam.yScaleMax);
-  //this.plotParam.ymax = Math.max(this.maxY, map.plotParam.yScaleMax);
-  //this.plotParam.zmid = 0.5*(map.plotParam.zScaleMin + map.plotParam.zScaleMax);
-  //this.plotParam.zmin = map.plotParam.zScaleMin;
-
-  var params = {
-    neuron: map.name,
-    db: map.db,
-    // changed from 0.5*(map.plotParam ....
-    xmid: this.plotParam.xmid,
-    xmin: this.plotParam.xmin,
-    ymid: this.plotParam.ymid,
-    ymax: this.plotParam.ymax,
-    zmid: this.plotParam.zmid,
-    zmin: this.plotParam.zmin,
-    default: '---',
-    remarks: false
-  };
-  // linewidth actually no longer supported
-  var skelMaterial = new THREE.LineBasicMaterial({ color: this.SkelColor,
-    linewidth: this.SkelWidth});
-
-
-  /*
-   * this.maps[cellname] is MapViewer's way of storing data about cells
-   *
-   * synLabels is Group of labels for synapses,
-   * the Group's visibility is set to true, toggle visibility individually
-   * because vis responds to mouse events over the synapses
-   * synLabel can be distinguished by the contin id
-   * (synLabel.name; see toggleSynapseLabels)
-   *
-   * this.maps[cell] has the key synapses, which is of form:
-   *  synapses: { // organized by the name(s) of other cell and type
-   *    'RIPR': {
-   *      Presynaptic: [
-   *        THREE.Sphere objects
-   *      ],
-   *      Postsynaptic: same
-   *      'Gap junction': same
-   *    },
-   *    ...
-   *  }
-   *
-   *  since synObjs and synapses essentially store the same info,
-   *  when doing concrete things like deleting from viewer,
-   *  e.g. in clearMaps, or toggleAllSynapses
-   *  only need to do on synObjs (which is more convenient to go through)
-   *
-   *  TODO add region?
-   */
-  this.maps[map.name] = {
-    visible : true,
-    allGrps: new THREE.Group(), // contains all three Groups below
-    skeleton : [], //array of line segments, each is one THREE object!!
-    skelMaterial : skelMaterial,
-    skeletonGrp: new THREE.Group(), // YH; old was []
-    synObjs: new THREE.Group(), // YH; old was []
-    pre: new THREE.Group(),
-    post: new THREE.Group(),
-    gap: new THREE.Group(),
-    synapses : {}, // same, but organized by cell name of other side
-    synLabels : new THREE.Group(), // YH
-    remarks : new THREE.Group(), // remarks about endpoints
-    //objRemarks: [], // YH attempt to add remarks, realized already exist
-    params : params,
-  };
-
-  this.scene.add(this.maps[map.name].allGrps);
-  this.maps[map.name].allGrps.add(this.maps[map.name].skeletonGrp);
-  this.maps[map.name].allGrps.add(this.maps[map.name].synObjs);
-  this.maps[map.name].allGrps.add(this.maps[map.name].synLabels);
-  this.maps[map.name].allGrps.add(this.maps[map.name].remarks);
-  this.maps[map.name].synObjs.add(this.maps[map.name].pre);
-  this.maps[map.name].synObjs.add(this.maps[map.name].post);
-  this.maps[map.name].synObjs.add(this.maps[map.name].gap);
-  
-  // default visibilities
-  // see use of AddToggleButton in importerapp.js,
-  // which should have the same default values
-  this.maps[map.name].skeletonGrp.visible = true;
-  this.maps[map.name].synObjs.visible = true;
-  this.maps[map.name].remarks.visible = false; // see remarksparams
-  this.maps[map.name].synLabels.visible = true; // toggle individually
-  // because synLabels visibility respond to mouseover events
-
-  // series keys like VC, NR etc, and value map[key]
-  // comes from NeuronTrace constructor/TraceLocation from dbaux.php
-  // TBH I don't understand why series was kept,
-  // I think I will use it for the 2D view
-  // but it wasn't utilized at all before
-  // it used to give me such a headache
-  for (const key in map.skeleton) {
-    // no longer need to check!
-    //if (this.non_series_keys.indexOf(key) == -1){
-    this.addSkeleton(map.name,map.skeleton[key],params);
-  }
-
-  // map['pre..'] is array of objects,
-  // each representing one synapse
-  // each map['pre..'], map['post..'], map['gap..']
-  // is order by z value ascending
-  // we want to add them in ascending order
-  // because of the labeling stuff
-  let allSyn = [];
-  allSyn = allSyn.concat(
-    map['preSynapse'].map(syn => [syn.z, 'pre', syn]));
-  allSyn = allSyn.concat(
-    map['postSynapse'].map(syn => [syn.z, 'post', syn]));
-  allSyn = allSyn.concat(
-    map['gapJunction'].map(syn => [syn.z, 'gap', syn]));
-  allSyn.sort((obj1, obj2) => obj1[0] - obj2[0]);
-  for (const obj of allSyn) {
-    // obj = [z-coord, type, syn object]
-    const sphereMaterial = this[`${obj[1]}Material`];
-    this.addOneSynapse(map.name,obj[2],sphereMaterial,obj[1],params);
-  }
-
-  //this.addSynapse(map.name,map['preSynapse'],this.preMaterial,'pre',params);
-  //this.addSynapse(map.name,map['postSynapse'],this.postMaterial,'post',params);
-  //this.addSynapse(map.name,map['gapJunction'],this.gapMaterial,'gap',params);
-
-  // map.remarks[i] has 5 keys:
-  //    x, y, z, series, remark
-  // note that for some reason the x is -x...
-  // see dbaux.php add_remark(..)
-  // YH rewrote to follow add_remark_alt (returns ASSOC array)
-  // YH also got rid of parseInt, fixed php
-  map.remarks.forEach( obj => {
-    const pos = this.applyParamsTranslate(new THREE.Vector3(
-        obj.x, obj.y, obj.z));
-    console.log('pos: ', pos.x, pos.y, pos.z);
-    console.log('obj: ', obj.x, obj.y, obj.z);
-    const params2 = {
-      pos: pos,
-      offset: new THREE.Vector3(200,200,0),
-      color: self.remarksColor,
-      font: "Bold 20px Arial",
-      visible: true, // visibility handled by remarks Group
-      arrowhead: false,
-    };
-
-    self.maps[map.name].remarks.add(
-        self.addTextWithArrow(obj.remarks, params2));
-  });
-
-  // translate cell by the slider values
-  // and update camera
-  this.translateOneMapsToThisPos(map.name);
-  const avePos = this.GetAveragePosition(map.name);
-  this.SetCameraTarget(avePos);
-  this.camera.position.x = avePos.x;
-  this.camera.position.y = avePos.y + 1000;
-  this.camera.position.z = avePos.z;
-  this.updateCamera();
-};
-
 
 /*
  * new version of loadMap,
  * to be compatible w/ LoadMap2 in importerapp.js
  * and retrieve_trace_coord_alt.php,
- * where object numbers are used effectively
+ * where object numbers are used efficiently
  *
  * expect format of @param data:
  *  {
@@ -684,10 +407,10 @@ MapViewer.prototype.loadMap = function(map)
  *      },
  *    },
  *    pre: { // synapses where data.name is the pre
- *      TODO
+ *      // same as gap
  *    },
- *    post: {
- *      TODO
+ *    post: { // synapses where data.name is in post
+ *      // same as gap
  *    },
  *    cellbody: { // php has no chill, only associative arrs
  *      0: [obj1, obj2],
@@ -796,7 +519,6 @@ MapViewer.prototype.loadMap2 = function(data)
     gapGrp: new THREE.Group(),
     //gap: [], // used?
     allSynData: {}, // TODO new
-    synapses : {},
     synLabels : new THREE.Group(),
     remarksGrp : new THREE.Group(),
     remarks: {},
@@ -823,7 +545,7 @@ MapViewer.prototype.loadMap2 = function(data)
   // set object coordinates, apply transformation
   for (const obj in data.objCoord) {
     map.objCoord[obj] = 
-      this.applyParamsTranslate(new THREE.Vector3(
+      this.applyPlotParamsTransform(new THREE.Vector3(
         data.objCoord[obj][0],
         data.objCoord[obj][1],
         data.objCoord[obj][2]
@@ -1026,10 +748,8 @@ MapViewer.prototype.getLoadedCells = function() {
 /*
  * @param {Object} vec - Vector3, or object with keys x,y,z
  * @param {Object} params - default value is this.plotParam
- *
- * this.translate seems pretty useless
  */
-MapViewer.prototype.applyParamsTranslate = function(vec,params=null) {
+MapViewer.prototype.applyPlotParamsTransform = function(vec,params=null) {
   if (params === null) {
     params = this.plotParam;
   }
@@ -1040,60 +760,13 @@ MapViewer.prototype.applyParamsTranslate = function(vec,params=null) {
   );
 };
 
-/*
- * add the neuron skeleton to THREE scene
- * called by loadMap:
- *    this.addSkeleton(map.name,map[key],params);     
- * pass skeleton (=map.skeleton[key]) as object with keys x,y,z,cb:
- * (see loadMap comments above)
- *  {
- *    x: [ [-1588, -1612], ... ],
- *    y: [ [735, 762], ... ],
- *    z: [ [60, 61], ... ],
- *    cb: [ 0, ... ],
- *  }
- *
- *  TODO shouldn't this always use this.plotParam??
- */
-MapViewer.prototype.addSkeleton = function(name,skeleton,params)
-{ 
-  for (var i=0; i < skeleton.x.length; i++){
-    var lineGeometry = new THREE.Geometry();
-    var v0 = 
-      this.applyParamsTranslate(new THREE.Vector3(
-          skeleton.x[i][0],
-          skeleton.y[i][0],
-          skeleton.z[i][0]
-        ),
-        params
-      );
-    var v1 = 
-      this.applyParamsTranslate(new THREE.Vector3(
-          skeleton.x[i][1],
-          skeleton.y[i][1],
-          skeleton.z[i][1]
-        ),
-        params
-      );
-    lineGeometry.vertices.push(v0, v1);
-    if (skeleton.cb != undefined && skeleton.cb[i]==1){
-      var line = new THREE.Line(lineGeometry,this.cbMaterial);
-      line.cellBody = true;
-    } else {
-      var line = new THREE.Line(lineGeometry,this.maps[name].skelMaterial);
-      line.cellBody = false;
-    }
-    this.maps[name].skeletonGrp.add(line);
-  }
-};
-
 
 /*
  * add the cell skeleton to THREE scene
  * uses this.maps[name].skeletonLines
  * as computed in loadMap2
  *
- * takes the place of this.addSkeleton(..)
+ * takes the place of this.addSkeleton(..) in importerapp.js
  *
  * for now, ignoring series(region)
  *
@@ -1108,147 +781,6 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
     this.maps[name].skeletonGrp.add(l);
   }
 };
-
-MapViewer.prototype.GetObjCoordAbsolute = function(cellname, objNum) {
-  return this.maps[cellname].objCoord[objNum];
-};
-
-/*
- * add just one synapse
- * (see commented addSynapse for original)
- * in original, synapse given as plain array:
- * 0,1,2: x,y,z
- * 3: numSections
- * 4: label
- * 5: zLow
- * 6: zHigh
- * 7: continNum
- * 8: pre
- * 9: post
- * 
- * creates THREE.Sphere and adds to
- * -this.maps[name].synObjs, THREE.Group already added to scene
- * -this.maps[name].synapses, same but organized by other cell
- * 
- * also adds text labels to each synapse, not shown by default
- * stored in this.maps[name].synLabels, THREE.Group already in scene
- * 
- * @param {String} name - cell name
- * @param {Object} synapse - see map.preSynapse[0] in comment for loadMap
- * @param {THREE.Material} sphereMaterial
- * @param {String} synType - 'pre','post','gap'
- * @param {Object} params - {
- *     neuron: name of cell?? seems redundant to pass this
- *     db: map.series,
- *     xmid : 0.5*(parseInt(map.plotParam.xScaleMin) + parseInt(map.plotParam.xScaleMax)),
- *     xmin : Math.min(this.minX,map.plotParam.xScaleMin),
- *     ymid : 0.5*(parseInt(map.plotParam.yScaleMin) + parseInt(map.plotParam.yScaleMax)),
- *     ymax : Math.max(this.maxY,parseInt(map.plotParam.yScaleMax)),
- *     zmid : 0.5*(parseInt(map.plotParam.zScaleMin) + parseInt(map.plotParam.zScaleMax)),
- *     zmin : parseInt(map.plotParam.zScaleMin),
- *     default : '---',
- *     remarks : false
- *   }
- */
-MapViewer.prototype.addOneSynapse = function(name,synapse,sphereMaterial,synType,params)
-{
-  const self = this;
-  var synapsePos = new THREE.Vector3(synapse.x, synapse.y, synapse.z);
-  synapsePos = this.applyParamsTranslate(synapsePos, params);
-  var _radius = synapse['numSections'];
-  var radius = Math.min(self.SynMax,synapse['numSections']*self.SynScale);
-  var partner = synapse['label'];
-  var sect1 = synapse['zLow'];
-  var sect2 = synapse['zHigh'];
-  var contin = synapse['continNum'];
-  var source = synapse['pre'];
-  var target = synapse['post'];
-
-  var geometry = new THREE.SphereGeometry(radius,self.sphereWidthSegments,self.sphereHeightSegments);
-  var sphere = new THREE.Mesh(geometry,sphereMaterial);
-  sphere.name = contin;
-  sphere.position.copy(synapsePos);
-  sphere.material.transparent = true;
-
-  // add sphere to scene via pre/post/gap Group
-  self.maps[name][synType].add(sphere);
-
-  // function for determining the offset
-  // previously defined based on input z value
-  function offsetx() {
-    if (this.count === undefined) {
-      this.count = 0;
-    }
-    ++this.count;
-    switch(this.count % 4) {
-      case 0: return -50;// + 10*this.count;
-      case 1: return 25;// + 10*this.count;
-      case 2: return -25;// + 10*this.count;
-      case 3: return 50;// + 10*this.count;
-    }
-  };
-    
-  // add text label to scene via synLabels
-  // accessed by this reference in the event listener callback
-  const synLabelObj = this.addTextWithArrow(partner,{
-    pos: sphere.position.clone(),
-    rotate: { x: -Math.PI/3 },
-    scale: { x: 0.2, y: 0.2, z: 0.2 },
-    offset: new THREE.Vector3(offsetx(),0,0),
-        //offsetx(Math.floor(sphere.position.z)),0,0),
-    font: '20px Arial',
-    arrowhead: false,
-  });
-  synLabelObj.name = contin;
-  synLabelObj.visible = false;
-  self.maps[name].synLabels.add(synLabelObj);
-
-  // setting up events/listeners to respond to
-  // mouse events over synapse in viewer
-  const info = {
-    cellname: name,
-    syntype: synType,
-    synsource: source,
-    syntarget: target,
-    synweight: _radius,
-    synsection: `(${sect1},${sect2})`,
-    syncontin: contin,
-    synposition: sphere.getWorldPosition(), // must be updated when emit event
-  };
-
-  self.domEvents.addEventListener(sphere,'mouseover',function(event){
-    sphere.getWorldPosition(info.synposition);
-    synLabelObj.visible = true;
-    self.menu.app.UpdateSynapseInfo(info);
-    self.renderer.render(self.scene,self.camera);
-  });
-  self.domEvents.addEventListener(sphere,'mouseout',function(event){
-    if (self.menu.app.GetSynapseInfoContin() !== info.syncontin) {
-      synLabelObj.visible = false;
-    }
-    self.menu.app.RestoreSynapseInfo();
-    self.renderer.render(self.scene,self.camera);
-  });
-
-  // YH change behaviour of clicking;
-  // floating dialog now handled by button
-  // (see AddSynapseInfo in importerapp.js)
-  self.domEvents.addEventListener(sphere,'click',function(event){
-    if (self.menu.app.GetSynapseInfoContin() === info.syncontin) {
-      synLabelObj.visible = false;
-      self.menu.app.ResetDefaultSynapseInfo();
-    }
-    else {
-      self.toggleSynapseLabels(info.cellname, false);
-      synLabelObj.visible = true;
-      sphere.getWorldPosition(info.synposition);
-      self.menu.app.UpdateClickedSynapseInfo(info);
-    }
-    self.renderer.render(self.scene,self.camera);
-  });
-};
-
-
 
 
 /*
@@ -1371,14 +903,6 @@ MapViewer.prototype.GetSynData = function(cellname,contin) {
 }
 
 
-//should be called addSynapseS!
-MapViewer.prototype.addSynapse = function(name,synapses,sphereMaterial,synType,params) {
-  for (const synapse of synapses) {
-    this.addOneSynapse(name,synapse,sphereMaterial,synType,params);
-  }
-};
-
-
 /*
  * translate this.position to given x,y,z
  * this.position is (0,0,0) at the beginning
@@ -1491,6 +1015,10 @@ MapViewer.prototype.transformStuffOneCell = function(m, name) {
   this.maps[name].allGrps.applyMatrix(m);
 };
 
+
+
+
+
 /*
  * new, toggles visible of all stuff,
  * but keep subgroups hidden if they were separately hidden
@@ -1520,6 +1048,9 @@ MapViewer.prototype.toggleSkeleton = function(name, visible=null)
   }
   this.maps[name].skeletonGrp.visible = visible;
 };
+
+//========================================================
+// for Synapse Filter section
 
 /*
  * filter synapses from view
@@ -1588,6 +1119,7 @@ MapViewer.prototype.FilterSynapsesByContins = function(contins) {
     }
   }
 };
+
 // a bit different from old methods of toggleAllSynapses etc
 // because in FilterSynapses, affect visibility of both
 // the groups (preGrp etc) and individual sphere objects
@@ -1603,15 +1135,19 @@ MapViewer.prototype.RestoreSynapses = function() {
   }
 };
 
+//===========================================================
+// toggle synapses
+// not really in use for now,
+// since our UI only allows filtering
+
 MapViewer.prototype.toggleAllSynapses = function(visible=null)
 {
   for (const name in this.maps){
-    this.toggleSynapses(name,visible);
+    this.toggleSynapsesByCell(name,visible);
   }
 };
 
-// used to be _toggleAllSynapses essentially
-MapViewer.prototype.toggleSynapses = function(name, visible=null)
+MapViewer.prototype.toggleSynapsesByCell = function(name, visible=null)
 {
   if (typeof(visible) !== 'boolean') {
     visible = !this.maps[name].synObjs.visible;
@@ -1620,61 +1156,19 @@ MapViewer.prototype.toggleSynapses = function(name, visible=null)
 };
 
 
-/*
- * toggles all cells and syn types
- * using lowest level group (maps[name][synType])
- */
-MapViewer.prototype.toggleAllSynapseTypeHard = function(visible) {
-  for (const name in this.maps) {
-    for (const synTypeGrp of this.maps[name].synObjs.children) {
-      synTypeGrp.visible = visible;
-    }
-  }
-};
-
-
+// synType = 'pre','post','gap'
 MapViewer.prototype.toggleSynapsesByType = function(name,synType,visible=null) {
+  const grp = synType + 'Grp';
   if (typeof(visible) !== 'boolean') {
-    visible = !this.maps[name][synType].visible;
+    visible = !this.maps[name][grp].visible;
   }
-  this.maps[name][synType].visible = visible;
+  this.maps[name][grp].visible = visible;
 };
 
-// replaced by toggleSynapsesByType, note 's'
-MapViewer.prototype.toggleSynapseByType = function(synType,bool=null,cells=null)
-{
-  if (typeof(bool) !== 'boolean') {
-    bool = true; // TODO should be toggling behaviour
-  }
-  for (var name in this.maps){
-    this._toggleSynapseByTypeName(name,synType,bool=null,cells=cells);
-  };
-};
 
-MapViewer.prototype._toggleSynapseByTypeName
-  = function(name,synType,bool=null,cells=null) {
-  if (typeof(bool) !== 'boolean') {
-    bool = true; // TODO should be toggling behaviour
-  }
-
-  const keys = (cells != null) ?
-    cells : Object.keys(this.maps[name].synapses);
-
-  keys.forEach( cell => {
-    this.maps[name].synapses[cell][synType].forEach( syn => {
-      syn.visible = true;
-    });
-    //for (var j in this.maps[name].synapses[cell][synType]){
-    //  this.maps[name].synapses[cell][synType][j].visible = true;
-    //}
-  });
-};
-
-MapViewer.prototype.toggleSynapseContin = function(contin)
-{
-  var object = this.scene.getObjectByName(contin);
-  object.visible = !object.visible;
-};
+//=========================================================
+// show/hide visibility of some global stuff,
+// i.e. functionality for Global Viewer Options
 
 MapViewer.prototype.toggleAllRemarks = function(bool=null) {
   for (const cell in this.maps) {
@@ -1695,15 +1189,6 @@ MapViewer.prototype.GetRemarkVis = function(cell) {
   return this.maps[cell].remarksGrp.visible;
 };
 
-// YH old method; toggle remarks by cell
-MapViewer.prototype._toggleRemarks = function(name,bool=null)
-{
-  if (typeof(bool) === 'boolean') {
-    this.maps[name].remarks.visible = bool;
-  } else {
-    this.maps[name].remarks.visible = !this.maps[name].remarks.visible;
-  }
-};
 
 MapViewer.prototype.toggleGrid = function(bool=null) {
   if (typeof(bool) !== 'boolean') {
@@ -1731,7 +1216,6 @@ MapViewer.prototype.toggleSynapseLabels = function(name,bool=null) {
     bool = !this.synapseLabelsAllVisible;
   }
   this.synapseLabelsAllVisible = bool;
-  console.log(this.synapseLabelsAllVisible);
   for (const synLabel of this.maps[name].synLabels.children) {
     synLabel.visible = bool;
     if (this.menu.app.GetSynapseInfoContin2() === synLabel.name) {
@@ -1742,8 +1226,12 @@ MapViewer.prototype.toggleSynapseLabels = function(name,bool=null) {
   //this.maps[name].synLabels.visible = bool;
 };
 
+
+//==========================================================
+
+
 // used in particular in LoadMapMenu,
-// which is called after LoadMap in ImporterApp,
+// which is called after LoadMap in ImporterApp (?),
 // which is async (waits for xhttp request for data)
 // so when writing items to menu need to check if done loading
 MapViewer.prototype.isCellLoaded = function(cellname) {
@@ -1927,11 +1415,15 @@ MapViewer.prototype.GetTranslateOnMaps = function(cellname) {
 // i.e. taking into account translations too
 MapViewer.prototype.GetObjCoordActual = function(cellname,obj) {
   const trans = this.GetTranslateOnMaps(cellname);
-  const coord = this.maps[cellname].objCoord[obj];
+  const coord = this.GetObjCoordAbsolute(cellname,obj);
   return new THREE.Vector3(
     trans.x + coord.x,
     trans.y + coord.y,
     trans.z + coord.z);
+};
+
+MapViewer.prototype.GetObjCoordAbsolute = function(cellname, objNum) {
+  return this.maps[cellname].objCoord[objNum];
 };
 
 
@@ -1988,7 +1480,6 @@ MapViewer.prototype.load2DViewer = function(elem) {
           'height': 'data(height)',
         }
       },
-
       {
         selector: 'edge',
         style: {
@@ -2000,11 +1491,8 @@ MapViewer.prototype.load2DViewer = function(elem) {
         }
       }
     ],
-
     layout: {
       name: 'preset',
-      //name: 'grid',
-      //rows: 1
     },
     wheelSensitivity: 0.5, // zoom speed
   });
