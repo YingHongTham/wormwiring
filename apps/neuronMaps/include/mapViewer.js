@@ -22,6 +22,10 @@ if (typeof(THREEx.WindowResize) === undefined) {
  *  viewer = new MapViewer(canvas, this);
  *  (here this refers to ImporterApp;
  *  allows methods here to get stuff from HTML via ImporterApp)
+ *
+ * the main object storing data is this.maps,
+ * which holds data of the skeleton, synapses, etc
+ * see loadMap2 for a full description
  */
 
 MapViewer = function(canvas,app)
@@ -343,6 +347,7 @@ MapViewer.prototype.loadMap2 = function(data)
    */
   this.maps[data.name] = {
     name: data.name,
+    db: data.db,
     allGrps: new THREE.Group(),
     objCoord: {}, // key,value = objNum, THREE.Vector3
     objSeries: data.objSeries,
@@ -713,7 +718,6 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
   this.domEvents.addEventListener(sphere,'mouseover',function() {
     synLabelObj.visible = true;
     self.app.UpdateSynapseInfo2(synData.cellname, synData.contin);
-    //self.renderer.render(self.scene,self.camera);
     self.render();
   });
   this.domEvents.addEventListener(sphere,'mouseout',function() {
@@ -721,7 +725,6 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
       synLabelObj.visible = false;
     }
     self.app.RestoreSynapseInfo2();
-    //self.renderer.render(self.scene,self.camera);
     self.render();
   });
 
@@ -736,11 +739,14 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
       synLabelObj.visible = true;
       self.app.UpdateClickedSynapseInfo2(synData.cellname, synData.contin);
     }
-    //self.renderer.render(self.scene,self.camera);
     self.render();
   });
 };
 
+
+/*
+ * returns a copy of synapse data with given contin
+ */
 MapViewer.prototype.GetSynData = function(cellname,contin) {
   const synData = Object.assign({}, this.maps[cellname].allSynData[contin]);
   return synData;

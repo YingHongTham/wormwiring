@@ -537,7 +537,7 @@ ImporterApp.prototype.AddHelpPanel = function(parent,params)
   panel.appendChild(panelHeader);
 
   var panelCollapse = document.createElement('div');
-  //panelCollapse.id = params.name;
+  panelCollapse.id = params.name;
   panelCollapse.classList.add('panel-collapse','collapse');
   if (typeof params.text !== "undefined"){
     var panelBody = document.createElement('div');

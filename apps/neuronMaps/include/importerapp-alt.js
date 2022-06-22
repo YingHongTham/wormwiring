@@ -23,17 +23,17 @@
 
 // requires /apps/include/cellLists.js, wa_link.js, etc.
 if (celllistByDbType === undefined) {
-  console.error('expect cellLists.js');
+  console.error('expect /apps/include/cellLists.js');
 }
 if (cellnameWALinkDict === undefined
     || cellnameToWALink === undefined) {
-  console.error('expect wa_link.js');
+  console.error('expect /apps/include/wa_link.js');
 }
 if (helpDialogItems === undefined) {
-  console.error('expect helpDialogItems.js');
+  console.error('expect ./helpDialogItems.js');
 }
 if (typeof(FloatingDialog) === undefined) {
-  console.error('expect floatingdialog.js');
+  console.error('expect /apps/include/floatingdialog.js');
 }
 
 ImporterApp = function()
@@ -131,25 +131,26 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   topItems[2].onclick = () => { this.Open2DViewer(); };
   topItems[3].onclick = () => { this.ClearMaps(); };
 
-  // create menu items' accordian behaviour
-  const menuSections = Array.from(
-    document.getElementsByClassName('accordianSection')
-  );
-  menuSections.forEach( el => {
-    // expect exactly two children - with classes
-    // sectionTitle, sectionContent - in that order
-    // state of open/close stored in presence/absence
-    // of class active/inactive in title
-    const title = el.children[0];
-    const content = el.children[1];
-    title.onclick = () => {
-      const active = title.classList.contains('active')
-                  || !title.classList.contains('inactive');
-      content.style.display = active ? 'none' : 'block';
-      title.classList.toggle('active', !active);
-      title.classList.toggle('inactive', active);
-    };
-  });
+  // no longer needed, found that bootstrap can handle it
+  //// create menu items' accordian behaviour
+  //const menuSections = Array.from(
+  //  document.getElementsByClassName('accordianSection')
+  //);
+  //menuSections.forEach( el => {
+  //  // expect exactly two children - with classes
+  //  // sectionTitle, sectionContent - in that order
+  //  // state of open/close stored in presence/absence
+  //  // of class active/inactive in title
+  //  const title = el.children[0];
+  //  const content = el.children[1];
+  //  title.onclick = () => {
+  //    const active = title.classList.contains('active')
+  //                || !title.classList.contains('inactive');
+  //    content.style.display = active ? 'none' : 'block';
+  //    title.classList.toggle('active', !active);
+  //    title.classList.toggle('inactive', active);
+  //  };
+  //});
 
   //=================================================
   // link series-selector to this.db and this.cellsInSlctdSrs
@@ -399,7 +400,33 @@ ImporterApp.prototype.SaveToFile = function() {
   a.click();
 };
 
-// no longer needed, preloading handled by build_neuronMaps.js
+
+/*
+ * json file expected:
+ * TODO give expected format
+ */
+ImporterApp.prototype.SaveToFile = function() {
+  const data = {
+    db: this.db,
+    mapsSettings: this.viewer.dumpMapsJSON(),
+    cameraSettings: this.viewer.dumpCameraJSON(),
+    mapsTranslation: this.GetMapsTranslate(),
+  };// object to hold data to save
+
+  console.log(data);
+
+  const a = document.getElementById('forSaveToFileButton');
+  if (a === null)
+    return;
+  a.href = URL.createObjectURL(new Blob(
+    [JSON.stringify(data)],
+    { type: 'application/json', }
+  ));
+  a.setAttribute('download', 'session.json');
+  a.click();
+};
+
+// no longer needed, preloading triggered by build_neuronMaps.js
 //// recall that the params here are a bit different from
 //// those given in url;
 //// see build_neuronMaps.js for how it was preprocessed
@@ -409,8 +436,8 @@ ImporterApp.prototype.SaveToFile = function() {
 //      && 'sex' in this.params;
 //};
 
-
-ImporterApp.prototype.PreloadCells2 = function(db, cell)
+// used to be PreloadCells2
+ImporterApp.prototype.LoadDbCell = function(db, cell)
 {
   // update the series selector in menu
   this.SetSeriesToHTML(db);
@@ -421,6 +448,11 @@ ImporterApp.prototype.PreloadCells2 = function(db, cell)
   //this.LoadMapMenu2(cell); // put into LoadMap2
 };
 
+
+
+//=========================================================
+// functionality for the top menu
+// Help, Select Cells, 2D Viewer, Clear Maps
 
 ImporterApp.prototype.OpenHelpDialog = function()
 {
@@ -440,19 +472,20 @@ ImporterApp.prototype.OpenHelpDialog = function()
   const contentDiv = this.dialog.GetContentDiv();
     
   const panelGroup = document.createElement('div');
-  panelGroup.classList.add('panel-group');
-  // panel-group is from bootstrap.css
-  for (const helpItem of helpDialogItems) {
-    this.AddHelpPanel(panelGroup,helpItem);
-  }
   contentDiv.appendChild(panelGroup);
+
+  panelGroup.classList.add('panel-group');
+  // panel-group etc is from bootstrap.css
+  for (const helpItem of helpDialogItems) {
+    panelGroup.appendChild(this.CreateHelpPanel(helpItem));
+  }
 }
 
 /*
- * adds a help entry defined by params
- * to the 'parent' element
+ * returns help entry defined by params
+ *
  * HTML:
- *  <div> // panel --> added to parent by appendChild
+ *  <div> // panel --> returned
  *    <div> // panelHeader
  *      <div> // panelTitle
  *        <div> // panelA
@@ -467,31 +500,42 @@ ImporterApp.prototype.OpenHelpDialog = function()
  *      </iframe>
  *    </div>
  *  </div>
+ *
+ * the CSS classes like panel-* and attributes data-*
+ * are from bootstrap.css,
+ * which is linked to bootstrap.js, which provides func'ty
  */
-ImporterApp.prototype.AddHelpPanel = function(parent,params)
+ImporterApp.prototype.CreateHelpPanel = function(params)
 {
-  var panel = document.createElement('div');
+  const panel = document.createElement('div');
   panel.classList.add('panel','panel-default');
 
-  var panelHeader = document.createElement('div');
+  const panelHeader = document.createElement('div');
   panelHeader.classList.add('panel-heading');
+  panelHeader.classList.add('accordion-toggle');
+  panelHeader.setAttribute('data-toggle','collapse');
+  panelHeader.setAttribute('data-parent','#accordion');
+  panelHeader.setAttribute('data-target','#'+params.name);
 
-  var panelTitle = document.createElement('h4');
+  const panelTitle = document.createElement('h4');
   panelTitle.classList.add('panel-title');
 
-  var panelA = document.createElement('a');
-  panelA.classList.add('accordion-toggle');
-  panelA.setAttribute('data-toggle','collapse');
-  panelA.setAttribute('data-parent','#accordion');
-  panelA.href = '#' + params.name;
+  const panelA = document.createElement('a');
   panelA.innerHTML = params.title;
+  //panelA.classList.add('accordion-toggle');
+  //panelA.setAttribute('data-toggle','collapse');
+  //panelA.setAttribute('data-parent','#accordion');
+  //panelA.href = '#' + params.name;
 
   panelTitle.appendChild(panelA);
   panelHeader.appendChild(panelTitle);
   panel.appendChild(panelHeader);
 
-  var panelCollapse = document.createElement('div');
-  //panelCollapse.id = params.name;
+  // content
+  const panelCollapse = document.createElement('div');
+  // important to assign id! as this is how 
+  // bootstrap.js finds and the right div to collapse
+  panelCollapse.id = params.name;
   panelCollapse.classList.add('panel-collapse','collapse');
   if (typeof params.text !== "undefined"){
     var panelBody = document.createElement('div');
@@ -507,8 +551,9 @@ ImporterApp.prototype.AddHelpPanel = function(parent,params)
     panelCollapse.appendChild(panelIFrame);
   };
   panel.appendChild(panelCollapse);
-  parent.appendChild(panel);
-}
+  
+  return panel;
+};
 
 ImporterApp.prototype.OpenInfoDialog = function(url,title)
 {
@@ -651,36 +696,7 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
   };
   xhttp.open("GET",url,true);
   xhttp.send();
-}
-
-/*
- * YH so far not used..
- * retrieves trace, synapses etc and loads into viewer,
- * and also takes callback to perform after loaded
- *
- * callback expected to take db, mapname as input
- * TODO do this when allow loading from
- * json file that didn't save the skeleton and stuff
- * perhaps even use this as unified way to load via url params
- */
-ImporterApp.prototype.LoadMapCallback = function(db, mapname, callback)
-{
-  var self = this;
-  console.log(db + ', ' + mapname);
-  var url = '../php/retrieve_trace_coord.php?neuron='+mapname+'&db='+db;
-  console.log('retrieving skeleton map via '+url);
-  var xhttp = new XMLHttpRequest();    
-  xhttp.onreadystatechange = function(){
-    if (this.readyState == 4 && this.status == 200){
-      self.data[mapname] = JSON.parse(this.responseText);
-      self.viewer.loadMap(self.data[mapname]);
-      callback(db, mapname);
-    }
-  };
-  xhttp.open("GET",url,true);
-  xhttp.send();
 };
-
 
 /*
  * loads menu entry for cell in 'Maps'
@@ -748,6 +764,16 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   title.classList.add('inactive'); // default content hidden
   content.classList.add('sectionContent');
   content.style.display = 'none'; // default content hidden
+
+  title.classList.add('sectionTitle');
+  title.setAttribute('data-toggle','collapse');
+  title.setAttribute('data-target','#contet');
+  title.setAttribute('role','button');
+  title.setAttribute('aria-expanded','false');
+  content.classList.add
+      <div class='sectionContent collapse in show'
+           id='loadSaveContentDiv'>
+
 
   title.onclick = () => {
     const active = title.classList.contains('active')
@@ -837,209 +863,6 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   };
 };
 
-/*
- * params.visDefault:
- * TODO maybe useless
- */
-
-ImporterApp.prototype.CreateButton = function(params) {
-  menuContent = document.createElement ('div');
-  menuContent.className = 'menugroup';
-  menuContent.style.display = params.visible ?
-      'block' : 'none';
-
-  // set button image/character
-  // currently not in use to avoid browser support issues
-  //if (params.open.length <= 1) {
-  //  // unicode character as image (typically arrow)
-  //  // also asssumes that if using this option (i.e. no image)
-  //  // then both open and close are like that
-  //  image = document.createElement('div');
-  //  image.style.display = 'inline';
-  //  image.innerHTML = params.visible ?
-  //      params.open : params.close;
-  //}
-  //else {
-  image = document.createElement('img');
-  image.className = 'menubutton';
-  image.title = params.title;
-  image.src = params.visible ?
-      params.open : params.close;
-  //}
-  image.onclick = function () {
-    // close to open
-    if (menuContent.style.display == 'none') {
-      menuContent.style.display = 'block';
-      //if (this.nodeName === 'DIV') { // if use unicode for image
-      //  this.innerHTML = params.open;
-      //} else {
-      this.src = params.open;
-      //}
-      if (params.onOpen !== undefined
-          && params.onOpen !== null) {
-        params.onOpen(menuContent);
-            //params.userData);
-      }
-    } else { // open to close
-      menuContent.style.display = 'none';
-      //if (this.nodeName === 'DIV') { // if use unicode for image
-      //  this.innerHTML = params.close;
-      //} else {
-      this.src = params.close;
-      //}
-      //onClose is never used/given in params!
-      //if (params.onClose !== undefined
-      //    && params.onClose !== null) {
-      //  params.onClose(menuContent,
-      //      params.userData);
-      //}
-    }
-  };
-  
-  menuText.onclick = image.onclick;
-  menuText.style.cursor = 'pointer';
-  menuText.style.display = 'inline';
-};
-
-
-/*
- * adapted from ImporterMenu.AddSubItem
- * TODO maybe useless
- */
-ImporterApp.prototype.AddSubItem = function(parent, name, parameters)
-{
-  // just for cutting displaying width
-  function GetTruncatedName (name) {
-    var maxLength = 20;
-    if (name.length > maxLength) {
-      return name.substr (0, maxLength) + '...';
-    }
-    return name;
-  }
-
-  // one big div containing the menuItem and menuContent divs
-  const menuBigDiv = document.createElement('div');
-  menuBigDiv.className = 'menuBigDiv';
-  parent.appendChild(menuBigDiv);
-
-  // div that will hold the buttons and menuText
-  const menuItem = document.createElement ('div');
-  menuItem.className = 'menuitem';
-  menuBigDiv.appendChild(menuItem);
-
-  const menuText = document.createElement ('div');
-  menuText.className = 'menuitem';
-  menuText.innerHTML = GetTruncatedName (name);
-  menuText.title = name;
-  menuItem.appendChild(menuText);
-
-  var menuContent = null;
-  var openCloseImage = null;
-  var userImage = null;
-    
-  if (parameters === undefined || parameters === null) {
-    // really should be menuBigDiv
-    return menuContent;
-  }
-
-  if (parameters.hasOwnProperty('openCloseButton')) {
-    menuContent = document.createElement ('div');
-    menuContent.className = 'menugroup';
-    menuContent.style.display = parameters.openCloseButton.visible ?
-        'block' : 'none';
-
-    // set button image/character
-    // currently not in use to avoid browser support issues
-    //if (parameters.openCloseButton.open.length <= 1) {
-    //  // unicode character as image (typically arrow)
-    //  // also asssumes that if using this option (i.e. no image)
-    //  // then both open and close are like that
-    //  openCloseImage = document.createElement('div');
-    //  openCloseImage.style.display = 'inline';
-    //  openCloseImage.innerHTML = parameters.openCloseButton.visible ?
-    //      parameters.openCloseButton.open : parameters.openCloseButton.close;
-    //}
-    //else {
-    openCloseImage = document.createElement('img');
-    openCloseImage.className = 'menubutton';
-    openCloseImage.title = parameters.openCloseButton.title;
-    openCloseImage.src = parameters.openCloseButton.visible ?
-        parameters.openCloseButton.open : parameters.openCloseButton.close;
-    //}
-    openCloseImage.onclick = function () {
-      // close to open
-      if (menuContent.style.display == 'none') {
-        menuContent.style.display = 'block';
-        //if (this.nodeName === 'DIV') { // if use unicode for image
-        //  this.innerHTML = parameters.openCloseButton.open;
-        //} else {
-        this.src = parameters.openCloseButton.open;
-        //}
-        if (parameters.openCloseButton.onOpen !== undefined
-            && parameters.openCloseButton.onOpen !== null) {
-          parameters.openCloseButton.onOpen(menuContent);
-              //parameters.openCloseButton.userData);
-        }
-      } else { // open to close
-        menuContent.style.display = 'none';
-        //if (this.nodeName === 'DIV') { // if use unicode for image
-        //  this.innerHTML = parameters.openCloseButton.close;
-        //} else {
-        this.src = parameters.openCloseButton.close;
-        //}
-        //onClose is never used/given in params!
-        //if (parameters.openCloseButton.onClose !== undefined
-        //    && parameters.openCloseButton.onClose !== null) {
-        //  parameters.openCloseButton.onClose(menuContent,
-        //      parameters.openCloseButton.userData);
-        //}
-      }
-    };
-    
-    menuText.onclick = openCloseImage.onclick;
-    menuText.style.cursor = 'pointer';
-    menuText.style.display = 'inline';
-  }
-
-  if (parameters.hasOwnProperty('userButton')) {
-    if (!parameters.userButton.hasOwnProperty('onClick')
-        || !parameters.userButton.hasOwnProperty('userData')) {
-      console.error('userButton must have onClick and userData');
-    }
-
-    userImage = document.createElement ('img');
-    userImage.className = 'menubutton';
-    userImage.title = parameters.userButton.title;
-    userImage.src = parameters.userButton.imgSrc;
-    if (parameters.userButton.hasOwnProperty('onCreate')) {
-      parameters.userButton.onCreate(userImage, parameters.userButton.userData);
-    }
-    userImage.onclick = function() {
-      parameters.userButton.onClick(userImage, parameters.userButton.userData);
-    };
-  }
-
-  if (openCloseImage !== null) {
-    //menuItem.appendChild(openCloseImage);
-    menuItem.insertBefore(openCloseImage, menuText);
-  }
-  if (userImage !== null) {
-    //menuItem.appendChild(userImage);
-    menuItem.insertBefore(userImage, menuText);
-  }
-  if (menuContent !== null) {
-    //parent.appendChild(menuContent);
-    menuBigDiv.appendChild(menuContent);
-  }
-
-  // really should be menuBigDiv
-  return menuContent;
-};
-
-
-
-
-
 
 /*
  * adds the entries in the Cell Selector Dialog
@@ -1058,13 +881,17 @@ ImporterApp.prototype.AddSubItem = function(parent, name, parameters)
  *      cells
  *    </div>
  *  </div>
+ *
+ * similar to AddHelpPanel,
+ * the CSS classes are from bootstrap.css,
+ * which is linked to bootstrap.js, which provides func'ty
  */
 ImporterApp.prototype.AddSelectPanel = function(celltype) {
   const bigDiv = document.createElement('div');
 
   // large button, click to expand/collapse list
   const panelHeader = document.createElement('button');
-  panelHeader.classList.add('panel-header');
+  panelHeader.classList.add('panel-header'); // /css/importer.css
   //panelHeader.setAttribute('type','button');
   //panelHeader.setAttribute('data-toggle','collapse');
   //panelHeader.setAttribute('data-target','#'+celltype);
@@ -1106,35 +933,14 @@ ImporterApp.prototype.AddSelectPanel = function(celltype) {
   return bigDiv;
 };
 
-ImporterApp.prototype.SetDB = function(_db)
-{
-    this.db = _db;
-}
-
-ImporterApp.prototype.HelpButton = function()
-{
-  var HelpText = [
-    '<div class="btn-group">',
-    '<button type="button" class="btn btn-danger">Action</button>',
-    '<button type="button" class="btn btn-danger" data-toggle="collapse" data-target="#demo">',
-    '<span class="glyphicon glyphicon-minus"></span>',
-    '</button>',
-    '</div>',
-    '<div id="demo" class="collapse in">Some dummy text in here.</div>'
-  ].join('');
-  return HelpText;
-}
-
 
 ImporterApp.prototype.ResizeOnlyCanvasLeft = function () {
-  function SetWidth (elem, value)
-  {
+  function SetWidth (elem, value) {
     elem.width = value;
     elem.style.width = value + 'px';
   }
 
-  function SetHeight (elem, value)
-  {
+  function SetHeight (elem, value) {
     elem.height = value;
     elem.style.height = value + 'px';
   }
@@ -1151,8 +957,8 @@ ImporterApp.prototype.ResizeOnlyCanvasLeft = function () {
 
   SetHeight(left, height);
 
-  SetWidth(canvas, document.body.clientWidth - left.offsetWidth);
   SetHeight(canvas, height);
+  SetWidth(canvas, document.body.clientWidth - left.offsetWidth);
 };
 
 ImporterApp.prototype.Resize = function () {
@@ -1311,7 +1117,7 @@ ImporterApp.prototype.SetSeriesInternal = function(db) {
   this.cellsInSlctdSrs = celllistByDbType[db];
 };
 
-// maps section (the div with class sectionContent)
+// content of maps section
 ImporterApp.prototype.GetMapsContentDiv = function() {
   return document.getElementById('mapsContentDiv');
 };

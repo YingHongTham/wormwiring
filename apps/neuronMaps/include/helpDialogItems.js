@@ -1,3 +1,5 @@
+// name is used as id for the div containing the item
+
 helpDialogItems = [
   {
     title : 'Quick start',

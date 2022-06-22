@@ -8,8 +8,8 @@
 	<meta http-equiv="content-type" content="text/html;charset=utf-8">
 	<link rel="stylesheet" type="text/css" href="/css/home.css">
 	<link rel="stylesheet" type="text/css" href="/css/ww.css">
-	<link rel="stylesheet" type="text/css" href="../css/floatingdialog.css">
 	<link rel="stylesheet" type="text/css" href="/css/importer.css">
+	<link rel="stylesheet" type="text/css" href="../css/floatingdialog.css">
   <link rel="stylesheet" type="text/css" href="./css/neuronmaps.css">
 	
 <!-- Global site tag (gtag.js) - Google Analytics -->
@@ -40,8 +40,10 @@
     src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>-->
 	<script src='../include/bootstrap-3.3.7.min.js'></script>
 	
+  <!-- for color picker, not in use for now
 	<script src="../include/spectrum/spectrum.js"></script>
 	<link rel="stylesheet" href="../include/spectrum/spectrum.css" />
+  -->
 	
 	<script src="../include/three/Detector.js"></script>
 	<script src="../include/three/three.js"></script>
@@ -55,7 +57,7 @@
   <script type='text/javascript' src='/apps/include/wa_link.js'></script>
   <script type='text/javascript' src='/apps/include/cellLists.js'></script>
   <script type='text/javascript' src='/apps/include/selectorCells.js'></script>
-	<script type="text/javascript" src="/apps/include/helpDialogItems.js"></script>
+	<script type="text/javascript" src="./include/helpDialogItems.js"></script>
 
 	<script type="text/javascript" src="../include/importers.js"></script>
 	<script type="text/javascript" src="../../include/importWW.js"></script>
@@ -94,26 +96,37 @@
   </div>
 
 	<!--holds the stuff on the left -->
-  <!-- functionality is added in importerapp-alt.js -->
+  <!-- functionality is added in importerapp-alt.js
+    (and also from bootstrap, e.g. data-toggle etc. -->
+  <!-- bootstrap documentation failed to add that
+    need to add 'collapse in' class to the collapsible,
+    not just 'collapse' -->
+  <!-- note the +/- sign is added by CSS in /css/importer.css -->
   <div id='left'><div id='menu'>
     <div class='accordianSection'>
-      <div class='sectionTitle active'>Maps</div>
-      <div class='sectionContent' id='mapsContentDiv'>
+      <div class='sectionTitle'
+           data-toggle='collapse'
+           data-target='#mapsContentDiv'
+           role='button'
+           aria-expanded='true'>
+        Maps
+      </div>
+      <div class='sectionContent collapse in show'
+           id='mapsContentDiv'>
         <!-- where all the cells go -->
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle active'>Series Selector</div>
-      <div class='sectionContent'>
+      <div class='sectionTitle'
+           data-toggle='collapse'
+           data-target='#seriesSelectorContentDiv'
+           role='button'
+           aria-expanded='true'>
+        Series Selector
+      </div>
+      <div class='sectionContent collapse in show'
+           id='seriesSelectorContentDiv'>
         <div>
-          <!--
-          Sex:
-          <select name='sex-selector'>
-            <option value='herm' selected>Hermaphrodite</option>
-            <option value='male'>Male</option>
-          </select>
-          Series:
-          -->
           <select id='series-selector' name='series-selector'>
             <option value='N2U' selected>Herm: Adult head (N2U)</option>
             <option value='JSE'>Herm: Adult tail (JSE)</option>
@@ -126,8 +139,15 @@
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle active'>Synapse Info</div>
-      <div class='sectionContent'>
+      <div class='sectionTitle'
+           data-toggle='collapse'
+           data-target='#synapseInfoContentDiv'
+           role='button'
+           aria-expanded='true'>
+        Synapse Info
+      </div>
+      <div class='sectionContent collapse in show'
+           id='synapseInfoContentDiv'>
         <div>
           Cell:
           <span id='synInfoCellname'>---</span>
@@ -169,8 +189,15 @@
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle active'>Synapse Filter</div>
-      <div class='sectionContent'>
+      <div class='sectionTitle'
+           data-toggle='collapse'
+           data-target='#synapseFilterContentDiv'
+           role='button'
+           aria-expanded='true'>
+        Synapse Filter
+      </div>
+      <div class='sectionContent collapse in show'
+           id='synapseFilterContentDiv'>
         <form name='synFilterType'>
           <label>
             <input name='synFilterType' type='checkbox'
@@ -198,8 +225,15 @@
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle active'>Translate Maps</div>
-      <div class='sectionContent'>
+      <div class='sectionTitle'
+           data-toggle='collapse'
+           data-target='#translateMapsContentDiv'
+           role='button'
+           aria-expanded='true'>
+        Translate Maps
+      </div>
+      <div class='sectionContent collapse in show'
+           id='translateMapsContentDiv'>
         &lt; -x Left/Right +x &gt; :
         <span id='x-slider-show-value'>0</span>
         <input id='x-slider' class='map-translate'
@@ -215,8 +249,15 @@
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle active'>Global Viewer Options</div>
-      <div class='sectionContent'>
+      <div class='sectionTitle'
+           data-toggle='collapse'
+           data-target='#globalViewerOptionsContentDiv'
+           role='button'
+           aria-expanded='true'>
+        Global Viewer Options
+      </div>
+      <div class='sectionContent collapse in show'
+           id='globalViewerOptionsContentDiv'>
         <button id='btnToggleGrid' value='on'>Hide Grid</button>
         <button id='btnToggleAxes' value='on'>Hide Axes</button>
         <button id='btnToggleAllRmks' value='off'>Show All Remarks</button>
@@ -224,8 +265,15 @@
       </div>
     </div>
     <div class='accordianSection'>
-      <div class='sectionTitle active'>Load/Save</div>
-      <div class='sectionContent'>
+      <div class='sectionTitle'
+           data-toggle='collapse'
+           data-target='#loadSaveContentDiv'
+           role='button'
+           aria-expanded='true'>
+        Load/Save
+      </div>
+      <div class='sectionContent collapse in show'
+           id='loadSaveContentDiv'>
         TODO
       </div>
     </div>

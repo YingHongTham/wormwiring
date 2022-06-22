@@ -67,7 +67,7 @@ window.onload = function(){
 	const importerApp = new ImporterApp();
   if (params.hasOwnProperty('db')
     && params.hasOwnProperty('cell')) {
-    importerApp.PreloadCells2(params.db, params.cell);
+    importerApp.LoadDbCell(params.db, params.cell);
   }
 
   // access importerApp in the console

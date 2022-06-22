@@ -269,42 +269,48 @@ a:hover
   transition: 0.4s;
 }
 
-.sectionTitle {
-  background-color: #909090;
+.sectionTitle[aria-expanded='true'] {
+  background-color: #B0B0B0;
   text-align: left;
   border-style: solid none none none;
 }
 
-/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.sectionTitle[aria-expanded='false'] {
+  background-color: #A0A0A0;
+  text-align: left;
+  border-style: solid none none none;
+}
 
 .sectionTitle:hover {
   background-color: #808080;
-  text-align: left;
 }
 
-/* Style the accordion panel. Note: hidden by default */
-.sectionContent {
-  background-color: #D0D0D0;
-  display: block;
-  overflow: hidden;
-} 
+.sectionTitle[aria-expanded='true']::after {
+  content: "\2796"; /* Unicode character for "minus" sign (-) */
+  float: right;
+}
 
-/* adds a (+) at the end of .sectionTitle */
-.sectionTitle::after {
-  content: '\02795'; /* Unicode character for "plus" sign (+) */
+.sectionTitle[aria-expanded='false']::after {
+  content: "\02795"; /* Unicode character for "plus" sign (+) */
   float: right;
 }
 
 
+/* Style the accordion panel. Note: hidden by default */
+.sectionContent {
+  background-color: #D0D0D0;
+} 
+
 /* adds a (+) at the end of .inactive */
 .inactive::after {
   content: "\02795"; /* Unicode character for "plus" sign (+) */
+  float: right;
 }
-
 
 /* adds a (-) at the end of .active */
 .active::after {
   content: "\2796"; /* Unicode character for "minus" sign (-) */
+  float: right;
 }
 
 
