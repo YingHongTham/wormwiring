@@ -72,5 +72,11 @@ window.onload = function(){
 
   // access importerApp in the console
 	window.importerApp = importerApp;
+
+
+  let nn = new FloatingDialog2();
+  nn.SetWidthHeight(200, 500);
+  let mytop = document.getElementById('top');
+  mytop.appendChild(nn.window);
 };
 
