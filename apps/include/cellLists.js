@@ -1,4 +1,8 @@
 /*
+ * no longer in use!
+ * seems to give too many cells;
+ * now use cellLists-alt.js
+ *
  * the main 'output' is celllistByDbType
  * which gives the list of cells by database and celltype
  *
@@ -12,8 +16,7 @@
  * (which probably were obtained from SQL too)
  */
 
-
-const celllistByDbType = {};
+//const celllistByDbType = {};
 
 // wrap to avoid polluting global namespace
 {

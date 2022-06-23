@@ -248,16 +248,16 @@ a:hover
  */
 
 /*
- * Accordian menu
+ * Accordion menu
  * adapted from https://www.w3schools.com/howto/howto_js_accordion.asp
- * Each menu item is in a div class .accordianSection,
+ * Each menu item is in a div class .accordionSection,
  * which contains two divs, .sectionTitle and .sectionContent
  * the .active class is added/removed from sectionTitle when clicked on
  * (event handling added in the javascript, importer.js)
  */
 
  /* Style the buttons that are used to open and close the accordion panel */
-.accordianSection {
+.accordionSection {
 	position: relative;
   background-color: #C0C0C0;
   cursor: pointer;

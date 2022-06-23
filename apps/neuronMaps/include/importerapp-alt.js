@@ -132,9 +132,9 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   topItems[3].onclick = () => { this.ClearMaps(); };
 
   // no longer needed, found that bootstrap can handle it
-  //// create menu items' accordian behaviour
+  //// create menu items' accordion behaviour
   //const menuSections = Array.from(
-  //  document.getElementsByClassName('accordianSection')
+  //  document.getElementsByClassName('accordionSection')
   //);
   //menuSections.forEach( el => {
   //  // expect exactly two children - with classes
@@ -757,31 +757,30 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
 	image.src = 'images/visible.png';
 
   //===============================================
-  // add accordian functionality
-  // same as in InitLinkFunctionalityWithHTML
-  div.classList.add('accordianSection');
-  title.classList.add('sectionTitle');
-  title.classList.add('inactive'); // default content hidden
+  // add accordion functionality
+  div.classList.add('accordionSection');
   content.classList.add('sectionContent');
-  content.style.display = 'none'; // default content hidden
+
+  content.classList.add('collapse');
+  content.id = cellname+'-mapMenuItem';
 
   title.classList.add('sectionTitle');
   title.setAttribute('data-toggle','collapse');
-  title.setAttribute('data-target','#contet');
+  title.setAttribute('data-target','#'+content.id);
   title.setAttribute('role','button');
   title.setAttribute('aria-expanded','false');
-  content.classList.add
-      <div class='sectionContent collapse in show'
-           id='loadSaveContentDiv'>
 
+  // again, now using bootstrap
+  //title.classList.add('inactive'); // default content hidden
+  //content.style.display = 'none'; // default content hidden
 
-  title.onclick = () => {
-    const active = title.classList.contains('active')
-                || !title.classList.contains('inactive');
-    content.style.display = active ? 'none' : 'block';
-    title.classList.toggle('active', !active);
-    title.classList.toggle('inactive', active);
-  };
+  //title.onclick = () => {
+  //  const active = title.classList.contains('active')
+  //              || !title.classList.contains('inactive');
+  //  content.style.display = active ? 'none' : 'block';
+  //  title.classList.toggle('active', !active);
+  //  title.classList.toggle('inactive', active);
+  //};
 
   //===============================================
   // eye image for visibility
