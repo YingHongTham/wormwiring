@@ -874,7 +874,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
  * (meant to be used in loadMapMenu2 which is afte loadMap2
  */
 ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
-  const nn = new FloatingDialog2(cellname, isHidden=true);
+  const nn = new FloatingDialog2(null, cellname, isHidden=true);
   this.synapseListWindows[cellname] = nn;
   nn.SetWidthHeight(200, 500);
   let mytop = document.getElementById('top');
@@ -893,6 +893,12 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
     let th = document.createElement('th');
     th.innerHTML = col;
     tr.appendChild(th);
+    th.onmouseover = () => {
+      th.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    };
+    th.onmouseout = () => {
+      th.style.backgroundColor = '#FFFFFF';
+    };
   }
   table.style.color = '#000000';
 
@@ -930,11 +936,14 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
     }
 
     // add color to type
-  preColor = 0xfa5882;
-  postColor = 0xbf00ff;
-  gapColor = 0x00ffff;
-    if (synData.type === 'gap') {
-      tdType.backgroundColor = 0x00ffff;
+    if (synData.type == 'gap') {
+      tdType.style.backgroundColor = 'rgba(0,255,255,0.2)';
+    }
+    if (synData.type == 'pre') {
+      tdType.style.backgroundColor = 'rgba(250,88,130,0.2)';
+    }
+    if (synData.type == 'post') {
+      tdType.style.backgroundColor = 'rgba(191,0,255,0.2)';
     }
 
 
@@ -942,6 +951,12 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
     row.onclick = () => {
       self.viewer.SynapseOnClick(synData.cellname, synData.contin);
       self.viewer.CenterViewOnSynapse(synData.cellname, synData.contin);
+    };
+    row.onmouseover = () => {
+      row.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    };
+    row.onmouseout = () => {
+      row.style.backgroundColor = '#FFFFFF';
     };
   }
   

@@ -6,9 +6,16 @@
  * -option to be not modal
  *
  * largely stolen from https://www.columbia.edu/~njn2118/journal/2019/4/26.html
+ *
+ * @param {HTMLElement} parent - to which the window is appended as child;
+ *    if null/not given, attach window as first child of body
+ * @param {String} title
+ * @param {Boolean} isHidden - default visibility
  */
 
-FloatingDialog2 = function(title, isHidden=false) {
+FloatingDialog2 = function(parent=null, title='', isHidden=false) {
+  this.parent = parent;
+
   // initialized in CreateHTML
   this.window = null; // the whole window div
   this.bar = null; // div containing title
@@ -54,6 +61,17 @@ FloatingDialog2.prototype.CreateHTML = function(title) {
   const spanClose = document.createElement('span');
   const windowBody = document.createElement('div');
 
+  if (this.parent === null) {
+    console.log('TODO continue here');
+    document.body.insertBefore(windowDiv, document.body.firstChild);
+  } else {
+    this.parent.appendChild(windowDiv);
+  }
+
+  this.window = windowDiv;
+  this.bar = windowBar;
+  this.body = windowBody;
+
   windowDiv.appendChild(windowBar);
   windowDiv.appendChild(windowBody);
   windowBar.appendChild(windowTitle);
@@ -77,10 +95,6 @@ FloatingDialog2.prototype.CreateHTML = function(title) {
 
   const self = this;
   spanClose.onclick = () => { self.CloseWindow(); };
-
-  this.window = windowDiv;
-  this.bar = windowBar;
-  this.body = windowBody;
 
   this.renderWindow(); // in particular sets visibility
 
