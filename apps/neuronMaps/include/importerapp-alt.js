@@ -689,9 +689,9 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
 
       console.timeEnd(`Load to viewer ${cell}`);
 
-      //document.dispatchEvent(new CustomEvent('loadMapComplete', {
-      //  detail: cell,
-      //}));
+      document.dispatchEvent(new CustomEvent('loadMapComplete', {
+        detail: cell,
+      }));
     }
   };
   xhttp.open("GET",url,true);

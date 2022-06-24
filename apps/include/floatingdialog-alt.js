@@ -14,6 +14,8 @@ FloatingDialog2 = function() {
   this.bar = null; // div containing title
   this.body = null; // just the content
 
+  this.barHeight = 26;
+
   this.state = {
     isDragging: false,
     isHidden: false,
@@ -56,6 +58,8 @@ FloatingDialog2.prototype.CreateHTML = function() {
   windowDiv.appendChild(windowBody);
   windowBar.appendChild(windowTitle);
   windowBar.appendChild(spanClose);
+
+  windowBar.style.height = this.barHeight+'px';
 
   windowTitle.innerHTML = 'garage';
   windowTitle.style.display = 'inline-block';
@@ -121,8 +125,13 @@ FloatingDialog2.prototype.ClampY = function(y) {
 };
 
 FloatingDialog2.prototype.SetWidthHeight = function(width, height) {
-  this.window.style.width = width+'px';
-  this.window.style.height = height+'px';
+  setTimeout(() => {
+    this.window.style.width = width+'px';
+    this.window.style.height = height+'px';
+    this.body.style.width = (width-2)+'px';
+    this.body.style.height = (height-this.barHeight-2)+'px';
+    console.log(this.body.style.height,height,this.bar.offsetHeight);
+  }, 2000);
 };
 
 FloatingDialog2.prototype.SetPosition = function(x,y) {

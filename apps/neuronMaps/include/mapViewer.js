@@ -295,6 +295,10 @@ MapViewer.prototype.loadMap2 = function(data)
    * (want it to appear when mouse over the synapses)
    * synLabel can be distinguished by the contin id
    * (synLabel.name; see toggleSynapseLabels)
+   * (note also that allSynData also has reference to the
+   * synLabel object attached to that synapse,
+   * i.e. allSynData[contin].synLabelObj
+   * is the label for allSynData[contin].sphere)
    *
    * -allGrps: THREE.Group that contains all the
    *  THREE objects relevant to the cell
@@ -335,6 +339,7 @@ MapViewer.prototype.loadMap2 = function(data)
    *      obj: object that synapse is attached to
    *        (use its coordinates to position synapse sphere)
    *      sphere: THREE Object
+   *      synLabelObj: THREE Object for label
    *    },
    *    ...
    *  }
@@ -438,6 +443,7 @@ MapViewer.prototype.loadMap2 = function(data)
       partner: '',
       obj: null,
       sphere: null, // set later in addOneSynapse2
+      synLabelObj: null, // set later in addOneSynapse2
     };
     if (syn.pre === data.name) {
       if (!map.objCoord.hasOwnProperty(syn.preObj)) {
@@ -478,6 +484,7 @@ MapViewer.prototype.loadMap2 = function(data)
       partner: '',
       obj: null,
       sphere: null, // set later in addOneSynapse2
+      synLabelObj: null, // set later in addOneSynapse2
     };
     if (!map.objCoord.hasOwnProperty(syn.preObj)) {
       console.log('Bad synapse object numbers? synapse contin number: ', syn.continNum,
@@ -507,6 +514,7 @@ MapViewer.prototype.loadMap2 = function(data)
       partner: '',
       obj: null,
       sphere: null, // set later in addOneSynapse2
+      synLabelObj: null, // set later in addOneSynapse2
     };
     // go through post(Obj)1/2/3/4
     for (let i = 1; i <= 4; ++i) {
@@ -542,7 +550,7 @@ MapViewer.prototype.loadMap2 = function(data)
     return pos1.z - pos2.z;
   });
   for (const synData of allSynList) {
-    this.addOneSynapse2(map.name, synData);
+    this.addOneSynapse2(synData);
   }
 
   // synapses done
@@ -647,12 +655,13 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
  * event listeners and synapse labels in the viewer,
  * easier to add to viewer(scene) here)
  *
- * @param {String} name - cell name
- *  (sphere object appears attached to this cell)
- * @param {Object} synapse - processed from data[synType]; see loadMap2
+ * used to have 'name' variable, but incorporated into synData
+ * //@param {String} name - cell name
+ * // (sphere object appears attached to this cell)
+ * @param {Object} synData - allSynData[contin]
  */
-MapViewer.prototype.addOneSynapse2 = function(name,synData)
-{
+MapViewer.prototype.addOneSynapse2 = function(synData) {
+  const name = synData.cellname; // cell on which synapse shows
   const synPos = this.maps[name].objCoord[synData.obj];
   const synType = synData.type;
   const numSections = synData.zHigh - synData.zLow + 1;
@@ -696,6 +705,7 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
     
   // add text label to scene via synLabels
   // accessed by this reference in the event listener callback
+  // also adds it to synData
   const synLabelObj = this.addTextWithArrow(partner,{
     pos: sphere.position.clone(),
     rotate: { x: -Math.PI/3 },
@@ -707,6 +717,7 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
   synLabelObj.name = contin;
   synLabelObj.visible = false;
   this.maps[name].synLabels.add(synLabelObj);
+  this.maps[name].allSynData[synData.contin].synLabelObj = synLabelObj;
 
   //===================================
   // mouse events over synapses
@@ -714,30 +725,14 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
   const self = this;
 
   this.domEvents.addEventListener(sphere,'mouseover',function() {
-    synLabelObj.visible = true;
-    self.app.UpdateSynapseInfo2(synData.cellname, synData.contin);
-    self.render();
+    self.SynapseOnMouseOver(name, contin);
   });
   this.domEvents.addEventListener(sphere,'mouseout',function() {
-    if (self.app.GetSynapseInfoContin2() !== synData.contin) {
-      synLabelObj.visible = false;
-    }
-    self.app.RestoreSynapseInfo2();
-    self.render();
+    self.SynapseOnMouseOut(name, contin);
   });
 
   this.domEvents.addEventListener(sphere,'click',function() {
-    // if click same synapse, 'unclick' it
-    if (self.app.GetSynapseInfoContin2() === synData.contin) {
-      synLabelObj.visible = false;
-      self.app.RestoreSynapseInfoToDefault2();
-    }
-    else {
-      self.toggleSynapseLabels(synData.cellname, false);
-      synLabelObj.visible = true;
-      self.app.UpdateClickedSynapseInfo2(synData.cellname, synData.contin);
-    }
-    self.render();
+    self.SynapseOnClick(name, contin);
   });
 };
 
@@ -748,7 +743,41 @@ MapViewer.prototype.addOneSynapse2 = function(name,synData)
 MapViewer.prototype.GetSynData = function(cellname,contin) {
   const synData = Object.assign({}, this.maps[cellname].allSynData[contin]);
   return synData;
-}
+};
+
+//=====================================================
+// mouse events for the sphere objects in viewer
+
+MapViewer.prototype.SynapseOnMouseOver = function(cellname, contin) {
+  const synData = this.maps[cellname].allSynData[contin];
+  synData.synLabelObj.visible = true;
+  this.app.UpdateSynapseInfo2(cellname, contin);
+  this.render();
+};
+
+MapViewer.prototype.SynapseOnMouseOut = function(cellname, contin) {
+  const synData = this.maps[cellname].allSynData[contin];
+  if (this.app.GetSynapseInfoContin2() !== contin) {
+    synData.synLabelObj.visible = false;
+  }
+  this.app.RestoreSynapseInfo2();
+  this.render();
+};
+
+MapViewer.prototype.SynapseOnClick = function(cellname, contin) {
+  const synData = this.maps[cellname].allSynData[contin];
+  // if click same synapse, 'unclick' it
+  if (this.app.GetSynapseInfoContin2() === contin) {
+    synData.synLabelObj.visible = false;
+    this.app.RestoreSynapseInfoToDefault2();
+  }
+  else {
+    this.toggleSynapseLabels(cellname, false);
+    synData.synLabelObj.visible = true;
+    this.app.UpdateClickedSynapseInfo2(cellname, contin);
+  }
+  this.render();
+};
 
 
 //======================================================

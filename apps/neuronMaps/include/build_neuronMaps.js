@@ -82,8 +82,8 @@ window.onload = function(){
 
   // form table of synapses
 
+  let mydiv = document.createElement('div');
   let table = document.createElement('table');
-  table.classList.add('table','table-sm');
   table.innerHTML = `
     <thead>
       <tr>
@@ -93,19 +93,17 @@ window.onload = function(){
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>Athlete</td>
-        <td>Age</td>
-        <td>Country</td>
-      </tr>
     </tbody>
   `;
+  table.style.color = '#000000';
 
-  nn.GetBody().appendChild(table);
+  nn.GetBody().appendChild(mydiv);
+  mydiv.appendChild(table);
 
-  setTimeout( () => {
+  document.addEventListener('loadMapComplete', (ev) => {
+    let cellname = ev.detail;
     let allSynList = [];
-    let map = importerApp.viewer.maps['ADAL'];
+    let map = importerApp.viewer.maps[cellname];
     for (const contin in map.allSynData) {
       allSynList.push(map.allSynData[contin]);
     }
@@ -129,8 +127,17 @@ window.onload = function(){
 
       tdZ.innerHTML = map.objCoord[synData.obj].z;
       tdType.innerHTML = synData.type;
-      tdCells.innerHTML = synData.pre + synData.post;
+      if (synData.type === 'gap') {
+        tdCells.innerHTML = cellname + '->' + synData.partner;
+      } else {
+        tdCells.innerHTML = synData.pre + '->' + synData.post;
+      }
+
+      row.onclick = () => {
+        importerApp.viewer.SynapseOnClick(synData.cellname, synData.contin);
+        importerApp.viewer.CenterViewOnSynapse(synData.cellname, synData.contin);
+      };
     }
-  }, 2000);
+  });
 };
 
