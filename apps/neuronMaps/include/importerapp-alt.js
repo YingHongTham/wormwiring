@@ -71,6 +71,10 @@ ImporterApp = function()
   // help/selector/2Dviewer/synapseviewer is shown
   this.dialog = new FloatingDialog();
 
+  // FloatingDialog2 objects for each cell,
+  // showing the list of synapses
+  this.synapseListWindows = {};
+
   // more intialization; but no new member variables declared
   this.Init();
 };
@@ -854,12 +858,143 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
 
   //===============================================
   // Synapse List
+  this.InitSynapseListWindow(cellname);
+
   synapseListBtn.innerHTML = 'Synapse List';
   synapseListBtn.onclick = () => {
-    const series = self.GetSeriesFromHTML();
-    const url = `../synapseList/?continName=${cellname}&series=${series}`;
-    self.OpenInfoDialog(url,'Synapse List');
+    self.synapseListWindows[cellname].OpenWindow();
+    //const series = self.GetSeriesFromHTML();
+    //const url = `../synapseList/?continName=${cellname}&series=${series}`;
+    //self.OpenInfoDialog(url,'Synapse List');
   };
+};
+
+/*
+ * assumes loadMap2 is done
+ * (meant to be used in loadMapMenu2 which is afte loadMap2
+ */
+ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
+  const nn = new FloatingDialog2(cellname, isHidden=true);
+  this.synapseListWindows[cellname] = nn;
+  nn.SetWidthHeight(200, 500);
+  let mytop = document.getElementById('top');
+  mytop.appendChild(nn.window);
+
+  // form table of synapses
+
+  let table = document.createElement('table');
+  let thead = document.createElement('thead');
+  let tbody = document.createElement('tbody');
+  let tr = document.createElement('tr');
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  thead.appendChild(tr);
+  for (const col of ['z','type','cells']) {
+    let th = document.createElement('th');
+    th.innerHTML = col;
+    tr.appendChild(th);
+  }
+  table.style.color = '#000000';
+
+  nn.GetBody().appendChild(table);
+
+  let allSynList = [];
+  let map = this.viewer.maps[cellname];
+  for (const contin in map.allSynData) {
+    allSynList.push(map.allSynData[contin]);
+  }
+  allSynList.sort((obj1, obj2) => {
+    const pos1 = map.objCoord[obj1.obj];
+    const pos2 = map.objCoord[obj2.obj];
+    return pos1.z - pos2.z;
+  });
+
+  // add rows
+  for (const synData of allSynList) {
+    const row = document.createElement('tr');
+    const tdZ = document.createElement('td');
+    const tdType = document.createElement('td');
+    const tdCells = document.createElement('td');
+
+    tbody.appendChild(row);
+    row.appendChild(tdZ);
+    row.appendChild(tdType);
+    row.appendChild(tdCells);
+
+    tdZ.innerHTML = map.objCoord[synData.obj].z;
+    tdType.innerHTML = synData.type;
+    if (synData.type === 'gap') {
+      tdCells.innerHTML = cellname + '->' + synData.partner;
+    } else {
+      tdCells.innerHTML = synData.pre + '--' + synData.post;
+    }
+
+    // add color to type
+  preColor = 0xfa5882;
+  postColor = 0xbf00ff;
+  gapColor = 0x00ffff;
+    if (synData.type === 'gap') {
+      tdType.backgroundColor = 0x00ffff;
+    }
+
+
+    const self = this;
+    row.onclick = () => {
+      self.viewer.SynapseOnClick(synData.cellname, synData.contin);
+      self.viewer.CenterViewOnSynapse(synData.cellname, synData.contin);
+    };
+  }
+  
+  // add sorting functionality for each column
+  let theadrow = thead.childNodes[0];
+
+  // increasing or decreasing
+  // order['z'] = 1 means sort by increasing z, -1 means dec
+  // first time click set to 1
+  let order = {};
+
+  // each child repn one column
+  theadrow.childNodes.forEach( (n, i) => {
+    n.onclick = () => {
+      // inc or dec?
+      let col = n.innerHTML;
+      if (order.hasOwnProperty(col)) {
+        order[col] = -order[col];
+      } else {
+        order[col] = 1;
+      }
+
+      let rows = [...tbody.children];
+      rows.sort((tr1, tr2) => {
+        let v1 = tr1.children[i].innerHTML;
+        let v2 = tr2.children[i].innerHTML;
+
+        // check if number, parse
+        // (else get '12' < '3' because lexico)
+        let v1Num = parseInt(v1);
+        if (!isNaN(v1Num)) {
+          v1 = parseInt(v1);
+          v2 = parseInt(v2);
+        }
+        if (v1 > v2) return 1;
+        if (v1 < v2) return -1;
+        return 0;
+      });
+
+      // reverse if dec
+      if (order[col] === -1) {
+        rows.reverse();
+      }
+
+      // remove all entries then add back in sorted order
+      while (tbody.lastChild) {
+        tbody.removeChild(tbody.lastChild);
+      };
+      for (const tr of rows) {
+        tbody.appendChild(tr);
+      }
+    };
+  });
 };
 
 

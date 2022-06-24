@@ -8,7 +8,7 @@
  * largely stolen from https://www.columbia.edu/~njn2118/journal/2019/4/26.html
  */
 
-FloatingDialog2 = function() {
+FloatingDialog2 = function(title, isHidden=false) {
   // initialized in CreateHTML
   this.window = null; // the whole window div
   this.bar = null; // div containing title
@@ -18,7 +18,7 @@ FloatingDialog2 = function() {
 
   this.state = {
     isDragging: false,
-    isHidden: false,
+    isHidden: isHidden,
 
     // position of top-left corner of floating window in page
     x: 50, // start at these default values
@@ -31,7 +31,7 @@ FloatingDialog2 = function() {
     yDiff: 0,
   };
 
-  this.CreateHTML();
+  this.CreateHTML(title);
   this.EnableDragging();
 };
 
@@ -47,7 +47,7 @@ FloatingDialog2 = function() {
  *    </div>
  *  </div>
  */
-FloatingDialog2.prototype.CreateHTML = function() {
+FloatingDialog2.prototype.CreateHTML = function(title) {
   const windowDiv = document.createElement('div');
   const windowBar = document.createElement('div');
   const windowTitle = document.createElement('div');
@@ -61,7 +61,7 @@ FloatingDialog2.prototype.CreateHTML = function() {
 
   windowBar.style.height = this.barHeight+'px';
 
-  windowTitle.innerHTML = 'garage';
+  windowTitle.innerHTML = title;
   windowTitle.style.display = 'inline-block';
 
   windowDiv.classList.add('floating-window');
@@ -76,11 +76,14 @@ FloatingDialog2.prototype.CreateHTML = function() {
   spanClose.style.backgroundColor = '#880000';
 
   const self = this;
-  spanClose.onclick = () => { self.closeWindow(); };
+  spanClose.onclick = () => { self.CloseWindow(); };
 
   this.window = windowDiv;
   this.bar = windowBar;
   this.body = windowBody;
+
+  this.renderWindow(); // in particular sets visibility
+
   return windowDiv;
 };
 
@@ -139,6 +142,10 @@ FloatingDialog2.prototype.SetPosition = function(x,y) {
   this.state.y = y;
 };
 
+FloatingDialog2.prototype.GetMainDiv = function() {
+  return this.window;
+};
+
 // body = content
 FloatingDialog2.prototype.GetBody = function() {
   return this.body;
@@ -155,7 +162,12 @@ FloatingDialog2.prototype.renderWindow = function() {
   this.window.style.transform = 'translate(' + this.state.x + 'px, ' + this.state.y + 'px)';
 };
 
-FloatingDialog2.prototype.closeWindow = function() {
+FloatingDialog2.prototype.OpenWindow = function() {
+  this.state.isHidden = false;
+  this.renderWindow();
+};
+
+FloatingDialog2.prototype.CloseWindow = function() {
   this.state.isHidden = true;
   this.renderWindow();
 };
