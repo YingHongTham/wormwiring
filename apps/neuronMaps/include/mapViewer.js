@@ -534,9 +534,7 @@ MapViewer.prototype.loadMap2 = function(data)
   // for the synLabels (to stagger them to avoid overlap)
   let allSynList = [];
   for (const contin in map.allSynData) {
-    if (map.allSynData.hasOwnProperty(contin)) {
-      allSynList.push(map.allSynData[contin]);
-    }
+    allSynList.push(map.allSynData[contin]);
   }
   allSynList.sort((obj1, obj2) => {
     const pos1 = map.objCoord[obj1.obj];

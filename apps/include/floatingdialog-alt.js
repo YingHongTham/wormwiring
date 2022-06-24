@@ -19,11 +19,12 @@ FloatingDialog2 = function() {
     isHidden: false,
 
     // position of top-left corner of floating window in page
-    x: 0,
-    y: 0,
+    x: 50, // start at these default values
+    y: 50,
     // essentially position of mouse relative to top-left corner
     // is recorded at mousedown event,
     // helps set new x,y after moving
+    // (see EnableDragging)
     xDiff: 0,
     yDiff: 0,
   };
@@ -34,13 +35,13 @@ FloatingDialog2 = function() {
 
 
 /*
- *  <div class="window"> -- returned
- *    <div class="window-bar">
+ *  <div class="floating-window"> -- returned
+ *    <div class="floating-window-bar">
  *      <div>Window Title</div>
- *      <span class="window-close"> X </span>
+ *      <span class="floating-window-close"> X </span>
  *    </div>
- *    <div class="window-body">
- *      Window body
+ *    <div class="floating-window-body">
+ *      Window body/content
  *    </div>
  *  </div>
  */
@@ -48,17 +49,30 @@ FloatingDialog2.prototype.CreateHTML = function() {
   const windowDiv = document.createElement('div');
   const windowBar = document.createElement('div');
   const windowTitle = document.createElement('div');
+  const spanClose = document.createElement('span');
   const windowBody = document.createElement('div');
 
   windowDiv.appendChild(windowBar);
   windowDiv.appendChild(windowBody);
   windowBar.appendChild(windowTitle);
+  windowBar.appendChild(spanClose);
 
   windowTitle.innerHTML = 'garage';
+  windowTitle.style.display = 'inline-block';
 
   windowDiv.classList.add('floating-window');
   windowBar.classList.add('floating-window-bar');
   windowBody.classList.add('floating-window-body');
+
+  spanClose.innerHTML = 'x';
+  spanClose.padding = '3px';
+  spanClose.style.float = 'right';
+  spanClose.style.textAlign = 'center';
+  spanClose.style.width = '20px';
+  spanClose.style.backgroundColor = '#880000';
+
+  const self = this;
+  spanClose.onclick = () => { self.closeWindow(); };
 
   this.window = windowDiv;
   this.bar = windowBar;
@@ -130,4 +144,9 @@ FloatingDialog2.prototype.renderWindow = function() {
   }
 
   this.window.style.transform = 'translate(' + this.state.x + 'px, ' + this.state.y + 'px)';
+};
+
+FloatingDialog2.prototype.closeWindow = function() {
+  this.state.isHidden = true;
+  this.renderWindow();
 };

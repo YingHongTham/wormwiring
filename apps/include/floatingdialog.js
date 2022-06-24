@@ -1,6 +1,6 @@
 /*
- * CSS in /css/floatingdialog.css, /css/importer.css
- * and maybe also /css/neuronMaps/css/neuronmaps.css
+ * CSS in ./css/floatingdialog.css, /css/importer.css
+ * and maybe also /apps/neuronMaps/css/neuronmaps.css
  */
 
 

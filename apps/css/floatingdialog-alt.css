@@ -16,14 +16,13 @@
 }
 
 .floating-window-bar {
-  padding-left: 6px;
-  padding-top: 3px;
+  padding: 3px;
   cursor: move;
   background-color: #666666;
   color: white;
 }
 
-.floating-window .floating-window-bar .floating-window-close {
+.floating-window-close {
   cursor: pointer;
   display: inline-block;
   position: absolute;

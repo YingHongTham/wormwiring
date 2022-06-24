@@ -73,10 +73,64 @@ window.onload = function(){
   // access importerApp in the console
 	window.importerApp = importerApp;
 
+  // experimenting with basic synapse list
 
   let nn = new FloatingDialog2();
   nn.SetWidthHeight(200, 500);
   let mytop = document.getElementById('top');
   mytop.appendChild(nn.window);
+
+  // form table of synapses
+
+  let table = document.createElement('table');
+  table.classList.add('table','table-sm');
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>z</th>
+        <th>type</th>
+        <th>cells</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Athlete</td>
+        <td>Age</td>
+        <td>Country</td>
+      </tr>
+    </tbody>
+  `;
+
+  nn.GetBody().appendChild(table);
+
+  setTimeout( () => {
+    let allSynList = [];
+    let map = importerApp.viewer.maps['ADAL'];
+    for (const contin in map.allSynData) {
+      allSynList.push(map.allSynData[contin]);
+    }
+    allSynList.sort((obj1, obj2) => {
+      const pos1 = map.objCoord[obj1.obj];
+      const pos2 = map.objCoord[obj2.obj];
+      return pos1.z - pos2.z;
+    });
+
+    const tbody = table.childNodes[1];
+    for (const synData of allSynList) {
+      const row = document.createElement('tr');
+      const tdZ = document.createElement('td');
+      const tdType = document.createElement('td');
+      const tdCells = document.createElement('td');
+
+      tbody.appendChild(row);
+      row.appendChild(tdZ);
+      row.appendChild(tdType);
+      row.appendChild(tdCells);
+
+      tdZ.innerHTML = map.objCoord[synData.obj].z;
+      tdType.innerHTML = synData.type;
+      tdCells.innerHTML = synData.pre + synData.post;
+    }
+  }, 2000);
 };
 
