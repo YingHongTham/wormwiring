@@ -63,6 +63,7 @@ FloatingDialog2.prototype.CreateHTML = function(title) {
 
   if (this.parent === null) {
     console.log('TODO continue here');
+    console.log(document.body);
     document.body.insertBefore(windowDiv, document.body.firstChild);
   } else {
     this.parent.appendChild(windowDiv);
