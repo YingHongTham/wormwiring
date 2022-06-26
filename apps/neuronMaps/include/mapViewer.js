@@ -1427,10 +1427,17 @@ MapViewer.prototype.load2DViewer = function(elem) {
     const id = evt.target.id();
     const cell = id.split('-')[0];
     const obj = parseInt(id.split('-')[1]);
-    const pos = self.GetObjCoordInViewer(cell, obj);
-    self.SetCameraTarget(pos);
-    pos.y += 100;
-    self.SetCameraPosition(pos);
+    const contins = self.ObjToSynapseContin(cell,obj);
+    if (contins.length > 0) {
+      self.SynapseOnClick(cell, contins[0]);
+      self.CenterViewOnSynapse(cell, contins[0]);
+    }
+    else { // clicked not is not a synapse
+      const pos = self.GetObjCoordInViewer(cell, obj);
+      self.SetCameraTarget(pos);
+      pos.y += 100;
+      self.SetCameraPosition(pos);
+    }
   });
 };
 
@@ -1737,6 +1744,20 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
 MapViewer.prototype.SynapseContinToObj = function(cellname, contin) {
   return this.maps[cellname].allSynData[contin].obj;
 };
+
+// get synapses that have the same obj
+MapViewer.prototype.ObjToSynapseContin = function(cellname, obj) {
+  let ans = [];
+  for (const continStr in this.maps[cellname].allSynData) {
+    let contin = parseInt(continStr);
+    if (obj === this.maps[cellname].allSynData[contin].obj) {
+      ans.push(contin);
+    }
+  }
+  return ans;
+};
+
+
 
 //==========================================================
 // text in viewer

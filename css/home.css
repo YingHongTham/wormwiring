@@ -188,15 +188,14 @@ table, th, td {
 }
 
 /* button to collapse the header and navigation bar */
-#collapse-header-nav {
+#btn-collapse-header-nav {
   width: 100%;
-}
-
-.collapsed-state {
   color: white;
   background-color: #888888;
   height: 20px;
+  text-align: 'center';
 }
+
 
 #collapse-header-nav:hover {
   background-color: #555555;

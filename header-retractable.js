@@ -5,35 +5,52 @@
  * makes the header-nav collapsible
  *
  * assumes header-alt.js has been 'applied' to id=header-nav
- *
- * in header-alt.js:
- * const headerNav = document.getElementById('header-nav');
  */
 
-function toggleHeaderNav() {
-  // true if currently collapsed
-  const collapsed = (headerNav.style.display === 'none');
-  headerNav.style.display = collapsed ? 'block' : 'none';
+// don't pollute namespace
+{
+  let headerNav = document.getElementById('header-nav');
+  //let headerImage = headerNav.querySelector('#headerimage');
+  //headerImage.style.height = '40px';
 
-  const btn = document.getElementById('collapse-header-nav');
-  btn.style.display = collapsed ? 'none' : 'block';
-  btn.classList.toggle('collapsed-state', !collapsed);
-  btn.innerHTML = 'Show Navigation';
-  window.dispatchEvent(new Event('resize'));
-};
+  function toggleHeaderNav() {
+    let headerNav = document.getElementById('header-nav');
 
+    // true if currently collapsed
+    const collapsed = (headerNav.style.display === 'none');
+    headerNav.style.display = collapsed ? 'block' : 'none';
+  
+    const btn = document.getElementById('btn-collapse-header-nav');
+    btn.style.display = collapsed ? 'none' : 'block';
+    window.dispatchEvent(new Event('resize'));
+  };
+  
+  
+  // tiny button on the right to hide
+  let navbar = headerNav.querySelector('#nav');
+  let span = document.createElement('span');
+  navbar.appendChild(span);
 
-// tiny button on the right to hide
-const navbar = headerNav.querySelector('#nav');
-let span = document.createElement('span');
-span.onclick = toggleHeaderNav;
-span.innerHTML = 'Hide X';
-span.classList.add('hide-nav');
-navbar.appendChild(span);
+  span.innerHTML = 'Hide X';
+  span.classList.add('hide-nav'); // /css/home.ss
+  span.onclick = toggleHeaderNav;
+  
+  
+  // button that appears when header is collapsed
+  // remains hidden when header is not collapsed
+  // css in /css/home.css
+  let btn = document.getElementById('btn-collapse-header-nav');
+  btn.style.display = 'none';
+  btn.style.textAlign = 'center'; // more in /css/home.css
+  btn.onclick = toggleHeaderNav;
 
+  let sp1 = document.createElement('span');
+  let sp2 = document.createElement('span');
+  btn.appendChild(sp1);
+  btn.appendChild(sp2);
 
-const btn = document.getElementById('collapse-header-nav');
-btn.style.display = 'none';
-btn.innerHTML = 'Show Navigation';
-btn.onclick = toggleHeaderNav;
+  sp1.innerHTML = '<b>WormWiring</b>';
+  sp2.innerHTML = 'Show Navigation';
+  sp2.style.float = 'right';
+}
 

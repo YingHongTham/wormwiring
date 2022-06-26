@@ -24,31 +24,33 @@
  *
  */
 
-var headerhtml =
-"<div id='headerimage' class='headerimage' style='font-size: 0px; height: 80px'>"+
-"  <a href='/index.html' style='color: white; text-decoration: none'>"+
-"    <h1 style='font-size: 37px; color:white; position:relative; top:-9px'><b>"+
-"      WormWiring"+
-"      <span style='font-size: 25px; color:white'>"+
-"        Nematode Connectomics"+
-"      </span>"+
-"    </b></h1>"+
-"  </a>"+
-"</div>"+
-""+
-"<div id='nav' style='font-size:0px'>"+
-"  <ul style='font-size: 16px'><b>"+
-"  <li><a class='navitem-home' href='/index.html'>HOME</a></li>"+
-"  <li><a class='navitem-lit' href='/pages/literature.html'>LITERATURE</a></li>"+
-"  <li><a class='navitem-sftwr' href='/pages/software.html'>SOFTWARE</a></li>"+
-"  <li><a class='navitem-ctct' href='/pages/contact.html'>CONTACT</a></li>"+
-"  </b></ul>"+
-"</div>"
-;
-
-// for some reason the font-size:0px is needed to make
-// the 'nav' the right height
-
-
-const headerNav = document.getElementById('header-nav');
-headerNav.innerHTML = headerhtml;
+// don't pollute namespace
+{
+  let headerhtml =
+  "<div id='headerimage' class='headerimage' style='font-size: 0px; height: 80px'>"+
+  "  <a href='/index.html' style='color: white; text-decoration: none'>"+
+  "    <h1 style='font-size: 37px; color:white; position:relative; top:-9px'><b>"+
+  "      WormWiring"+
+  "      <span style='font-size: 25px; color:white'>"+
+  "        Nematode Connectomics"+
+  "      </span>"+
+  "    </b></h1>"+
+  "  </a>"+
+  "</div>"+
+  ""+
+  "<div id='nav' style='font-size:0px'>"+
+  "  <ul style='font-size: 16px'><b>"+
+  "  <li><a class='navitem-home' href='/index.html'>HOME</a></li>"+
+  "  <li><a class='navitem-lit' href='/pages/literature.html'>LITERATURE</a></li>"+
+  "  <li><a class='navitem-sftwr' href='/pages/software.html'>SOFTWARE</a></li>"+
+  "  <li><a class='navitem-ctct' href='/pages/contact.html'>CONTACT</a></li>"+
+  "  </b></ul>"+
+  "</div>"
+  ;
+  
+  // for some reason the font-size:0px is needed to make
+  // the 'nav' the right height
+  
+  let headerNav = document.getElementById('header-nav');
+  headerNav.innerHTML = headerhtml;
+}

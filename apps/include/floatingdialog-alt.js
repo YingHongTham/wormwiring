@@ -19,17 +19,21 @@ FloatingDialog2 = function(parent=null, title='', isHidden=false) {
   // initialized in CreateHTML
   this.window = null; // the whole window div
   this.bar = null; // div containing title
-  this.body = null; // just the content
+  this.body = null; // div containing content
+  this.content = null; // where stuff should go
+  // (extra layer body-content for measuring width)
 
   this.barHeight = 26;
+
+  this.defaultWidth = 300;
 
   this.state = {
     isDragging: false,
     isHidden: isHidden,
 
     // position of top-left corner of floating window in page
-    x: 50, // start at these default values
-    y: 50,
+    x: 25, // start at these default values
+    y: 25,
     // essentially position of mouse relative to top-left corner
     // is recorded at mousedown event,
     // helps set new x,y after moving
@@ -44,13 +48,15 @@ FloatingDialog2 = function(parent=null, title='', isHidden=false) {
 
 
 /*
- *  <div class="floating-window"> -- returned
- *    <div class="floating-window-bar">
+ *  <div class="floating-window"> -- this.window
+ *    <div class="floating-window-bar"> -- this.bar
  *      <div>Window Title</div>
  *      <span class="floating-window-close"> X </span>
  *    </div>
- *    <div class="floating-window-body">
- *      Window body/content
+ *    <div class="floating-window-body"> -- this.body
+ *      <div> -- this.content
+ *        Window body/content
+ *      </div>
  *    </div>
  *  </div>
  */
@@ -60,11 +66,12 @@ FloatingDialog2.prototype.CreateHTML = function(title) {
   const windowTitle = document.createElement('div');
   const spanClose = document.createElement('span');
   const windowBody = document.createElement('div');
+  const windowContent = document.createElement('div');
 
   if (this.parent === null) {
-    console.log('TODO continue here');
-    console.log(document.body);
-    document.body.insertBefore(windowDiv, document.body.firstChild);
+    setTimeout(() => {
+      document.body.insertBefore(windowDiv, document.body.firstChild);
+    },0);
   } else {
     this.parent.appendChild(windowDiv);
   }
@@ -72,9 +79,11 @@ FloatingDialog2.prototype.CreateHTML = function(title) {
   this.window = windowDiv;
   this.bar = windowBar;
   this.body = windowBody;
+  this.content = windowContent;
 
   windowDiv.appendChild(windowBar);
   windowDiv.appendChild(windowBody);
+  windowBody.appendChild(windowContent);
   windowBar.appendChild(windowTitle);
   windowBar.appendChild(spanClose);
 
@@ -86,6 +95,7 @@ FloatingDialog2.prototype.CreateHTML = function(title) {
   windowDiv.classList.add('floating-window');
   windowBar.classList.add('floating-window-bar');
   windowBody.classList.add('floating-window-body');
+  windowContent.style.width = 'fit-content';
 
   spanClose.innerHTML = 'x';
   spanClose.padding = '3px';
@@ -97,7 +107,13 @@ FloatingDialog2.prototype.CreateHTML = function(title) {
   const self = this;
   spanClose.onclick = () => { self.CloseWindow(); };
 
+  this.SetWidthHeight(this.defaultWidth, this.ComputeHeight());
+
   this.renderWindow(); // in particular sets visibility
+
+  window.addEventListener('resize', () => {
+    self.OnResize();
+  },false);
 
   return windowDiv;
 };
@@ -142,14 +158,18 @@ FloatingDialog2.prototype.ClampY = function(y) {
   return y;
 };
 
-FloatingDialog2.prototype.SetWidthHeight = function(width, height) {
-  setTimeout(() => {
-    this.window.style.width = width+'px';
-    this.window.style.height = height+'px';
-    this.body.style.width = (width-2)+'px';
-    this.body.style.height = (height-this.barHeight-2)+'px';
-    console.log(this.body.style.height,height,this.bar.offsetHeight);
-  }, 2000);
+FloatingDialog2.prototype.SetWidthHeight = function(width=null, height=null) {
+  if (width === null) {
+    width = this.window.offsetWidth;
+  }
+  if (height === null) {
+    height = this.window.offsetHeight;
+  }
+  this.window.style.width = width+'px';
+  this.window.style.height = height+'px';
+  this.body.style.width = (width-2)+'px';
+  this.body.style.height = (height-this.barHeight-2)+'px';
+  this.renderWindow();
 };
 
 FloatingDialog2.prototype.SetPosition = function(x,y) {
@@ -161,12 +181,33 @@ FloatingDialog2.prototype.GetMainDiv = function() {
   return this.window;
 };
 
-// body = content
-FloatingDialog2.prototype.GetBody = function() {
-  return this.body;
+// for user to put stuff in window
+FloatingDialog2.prototype.GetContentDiv = function() {
+  return this.content;
 };
 
 
+FloatingDialog2.prototype.ComputeHeight = function() {
+  return window.innerHeight - 50;
+};
+
+// is 0 if hidden
+FloatingDialog2.prototype.GetContentWidth = function() {
+  return this.GetContentDiv().offsetWidth;
+};
+
+// should do after window becomes visible
+FloatingDialog2.prototype.FitWidthToContent = function() {
+  this.SetWidthHeight(this.GetContentWidth()+2, null);
+};
+
+// when browser window resize
+FloatingDialog2.prototype.OnResize = function() {
+  this.SetWidthHeight(null, this.ComputeHeight());
+};
+
+
+// positions dialog to state.x/y relative to parent
 FloatingDialog2.prototype.renderWindow = function() {
   if (this.state.isHidden) {
     this.window.style.display = 'none';
@@ -180,6 +221,7 @@ FloatingDialog2.prototype.renderWindow = function() {
 FloatingDialog2.prototype.OpenWindow = function() {
   this.state.isHidden = false;
   this.renderWindow();
+  this.FitWidthToContent();
 };
 
 FloatingDialog2.prototype.CloseWindow = function() {

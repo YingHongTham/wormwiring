@@ -871,14 +871,11 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
 
 /*
  * assumes loadMap2 is done
- * (meant to be used in loadMapMenu2 which is afte loadMap2
+ * (meant to be used in loadMapMenu2 which is after loadMap2
  */
 ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
   const nn = new FloatingDialog2(null, cellname, isHidden=true);
   this.synapseListWindows[cellname] = nn;
-  nn.SetWidthHeight(200, 500);
-  let mytop = document.getElementById('top');
-  mytop.appendChild(nn.window);
 
   // form table of synapses
 
@@ -902,7 +899,7 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
   }
   table.style.color = '#000000';
 
-  nn.GetBody().appendChild(table);
+  nn.GetContentDiv().appendChild(table);
 
   let allSynList = [];
   let map = this.viewer.maps[cellname];
@@ -930,9 +927,9 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
     tdZ.innerHTML = map.objCoord[synData.obj].z;
     tdType.innerHTML = synData.type;
     if (synData.type === 'gap') {
-      tdCells.innerHTML = cellname + '->' + synData.partner;
+      tdCells.innerHTML = cellname + '--' + synData.partner;
     } else {
-      tdCells.innerHTML = synData.pre + '--' + synData.post;
+      tdCells.innerHTML = synData.pre + '->' + synData.post;
     }
 
     // add color to type
@@ -946,17 +943,21 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
       tdType.style.backgroundColor = 'rgba(191,0,255,0.2)';
     }
 
-
+    // add event listeners, link with synpases
     const self = this;
+    const highlightColor = 'rgba(0,0,0,0.5)';
+    const blankColor = '#FFFFFF';
     row.onclick = () => {
       self.viewer.SynapseOnClick(synData.cellname, synData.contin);
       self.viewer.CenterViewOnSynapse(synData.cellname, synData.contin);
     };
     row.onmouseover = () => {
-      row.style.backgroundColor = 'rgba(0,0,0,0.5)';
+      row.style.backgroundColor = highlightColor;
+      self.viewer.SynapseOnMouseOver(synData.cellname, synData.contin);
     };
     row.onmouseout = () => {
-      row.style.backgroundColor = '#FFFFFF';
+      row.style.backgroundColor = blankColor;
+      self.viewer.SynapseOnMouseOut(synData.cellname, synData.contin);
     };
   }
   
@@ -1095,7 +1096,7 @@ ImporterApp.prototype.ResizeOnlyCanvasLeft = function () {
   }
 
   let headerNav = document.getElementById ('header-nav');
-  let headerNavCollapse = document.getElementById ('collapse-header-nav');
+  let headerNavCollapse = document.getElementById ('btn-collapse-header-nav');
 
   let top = document.getElementById ('top'); // 'Help' etc
   let left = document.getElementById ('left');
@@ -1163,7 +1164,7 @@ ImporterApp.prototype.GetMapsTranslate = function() {
  * -mouse hover synapse X, no synapse clicked
  * -mouse not hovering over any synapse, synapse X clicked
  * -mouse not hovering over any synapse, no synapse clicked
- * /
+ */
 
 /*
  * update the synapse info section of menu
