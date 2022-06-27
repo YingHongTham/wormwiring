@@ -45,14 +45,18 @@
 	<script src="../include/spectrum/spectrum.js"></script>
 	<link rel="stylesheet" href="../include/spectrum/spectrum.css" />
   -->
-	
-	<script src="../include/three/Detector.js"></script>
-	<script src="../include/three/three.js"></script>
-	<script src="../include/three/TrackballControls.js"></script>
-	<script src="../include/three/OrbitControls.js"></script>
-	<script src="../include/three/threex.domevents.js"></script>
-	<script src="../include/three/threex.linkify.js"></script>
 
+  <!--<script src="../include/three/Detector.js"></script>-->
+	
+  <!-- THREE-alt has much more recent versions -->
+	<script src="/apps/include/THREE-alt/three.js"></script>
+	<script src="/apps/include/THREE-alt/TrackballControls.js"></script>
+	<script src="/apps/include/THREE-alt/OrbitControls.js"></script>
+	<script src="/apps/include/THREE-alt/threex.domevents.js"></script>
+	<script src="/apps/include/THREE-alt/threex.linkify.js"></script>
+
+  <script src="/apps/include/THREE-alt/OBJLoader.js"></script>
+  <script src="/apps/include/THREE-alt/MTLLoader.js"></script>
 
   <script type='text/javascript' src='/apps/include/plotParams.js'></script>
   <script type='text/javascript' src='/apps/include/wa_link.js'></script>
@@ -263,6 +267,7 @@
         <button id='btnToggleAxes' value='on'>Hide Axes</button>
         <button id='btnToggleAllRmks' value='off'>Show All Remarks</button>
         <button id='btnToggleAllSynLabels' value='off'>Show Synapse Labels</button>
+        <button id='btnToggleAllVolume' value='off'>Show All Volume</button>
       </div>
     </div>
     <div class='accordionSection'>
@@ -275,7 +280,11 @@
       </div>
       <div class='sectionContent collapse in show'
            id='loadSaveContentDiv'>
-        TODO
+        <input id='LoadFromFileInput'
+                type='file'
+                accept='.json'></input>
+        <button id='SaveToFileButton'>Save</button>
+        <a id='forSaveToFileButton'></a>
       </div>
     </div>
   </div></div>

@@ -99,11 +99,11 @@ ImporterApp.prototype.InitViewerStuff = function() {
 
   const self = this;
 
-  if (!Detector.webgl) {
-    var warning = Detector.getWebGLErrorMessage();
-    console.log(warning);
-    alert('WebGL failed to load, viewer may not work');
-  };
+  //if (!Detector.webgl) {
+  //  var warning = Detector.getWebGLErrorMessage();
+  //  console.log(warning);
+  //  alert('WebGL failed to load, viewer may not work');
+  //};
 
   const canvas = this.GetCanvasElem();
   
@@ -260,6 +260,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     btnToggleGrid.innerHTML = !on ? 'Hide Grid' : 'Show Grid';
     self.viewer.toggleGrid(!on);
   };
+
   const btnToggleAxes = document.getElementById('btnToggleAxes');
   btnToggleAxes.onclick = () => {
     const on = btnToggleAxes.value === 'on';
@@ -267,6 +268,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     btnToggleAxes.innerHTML = !on ? 'Hide Axes' : 'Show Axes';
     self.viewer.toggleAxes(!on);
   };
+
   const btnToggleAllRmks = document.getElementById('btnToggleAllRmks');
   btnToggleAllRmks.onclick = () => {
     const on = btnToggleAllRmks.value === 'on';
@@ -274,6 +276,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     btnToggleAllRmks.innerHTML = !on ? 'Hide All Remarks' : 'Show All Remarks';
     self.viewer.toggleAllRemarks(!on);
   };
+
   const btnToggleAllSynLabels = document.getElementById('btnToggleAllSynLabels');
   btnToggleAllSynLabels.onclick = () => {
     const on = btnToggleAllSynLabels.value === 'on';
@@ -281,147 +284,74 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     btnToggleAllSynLabels.innerHTML = !on ? 'Hide All Synapse Labels' : 'Show All Synapse Labels';
     self.viewer.toggleAllSynapseLabels(!on);
   };
-};
 
+  const btnToggleAllVolume = document.getElementById('btnToggleAllVolume');
+  btnToggleAllVolume.onclick = () => {
+    const on = btnToggleAllVolume.value === 'on';
+    btnToggleAllVolume.value = !on ? 'on' : 'off';
+    btnToggleAllVolume.innerHTML = !on ? 'Hide All Volume' : 'Show All Volume';
+    self.viewer.ToggleAllVolume(!on);
+  };
 
+  //=================================================
+  // link Load/Save
 
-// YH
-ImporterApp.prototype.AddLoadSave = function() {
-  // following AddSynapseFilter
-  //const parent = this.menuGroup['load-save'];
-  const parent = this.menuObj.mainItems['Load/Save'].content;
-
-  const inputLoad = document.createElement('input');
-  inputLoad.type = 'file';
-  inputLoad.id = 'LoadFromFileInput';
-  inputLoad.accept = '.json';
+  const inputLoad = document.getElementById('LoadFromFileInput');
   inputLoad.onchange = () => this.LoadFromFile();
-  parent.appendChild(inputLoad);
-
-  const buttonSave = document.createElement('button');
-  buttonSave.innerHTML = 'Save';
-  buttonSave.id = 'SaveToFileButton';
-  buttonSave.onclick = () => this.SaveToFile();
-  parent.appendChild(buttonSave);
-
-  const a = document.createElement('a');
-  a.id = 'forSaveToFileButton';
-  parent.appendChild(a);
+  const btnSave = document.getElementById('SaveToFileButton');
+  btnSave.onclick = () => this.SaveToFile();
 };
 
 /*
- * YH
  * load settings from file
- * file expected to be .json, object
- * one attritbute for each cell,
- * with 
+ * file expected to be .json; see SaveToFile
  */
 ImporterApp.prototype.LoadFromFile = function() {
-  const main_this = this;
-
   const input = document.getElementById('LoadFromFileInput');
   const file = new FileReader();
-  if (input === null)
-    return;
-  file.readAsText(input.files[0]);
 
+  const self = this;
+
+  file.readAsText(input.files[0]);
   file.onloadend = function(ev) {
     // read data is in this.result
     const data = JSON.parse(this.result);
 
-    // update the series selector in menu
-    main_this.SetSeriesToHTML(data.db);
+    self.SetSeriesToHTML(data.db);
+    self.SetSeriesInternal(data.db);
 
-    // wait for cellsInSlctdSrs[group][cell] to have the attributes:
-    // -walink
-    // -visible
-    // -plotted
-    function LoadMapMenuWhenReady(cell) {
-      if (!main_this.cellsInSlctdSrs.Neurons.hasOwnProperty(cell)
-        && !main_this.cellsInSlctdSrs.Muscles.hasOwnProperty(cell)) {
-        setTimeout(() => LoadMapMenuWhenReady(cell), 200);
-        return;
-      }
-      var group = 'Neurons';
-      if (!main_this.cellsInSlctdSrs[group].hasOwnProperty(cell)) {
-        group = 'Muscles';
-      }
-      if (!main_this.cellsInSlctdSrs[group][cell].hasOwnProperty('walink')
-        || !main_this.cellsInSlctdSrs[group][cell].hasOwnProperty('visible')
-        || !main_this.cellsInSlctdSrs[group][cell].hasOwnProperty('plotted')) {
-        setTimeout(() => LoadMapMenuWhenReady(cell), 200);
-        return;
-      }
-      main_this.LoadMapMenu(cell, main_this.cellsInSlctdSrs[group][cell].walink);
-      main_this.cellsInSlctdSrs[group][cell].visible = 1;
-      main_this.cellsInSlctdSrs[group][cell].plotted = 1;
+    for (const cell in data.mapsSettings) {
+      self.LoadMap2(data.db, cell);
+      let color = data.mapsSettings[cell].color;
+      document.addEventListener('loadMapComplete', () => {
+        self.viewer.SetSkeletonColor(
+          cell,
+          color
+        );
+        // set camera again because LoadMap2 sets camera too
+        self.viewer.SetCameraFromJSON(data.cameraSettings);
+      });
     }
 
-    // expect data.sqlData and data.mapsSettings have same keys
-    for (const cell in data.sqlData) {
-      main_this.data[cell] = data.sqlData[cell];
-      main_this.viewer.loadMap(main_this.data[cell]);
-      // update color (viewer.loadMap is sync, so this is OK)
-      main_this.viewer.SetSkeletonColor(
-        cell,
-        data.mapsSettings[cell].color
-      );
-      LoadMapMenuWhenReady(cell);
-    }
-
-    // ideally use some async methods..
     setTimeout(() => {
-      main_this.SetMapsTranslate(data.mapsTranslation);
-      main_this.viewer.SetCameraFromJSON(data.cameraSettings);
-    }, 1000);
+      self.SetMapsTranslate(data.mapsTranslation);
+      self.viewer.SetCameraFromJSON(data.cameraSettings);
+    },0);
   };
 };
 
-/*
- * json file expected:
- * TODO give expected format
- */
 ImporterApp.prototype.SaveToFile = function() {
-  const data = {
-    db: document.getElementById('series-selector').value,
-    sex: document.getElementById('sex-selector').value,
-    sqlData: this.data,
-    mapsSettings: this.viewer.dumpMapsJSON(),
-    cameraSettings: this.viewer.dumpCameraJSON(),
-    mapsTranslation: this.GetMapsTranslate(),
-  };// object to hold data to save
-
-  console.log(data);
-
-  const a = document.getElementById('forSaveToFileButton');
-  if (a === null)
-    return;
-  a.href = URL.createObjectURL(new Blob(
-    [JSON.stringify(data)],
-    { type: 'application/json', }
-  ));
-  a.setAttribute('download', 'session.json');
-  a.click();
-};
-
-
-/*
- * json file expected:
- * TODO give expected format
- */
-ImporterApp.prototype.SaveToFile = function() {
+  // object to hold data to save
   const data = {
     db: this.db,
-    mapsSettings: this.viewer.dumpMapsJSON(),
+    mapsSettings: this.viewer.dumpMapSettingsJSON(),
     cameraSettings: this.viewer.dumpCameraJSON(),
     mapsTranslation: this.GetMapsTranslate(),
-  };// object to hold data to save
+  };
 
   console.log(data);
 
   const a = document.getElementById('forSaveToFileButton');
-  if (a === null)
-    return;
   a.href = URL.createObjectURL(new Blob(
     [JSON.stringify(data)],
     { type: 'application/json', }
@@ -690,11 +620,15 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
       let data = JSON.parse(this.responseText);
       self.viewer.loadMap2(data);
       self.LoadMapMenu2(cell);
+      self.retrieveVolumetric(db, cell);
 
       console.timeEnd(`Load to viewer ${cell}`);
 
       document.dispatchEvent(new CustomEvent('loadMapComplete', {
-        detail: cell,
+        detail: {
+          db: db,
+          cell: cell,
+        }
       }));
     }
   };
@@ -742,8 +676,9 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   const centerViewBtn = document.createElement('button');
   const remarksBtn = document.createElement('button');
   const walinkBtn = document.createElement('button');
-  const parterListBtn = document.createElement('button');
+  const synPartnerListBtn = document.createElement('button');
   const synapseListBtn = document.createElement('button');
+  const volumeBtn = document.createElement('button');
 
   //content.appendChild(colorBtn);
   //content.appendChild(colorDiv);
@@ -751,8 +686,9 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   content.appendChild(centerViewBtn);
   content.appendChild(remarksBtn);
   content.appendChild(walinkBtn);
-  content.appendChild(parterListBtn);
+  content.appendChild(synPartnerListBtn);
   content.appendChild(synapseListBtn);
+  content.appendChild(volumeBtn);
 
   // structure done,
   // now we customize the stuff/buttons
@@ -849,10 +785,10 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
 
   //===============================================
   // Synaptic Partners
-  parterListBtn.innerHTML = 'Synaptic Parters';
-  parterListBtn.onclick = () => {
+  synPartnerListBtn.innerHTML = 'Synapse By Partners';
+  synPartnerListBtn.onclick = () => {
     const series = self.GetSeriesFromHTML();
-    const url = `../partnerList/?continName=${cellname}&series=${series}`;
+    const url = `../synapseList/?continName=${cellname}&series=${series}`;
     self.OpenInfoDialog(url,'Synaptic Partners');
   };
 
@@ -863,10 +799,17 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   synapseListBtn.innerHTML = 'Synapse List';
   synapseListBtn.onclick = () => {
     self.synapseListWindows[cellname].OpenWindow();
-    //const series = self.GetSeriesFromHTML();
-    //const url = `../synapseList/?continName=${cellname}&series=${series}`;
-    //self.OpenInfoDialog(url,'Synapse List');
   };
+
+  //===============================================
+  // show/hide volumetric
+  volumeBtn.innerHTML = 'Show Volume';
+  volumeBtn.onclick = () => {
+    const volumeVis = self.viewer.GetVolumeVis(cellname);
+    volumeBtn.innerHTML = !volumeVis ? 'Hide Volume' : 'Show Volume';
+    self.viewer.ToggleVolumeByCell(cellname, !volumeVis);
+  };
+
 };
 
 /*
@@ -1281,6 +1224,43 @@ ImporterApp.prototype.GetTranslationSliderValue = function() {
   }
   return pos;
 };
+
+
+//=====================================================
+// Volumetric (testing phase)
+
+ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
+  const self = this;
+  const urlBase =
+    `/apps/neuronVolume/models/${db}/`;
+  const urlMtl = urlBase + cell + '.mtl';
+  const urlObj = urlBase + cell + '.obj';
+  console.log(`retrieving mtl: ${urlMtl}`);
+
+  // https://stackoverflow.com/questions/35380403/how-to-use-objloader-and-mtlloader-in-three-js-r74-and-later
+  const mtlLoader = new THREE.MTLLoader();
+  //mtlLoader.setPath(urlMtl);
+  //mtlLoader.setResourcePath(urlBase); // MTLLoader.js says needs this
+  mtlLoader.load(urlMtl, function(materials) {
+    materials.preload();
+    const objLoader = new THREE.OBJLoader();
+    //objLoader.setPath(urlObj);
+    objLoader.setMaterials(materials);
+    objLoader.load(urlObj, function(object) {
+      volumeObj = object; // for testing
+      //const m = new THREE.Matrix4();
+      //m.makeTranslation(-390,+276,0);
+      //object.applyMatrix(m);
+      //self.viewer.scene.add(object);
+
+      // scales/translates appropriately
+      self.viewer.loadVolumetric(db, cell, object);
+    });
+  });
+};
+
+// for testing
+let volumeObj = null;
 
 
 /*=======================================================
