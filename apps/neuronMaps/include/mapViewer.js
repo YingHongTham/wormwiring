@@ -369,7 +369,8 @@ MapViewer.prototype.loadMap2 = function(data)
     allSynData: {}, // TODO new
     synLabels : new THREE.Group(),
     remarksGrp : new THREE.Group(),
-    remarks: {},
+    remarks: {}, // the data behind remarksGrp
+    volumeObj: null, // see loadVolumetric
   };
   // continued initialization of maps
   const map = this.maps[data.name];
@@ -1047,7 +1048,7 @@ MapViewer.prototype.toggleSynapsesByType = function(name,synType,visible=null) {
 
 
 //=========================================================
-// show/hide visibility of some global stuff,
+// show/hide visibility of some (mostly) global stuff,
 // i.e. functionality for Global Viewer Options
 
 MapViewer.prototype.toggleAllRemarks = function(bool=null) {
@@ -1119,6 +1120,34 @@ MapViewer.prototype.GetSynapseLabelsVisible = function(cellname) {
   return true;
 };
 
+//==================
+// Volume
+
+MapViewer.prototype.GetAllVolumeVis = function() {
+  for (const cellname in this.maps) {
+    if (!this.GetVolumeVis(cellname))
+      return false;
+  }
+  return true;
+};
+MapViewer.prototype.GetVolumeVis = function(cellname) {
+  return this.maps[cellname].volumeObj.visible;
+};
+
+MapViewer.prototype.ToggleAllVolume = function(bool=null) {
+  if (typeof(bool) !== 'boolean') {
+    bool = !this.GetAllVolumeVis();
+  }
+  for (const name in this.maps){
+    this.ToggleVolumeByCell(name, bool);
+  };
+};
+MapViewer.prototype.ToggleVolumeByCell = function(cellname, bool=null) {
+  if (typeof(bool) !== 'boolean') {
+    bool = !this.GetVolumeVis(cellname);
+  }
+  this.maps[cellname].volumeObj.visible = bool;
+};
 
 //==========================================================
 
@@ -1133,7 +1162,7 @@ MapViewer.prototype.isCellLoaded = function(cellname) {
 
 MapViewer.prototype.dumpJSON = function() {
   return {
-    mapsSettings: this.dumpMapsJSON(),
+    mapsSettings: this.dumpMapSettingsJSON(),
     cameraSettings: this.dumpCameraJSON(),
   };
 };
@@ -1167,7 +1196,7 @@ MapViewer.prototype.GetSkeletonColor = function(cell) {
 };
 
 // return color of maps
-MapViewer.prototype.dumpMapsJSON = function() {
+MapViewer.prototype.dumpMapSettingsJSON = function() {
   const mapsSettings = {};
   for (const cell in this.maps) {
     mapsSettings[cell] = {
@@ -1917,6 +1946,20 @@ MapViewer.prototype.addTextWithArrow = function(text,params) {
   return group;
 };
 
+
+//=========================================================
+// Volumetric
+
+MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
+  volumeObj.scale.set(4.5,-4.5,6.5);
+  volumeObj.position.x = -270;
+  volumeObj.position.y = 188;
+  volumeObj.position.z = -5;
+
+  volumeObj.visible = false;
+  this.maps[cell].volumeObj = volumeObj;
+  this.maps[cell].allGrps.add(volumeObj);
+};
 
 
 
