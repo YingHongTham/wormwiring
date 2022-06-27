@@ -619,8 +619,8 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
 
       let data = JSON.parse(this.responseText);
       self.viewer.loadMap2(data);
+      self.retrieveVolumetric(db, cell); // async
       self.LoadMapMenu2(cell);
-      self.retrieveVolumetric(db, cell);
 
       console.timeEnd(`Load to viewer ${cell}`);
 
@@ -806,10 +806,13 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   volumeBtn.innerHTML = 'Show Volume';
   volumeBtn.onclick = () => {
     const volumeVis = self.viewer.GetVolumeVis(cellname);
-    volumeBtn.innerHTML = !volumeVis ? 'Hide Volume' : 'Show Volume';
+    if (volumeVis === null || volumeVis === undefined) {
+      volumeBtn.innerHTML = 'Volume Unavailable';
+    } else {
+      volumeBtn.innerHTML = !volumeVis ? 'Hide Volume' : 'Show Volume';
+    }
     self.viewer.ToggleVolumeByCell(cellname, !volumeVis);
   };
-
 };
 
 /*
@@ -1235,7 +1238,6 @@ ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
     `/apps/neuronVolume/models/${db}/`;
   const urlMtl = urlBase + cell + '.mtl';
   const urlObj = urlBase + cell + '.obj';
-  console.log(`retrieving mtl: ${urlMtl}`);
 
   // https://stackoverflow.com/questions/35380403/how-to-use-objloader-and-mtlloader-in-three-js-r74-and-later
   const mtlLoader = new THREE.MTLLoader();

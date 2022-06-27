@@ -74,10 +74,13 @@ add a save function
 
 TODO:
 -add volumetric data from n2y and harvard group
+	--done, but current version doesn't seem to load n2y
 -related: in apps/neuronMaps/include/mapViewer.js,
   check that parameters like this.XYScale = 0.05
   is correct, make proper documentation
 -check cell list, seems mine differs from wormwiring.org..
+	--checked, seems different indeed,
+	--so I just copied from wormwiring.org
 
 some errors in the SQL tables
 -in synapsecombined, contin = 6226,

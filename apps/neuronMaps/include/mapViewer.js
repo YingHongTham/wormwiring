@@ -419,11 +419,11 @@ MapViewer.prototype.loadMap2 = function(data)
   // one for each edge, to cellbodyGrp
   const cellbodyList = Object.values(data.cellbody);
   for (const edge of cellbodyList) {
-    const lineGeometry = new THREE.Geometry();
-    lineGeometry.vertices.push(
-      map.objCoord[edge[0]], map.objCoord[edge[1]]);
-    const line = new THREE.Line(lineGeometry,this.cbMaterial);
-    map.cellbodyGrp.add(line);
+
+    const points = edge.map(obj => map.objCoord[obj]);
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const l = new THREE.Line(geometry, this.cbMaterial);
+    map.cellbodyGrp.add(l);
   }
 
 
@@ -1131,7 +1131,11 @@ MapViewer.prototype.GetAllVolumeVis = function() {
   return true;
 };
 MapViewer.prototype.GetVolumeVis = function(cellname) {
-  return this.maps[cellname].volumeObj.visible;
+  let volumeObj = this.maps[cellname].volumeObj;
+  if (volumeObj === null || volumeObj === undefined) {
+    return;
+  }
+  return volumeObj.visible;
 };
 
 MapViewer.prototype.ToggleAllVolume = function(bool=null) {
@@ -1143,10 +1147,14 @@ MapViewer.prototype.ToggleAllVolume = function(bool=null) {
   };
 };
 MapViewer.prototype.ToggleVolumeByCell = function(cellname, bool=null) {
+  let volumeObj = this.maps[cellname].volumeObj;
+  if (volumeObj === null || volumeObj === undefined) {
+    return;
+  }
   if (typeof(bool) !== 'boolean') {
     bool = !this.GetVolumeVis(cellname);
   }
-  this.maps[cellname].volumeObj.visible = bool;
+  volumeObj.visible = bool;
 };
 
 //==========================================================
@@ -1951,6 +1959,9 @@ MapViewer.prototype.addTextWithArrow = function(text,params) {
 // Volumetric
 
 MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
+  if (volumeObj === null || volumeObj === undefined) {
+    return;
+  }
   volumeObj.scale.set(4.5,-4.5,6.5);
   volumeObj.position.x = -270;
   volumeObj.position.y = 188;
