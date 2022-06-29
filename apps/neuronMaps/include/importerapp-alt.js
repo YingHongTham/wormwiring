@@ -297,6 +297,9 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   // link Load/Save
 
   const inputLoad = document.getElementById('LoadFromFileInput');
+  // annoying that width can't be controlled properly..
+  inputLoad.style.width = document.getElementById('left').offsetWidth;
+  inputLoad.size = document.getElementById('left').offsetWidth;
   inputLoad.onchange = () => this.LoadFromFile();
   const btnSave = document.getElementById('SaveToFileButton');
   btnSave.onclick = () => this.SaveToFile();
@@ -504,10 +507,20 @@ ImporterApp.prototype.OpenInfoDialog = function(url,title)
     }]
   });
 
+  const contentDiv = this.dialog.GetContentDiv();
+
+  const urlSpan = document.createElement('span');
+  urlSpan.innerHTML = 'open in new tab: ';
+  contentDiv.appendChild(urlSpan);
+  const urlA = document.createElement('a');
+  urlSpan.appendChild(urlA);
+  urlA.href = url;
+  urlA.target = '_blank';
+  urlA.innerHTML = urlA.href;
+
   const iframe = document.createElement('iframe');
   iframe.src = url;
   iframe.id = 'infoFrame';
-  const contentDiv = this.dialog.GetContentDiv();
   contentDiv.appendChild(iframe);
 }
 
@@ -649,8 +662,9 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
  *      <input type='color'>
  *      <button>Show Remarks</button>
  *      <button>WormAtlas</button>
- *      <button>Synaptic Partners</button>
+ *      <button>Synapse By Partners</button>
  *      <button>Synaptic List</button>
+ *      <button>Show Volume</button>
  *    </div>
  *  </div>
  */
@@ -784,7 +798,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   };
 
   //===============================================
-  // Synaptic Partners
+  // Synapse By Partners
   synPartnerListBtn.innerHTML = 'Synapse By Partners';
   synPartnerListBtn.onclick = () => {
     const series = self.GetSeriesFromHTML();

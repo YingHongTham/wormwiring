@@ -211,3 +211,9 @@ table, th, td {
 .hide-nav:hover {
   background-color: #555555;
 }
+
+/* for debugging
+* {
+  border-style: solid;
+}
+*/

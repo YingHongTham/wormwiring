@@ -408,7 +408,8 @@ class DB {
 	}           
 
 	function get_image_data($continNum){
-		$sql = "select synapsecombined.pre as pre,
+    $sql = "select
+      synapsecombined.pre as pre,
 			synapsecombined.post as post,
 			object.OBJ_Name as objNum,
 			object.IMG_Number as imgNum,
@@ -416,13 +417,13 @@ class DB {
 			image.IMG_File as file,
 			image.IMG_Series as series,
 			object.type as type 
-			from object 
-			join synapsecombined 
+		from object 
+		join synapsecombined 
 			on object.CON_Number = synapsecombined.continNum 
-			join image 
+		join image 
 			on object.IMG_Number = image.IMG_Number 
-			where CON_Number = $continNum
-			order by image.IMG_SectionNumber";
+		where CON_Number = $continNum
+		order by image.IMG_SectionNumber";
 
 		$rows = array();
 

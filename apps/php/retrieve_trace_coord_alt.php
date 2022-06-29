@@ -60,8 +60,9 @@ $data['name'] = $cell;
 
 // we store other data by the object numbers of objects involved,
 // this is the only place the coordinates are given
-// hmm maybe also want to put the series(region) and cb
-// as part of coordinate... we'll see if we need it
+// (hmm maybe also want to put the series(region) and cb
+// as part of coordinate... we'll see if we need it)
+// key = object number, value = [x,y,z]
 $data['objCoord'] = array();
 
 // cell goes through several parts of worm e.g. NR, VC etc
@@ -305,6 +306,10 @@ foreach ($query_results as $v) {
     $v[$k] = intval($v[$k]);
   }
 
+  // 'sectionNum1' and 'sectionNum2' are not reliable!
+  // they can refer to section numbers within different regions!
+  // please kill me
+
   $v['zLow'] = min($v['sectionNum1'],$v['sectionNum2']);
   $v['zHigh'] = max($v['sectionNum1'],$v['sectionNum2']);
   unset($v['sectionNum1']);
@@ -389,7 +394,23 @@ foreach ($query_results as $v) {
   $data['remarks'][$v['objNum']] = $v['remarks'];
 }
 
+//==========================================
+// attempt to fix synapse errors
+// namely, there are synapses where the object number
+// (say postObj1) is not actually the cell (post1)
+// for example, for synapse with contin = 6226,
+// gap junction between PVQL and ADAL
+// but their object numbers are the same = 87352.
+// the correct object number for ADAL is 87392
+//
+// we attempt to correct this by getting
+// the z coord of the incorrect object number,
+// and use the object in objCoord that is in the same z coord
+// and is closest to that incorrect object
+// if even this fails, then we add this incorrect object
+// to auxObjCoord
+
+
+
 echo json_encode($data);
-
-
 ?>
