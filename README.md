@@ -28,32 +28,37 @@ e.g. see sql tables:
 
 Here is a summary of the relevant terms, tables and, fields:
 
-contins are referred to by their contin number/ID
+Contins are referred to by their contin number/ID
 (this is CON_Number, not continID, in contin table,
 and often continNum in other tables);
 since a synapse only has one contin, synapses are referred to
 by their contin numbers (sometimes call it synapse ID)
 
-section refers to the EM section number,
-basically the z-coordinate.
+A *section* refers to an EM section,
+and section number is treated as the z-coordinate.
+It is, oddly, not found in the object table,
+but in the image table, as IMG_SectionNumber;
+the object table has an IMG_Number field,
+which allows you to join to the image table
+to extract the IMG_SectionNumber.
 
-contin: conti(g)uous pieces; only connects across z-sections
+**contin**: conti(g)uous pieces; only connects across z-sections
 note: contins can go up AND down in z-direction (even branch)
-* continID: id for the table (other tables don't use this)
-* CON_Number: id used by Elegance; also unique; other tables use this to identify contins (typically as continNum)
-* CON_AlternateName: cell name, if applicable
-  (... where CON_AlternateName like '%${ADAL}%')
-* CON_AlternateName2: ??
-* CON_Remarks: nothing to do with remarks in display2
-* type: neuron, chemical, electrical
-* series: NR (nerve ring), VC (ventral cord), ...
-* count: number of sections which the contin spans, but.. (see warning below)
-* sectionNum1: lowest section of contin (see warning below)
-* sectionNum2: highest (see warning below)
-* synSections: always 0..??
-* eleSections: also always 0..??
+- continID: id for the table (other tables don't use this)
+- CON_Number: id used by Elegance; also unique; other tables use this to identify contins (typically as continNum)
+- CON_AlternateName: cell name, if applicable
+- (... where CON_AlternateName like '%${ADAL}%')
+- CON_AlternateName2: ??
+- CON_Remarks: nothing to do with remarks in display2
+- type: neuron, chemical, electrical
+- series: NR (nerve ring), VC (ventral cord), ...
+- count: number of sections which the contin spans, but.. (see warning below)
+- sectionNum1: lowest section of contin (see warning below)
+- sectionNum2: highest (see warning below)
+- synSections: always 0..??
+- eleSections: also always 0..??
 
-warning: sectionNum1/2 may not be the actual section number;
+**WARNING**: sectionNum1/2 may not be the actual section number;
 I THINK they refer to section numbers within the relevant series (NR,VC, etc)
 warning: count may not be the most accurate either; it seems some slices are missing.
 For example, the synapse with contin=761 has count=7, and sectionNum1/2 = 89/96,
@@ -64,12 +69,14 @@ Worse example: the synapse with contin=5785 has count=5, and sectionNum1/2 = 201
 and the actual sections are z=183,201,202,203,204...
 (sections here refers to IMG_SectionNumber in the image table)
 
-there are some weird data where count = 0; e.g. contin = 368
+There are some weird data where count = 0; e.g. contin = 368.
 
-relationship: tells you the objects in a contin
+**relationship**: connects objects that belong to the same thing
+(cell, synapse, etc),
+particularly useful for obtaining the objects in a contin
 - relID: id for the table
 - REL_Remarks: ??
-- ObjName1: object number
+- ObjName1: object number connect to ObjName2
 - ObjName2: object number connected to ObjName1
 - segmentNum: diff in section number bt obj 1 and 2
 - continNum: contin number
@@ -77,16 +84,16 @@ relationship: tells you the objects in a contin
 sometimes name means cell, other times it means number..
 e.g. objName1 is a number
 
-display2 is something that Elegance generates,
+**display2** is something that Elegance generates,
 which is more smoothed out, apparently.
-in original version (see cellSynapseChemicalPre),
-synapses appear on the skeleton
+
+Synapses appear on the skeleton
 because the query looks in synapsecombind for all synapse
 with that cell as pre, and gets that cell's object number,
 and gets the coordinates for that object number,
 NOT the coordinates of the synapse object
 
-synapsecombined: each row is one synapse
+**synapsecombined**: each row is one synapse
 - idx: some index
 - pre: name of pre cell
 - post: name(s) of post cell(s) (comma-sep list)
