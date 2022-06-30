@@ -10,20 +10,15 @@ a synapse, etc
 * a relationship connects two objects in different z-slices that should be part of one thing
 * a contin is a connected set of objects (that is, any two objects are connected by a sequence of relationships)
 
-Cells are often made of several contins
+Cells are often made of several contins,
+appearing to be disconnected
 (this may be due to difficulty in tracing in the nerve ring),
 but synapses are always connected in one contin.
 
 Note that contins may not always consist of a 'line graph',
-some objects in a contin may have degree 3
-e.g. see sql tables:
- select * from (select count(*) as degree, continNum, ObjName1 from relationship group by continNum, ObjName1) as tmp where degree > 2 limit 50; 
- select * from (select count(*) as degree, continNum, objName1 from display2 group by continNum, objName1) as tmp where degree > 2 limit 50;
+some objects in a contin may have degree 3.
 
-
-Here is a summary of the relevant terms, tables and, fields:
-
-Contins are referred to by their contin number/ID
+A *contin* is referred to by its contin number/ID
 (this is CON_Number, not continID, in contin table,
 and often continNum in other tables);
 since a synapse only has one contin, synapses are referred to
@@ -36,6 +31,11 @@ but in the image table, as IMG_SectionNumber;
 the object table has an IMG_Number field,
 which allows you to join to the image table
 to extract the IMG_SectionNumber.
+
+Sometimes name means cell, other times it means number..
+e.g. objName1 is a number
+
+Here is a summary of the relevant tables:
 
 **contin**: conti(g)uous pieces; only connects across z-sections
 note: contins can go up AND down in z-direction (even branch)
@@ -67,17 +67,15 @@ and the actual sections are z=183,201,202,203,204...
 There are some weird data where count = 0; e.g. contin = 368.
 
 **relationship**: connects objects that belong to the same thing
-(cell, synapse, etc),
-particularly useful for obtaining the objects in a contin
+(cell, synapse, etc).
+I don't think this is really used in the Viewer apps,
+as display2 has more information.
 - relID: id for the table
 - REL_Remarks: ??
 - ObjName1: object number connect to ObjName2
 - ObjName2: object number connected to ObjName1
-- segmentNum: diff in section number bt obj 1 and 2
+- segmentNum: diff in section number bt obj 1 and 2 (I think)
 - continNum: contin number
-
-sometimes name means cell, other times it means number..
-e.g. objName1 is a number
 
 Synapses appear on the skeleton
 because the query looks in synapsecombind for all synapse
@@ -90,8 +88,8 @@ NOT the coordinates of the synapse object
 - pre: name of pre cell
 - post: name(s) of post cell(s) (comma-sep list)
 - type: chemical/gap junction
-- members: objects encoding the synapse (comma-sep list)
-- sections: number of sections, as proxy for size
+- members: objects in the synapse (comma-sep list of length = sections)
+- sections: number of sections; used as proxy for size
 - post1,2.. : just post, separated out
 - type2: ??
 - series: VC, NR, etc. (possibly multiple)
@@ -105,9 +103,11 @@ NOT the coordinates of the synapse object
 and it has been smoothed out by Elegance.
 - objName1, objName2: object numbers of connected objects
 - x1, y1, z1, x2, y2, z2: their coordinates
-- cellbody1: whether this segment is part of the cellbody
-  (but can be -2??)
-- cellbody2: no idea, not used, differs from cellbody1
+- cellbody1: == 1 if and only if this segment is part of the cellbody
+  (it's not a 0/1 thing, e.g. -2 is a possible value,
+	which maybe means is a synapse? unclear)
+- cellbody2: no idea what it's for, not used, differs from cellbody1
+	(e.g. can be 1 even though it's in a synapse)
 - remarks1, remarks2: remarks attached to respective objects
   (e.g. 'end', 'start dorsal commissure')
 - continNum: contin which this segment is part of
@@ -117,6 +117,18 @@ and it has been smoothed out by Elegance.
 - series1, series2: series that objects belong to
   (can be different)
 
+
+
+# Skeleton Viewer
+The Skeleton Viewer app is the app that makes the most queries,
+in quantity and complexity, to the MySQL tables.
+Here we give a summary of the queries made
+in a single request for the skeleton/synapses etc of a cell
+in the app,
+php mostly processed by retrieve_trace_coord_alt.php and dbconnect.php
+in the /apps/php folder.
+
+TODO
 
 # Setup
 

@@ -1257,12 +1257,18 @@ ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
   const mtlLoader = new THREE.MTLLoader();
   //mtlLoader.setPath(urlMtl);
   //mtlLoader.setResourcePath(urlBase); // MTLLoader.js says needs this
+  
+  console.log('attempt to load mtl');
   mtlLoader.load(urlMtl, function(materials) {
+    console.log('mtl loaded');
     materials.preload();
     const objLoader = new THREE.OBJLoader();
     //objLoader.setPath(urlObj);
     objLoader.setMaterials(materials);
+
+    console.log('attempt to load obj');
     objLoader.load(urlObj, function(object) {
+      console.log('obj loaded');
       volumeObj = object; // for testing
       //const m = new THREE.Matrix4();
       //m.makeTranslation(-390,+276,0);
