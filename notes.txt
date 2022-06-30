@@ -100,6 +100,8 @@ June 27, 2022
 
 -write summary of tables
 
+-put all queries in one php file?
+
 some errors in the SQL tables
 -in synapsecombined, contin = 6226,
   have gap junction between PVQL and ADAL

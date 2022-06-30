@@ -1,11 +1,6 @@
 # wormwiring
 Connectome project for wormwiring.org
 
-(neuronVolume mtl files are in
-/apps/neuronVolume/models/{db}/
-which is a symlink to the relevant folder)
-
-
 # MySQL Tables
 The Skeleton Viewer app pulls data directly from several MySQL databases.
 The data is collected with the Elegance software.
@@ -84,9 +79,6 @@ particularly useful for obtaining the objects in a contin
 sometimes name means cell, other times it means number..
 e.g. objName1 is a number
 
-**display2** is something that Elegance generates,
-which is more smoothed out, apparently.
-
 Synapses appear on the skeleton
 because the query looks in synapsecombind for all synapse
 with that cell as pre, and gets that cell's object number,
@@ -94,7 +86,7 @@ and gets the coordinates for that object number,
 NOT the coordinates of the synapse object
 
 **synapsecombined**: each row is one synapse
-- idx: some index
+- idx: id for table
 - pre: name of pre cell
 - post: name(s) of post cell(s) (comma-sep list)
 - type: chemical/gap junction
@@ -102,10 +94,41 @@ NOT the coordinates of the synapse object
 - sections: number of sections, as proxy for size
 - post1,2.. : just post, separated out
 - type2: ??
-- series: VC, NR, both?
-- partnerNum: number of post
-- mid: object number of 
+- series: VC, NR, etc. (possibly multiple)
+- partnerNum: number of post ??
+- mid: object number of object in middle of contin of synapse
 - preobj, postobj1.. : object number of pre,post
 - continNum: clear
+
+
+**display2**: essentially relationship, but with the coordinates,
+and it has been smoothed out by Elegance.
+- objName1, objName2: object numbers of connected objects
+- x1, y1, z1, x2, y2, z2: their coordinates
+- cellbody1: whether this segment is part of the cellbody
+  (but can be -2??)
+- cellbody2: no idea, not used, differs from cellbody1
+- remarks1, remarks2: remarks attached to respective objects
+  (e.g. 'end', 'start dorsal commissure')
+- continNum: contin which this segment is part of
+- segmentNum: ??
+- idx: id for table?
+- branch1: ??
+- series1, series2: series that objects belong to
+  (can be different)
+
+
+# Setup
+
+The MySQL tables are queried via php,
+see /apps/php/dbconnect.php
+
+The EM section images shown in Synapse Viewer
+are in image_data
+(which is really a symlink to some folder
+outside of here)
+Volumetric Viewer gets its .obj and .mtl files from
+/apps/neuronVolume/models/{db}/
+(which are also symlinks to the relevant folder)
 
 
