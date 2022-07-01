@@ -72,21 +72,6 @@ $data['objCoord'] = array();
 // we don't do that anymore?
 $data['skeleton'] = array();
 
-//// further initialization of subarrays of skeleton
-//foreach ($continNums as $c){
-//  // get series(regions) that the cell does go through/appear in
-//  $series = $dbcon->get_display2_series($c);
-//	foreach ($series as $s){
-//		$tmp = $s;
-//		if (strcmp('Ventral Cord',$s) == 0 or strcmp('Ventral Cord 2',$s) == 0) {
-//			$tmp = 'VC'; 
-//    } 
-//    $data['skeleton'][$tmp] = array();
-//	}
-//}
-//// some edges go between series(regions)
-//$data['skeleton']['in_between'] = array();
-
 // synapses
 $data['pre'] = array();
 $data['post'] = array();

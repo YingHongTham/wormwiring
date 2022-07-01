@@ -154,8 +154,9 @@ class DB {
 			or post=concat('[','$continName',']') 
 			or post='$continName' ) 
 			and type = 'electrical' 
-			group by name order by sects desc ";
+			group by name order by sects desc";
 
+		echo $sql;
 		return $this->_return_query_rows($sql);
 	}
 
@@ -167,7 +168,7 @@ class DB {
 			or pre=concat('[','$continName',']') 
 			or post=concat('[','$continName',']') 
 			or post='$continName' ) and type = 'electrical' 
-			group by name order by sects desc ";
+			group by name order by sects desc";
 
 		return $this->_return_query_rows($sql);
 	}

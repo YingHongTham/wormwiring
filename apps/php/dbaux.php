@@ -94,8 +94,7 @@ function get_contin_names($db){
 	return $contins;
 }
 
-function get_partner_lists($db,$cell,$ptype)
-{
+function get_partner_lists($db,$cell,$ptype) {
 	$_db = new DB();
 	$_db->connect($db);
 	$idx_1 = 1;
@@ -108,7 +107,11 @@ function get_partner_lists($db,$cell,$ptype)
 	  $partners = $_db->get_pre_chemical_partners($cell);
 	} elseif ($ptype == "post") {
 	  $partners = $_db->get_post_chemical_partners($cell);
-        };
+	};
+
+	echo $ptype;
+	print_r($partners);
+	echo "garage";
 
 	$results = array();
 	foreach ($partners as $row){
