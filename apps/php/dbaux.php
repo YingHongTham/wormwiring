@@ -109,10 +109,6 @@ function get_partner_lists($db,$cell,$ptype) {
 	  $partners = $_db->get_post_chemical_partners($cell);
 	};
 
-	echo $ptype;
-	print_r($partners);
-	echo "garage";
-
 	$results = array();
 	foreach ($partners as $row){
 	  $partner = $row[0];

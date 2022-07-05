@@ -21,7 +21,6 @@ $data = array(
 
 echo json_encode($data);
 
-
 /*
  * queries are made to synapsenomultiple table,
  * which I haven't looked at before.
@@ -50,3 +49,5 @@ echo json_encode($data);
  * c1 < c2 because synapsenomultiple may have bad names like
  * RIAL_old which don't get counted properly.
  */
+
+?>

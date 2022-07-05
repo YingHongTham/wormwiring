@@ -9,7 +9,7 @@
 
 <body>
 <div id="main">
-  <div id="main-nav"></div>
+  <div id="main-nav"><a id='nav-synapse-list'>Synapse List</a></div>
   <div id="main-title">Synaptic partners</div>
   <hr>
   <div id="main-info">
@@ -17,51 +17,56 @@
     <div id="main-info-body">
       Notes:
       <ol>
-	<li>Bracketed Cells (e.g.[PVX]) denotes an inferred process identification (not traced to Cell Body)</li>
-	<li>unk denotes an unkown neurite process identification</li>
+        <li>This is essentially a summary version of
+          <a id='nav-synapse-list-alt'>Synapse List</a>,
+          where we group synapses by type (gap/pre/post)
+          and partner. We also ignore the polyadic structure,
+          counting a synapse like
+          'RIGL -> AIZR,AVER,AIZR' as three synapses
+          ('RIGL -> AIZR', counted twice, and 'RIGL -> AVER').
+	      <li>Bracketed Cells (e.g.[PVX]) denotes an inferred process identification (not traced to Cell Body)</li>
+	      <li>unk denotes an unkown neurite process identification</li>
       </ol>
     </div>
 
 
-  <table class="synapse-table" id="elec">
+  <table class="synapse-table" id="gap"> <!--id was 'elec'-->
     <tr>
-	<th colspan=3 class="rcol">Electrical Partners</th>
-	<th colspan=2 class="lcol header1">Header1</th>
+	    <th colspan=5 class="rcol">Electrical Partners</th>
+      <!--<th colspan=2 class="lcol header1">Header1</th>-->
     </tr>
     <tr>
-	<th colspan=3 class="rcol">Partner</th>
-	<th colspan=1 class="lcol">#Synapses</th>
-	<th colspan=1 class="lcol">#Sections</th>
+	    <th colspan=3 class="rcol">Partner</th>
+	    <th colspan=1 class="lcol">#Synapses</th>
+	    <th colspan=1 class="lcol">#Sections</th>
     </tr>
-
   </table>
 
 <br>
 
   <table class="synapse-table" id="pre">
     <tr>
-	<th colspan=3 class="rcol">Cell is presynaptic</th>
-	<th colspan=2 class="lcol header1">Header1</th>
+	    <th colspan=5 class="rcol">Cell is presynaptic</th>
+      <!--<th colspan=2 class="lcol header1">Header1</th>-->
     </tr>
     <tr>
-	<th colspan=3 class="rcol">Partner</th>
-	<th colspan=1 class="lcol">#Synapses</th>
-	<th colspan=1 class="lcol">#Sections</th>
+	    <th colspan=3 class="rcol">Partner</th>
+	    <th colspan=1 class="lcol">#Synapses</th>
+	    <th colspan=1 class="lcol">#Sections</th>
     </tr>
-
   </table>
 
 <br>
 
   <table class="synapse-table" id="post">
     <tr>
-	<th colspan=3 class="rcol">Cell is postsynaptic</th>
-	<th colspan=2 class="lcol header1">Header1</th>
+	    <th colspan=5 class="rcol">Cell is postsynaptic</th>
+      <!--<th colspan=2 class="lcol header1">Header1</th>-->
     </tr>
     <tr>
-	<th colspan=3 class="rcol">Partner</th>
-	<th colspan=1 class="lcol">#Synapses</th>
-	<th colspan=1 class="lcol">#Sections</th>
+	    <th colspan=3 class="rcol">Partner</th>
+	    <th colspan=1 class="lcol">#Synapses</th>
+	    <th colspan=1 class="lcol">#Sections</th>
     </tr>
 
   </table>

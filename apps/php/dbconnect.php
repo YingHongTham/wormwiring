@@ -156,7 +156,6 @@ class DB {
 			and type = 'electrical' 
 			group by name order by sects desc";
 
-		echo $sql;
 		return $this->_return_query_rows($sql);
 	}
 

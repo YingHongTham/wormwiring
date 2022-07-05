@@ -1,13 +1,11 @@
 window.onload = function()
 {
-    var parameters = location.search.substring(1).split("&");
+	const params = {};
+  const urlParams = new URLSearchParams(document.location.search);
+  for (const pair of urlParams.entries()) {
+    params[pair[0]] = pair[1];
+  }
     
-    var synapse = {}
-    for (var tmp in parameters){
-	var temp = parameters[tmp].split("=");
-	synapse[temp[0]] = temp[1]
-    };
-    
-    var importerApp = new ImporterApp(synapse);
-    importerApp.Init();
+  const importerApp = new ImporterApp(params);
+  importerApp.Init();
 }

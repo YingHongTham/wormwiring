@@ -1,66 +1,62 @@
-ImporterApp = function (_partners)
-{
-    this.partners = _partners;
-    
-    console.log(this.partners);
+ImporterApp = function (_partners) {
+  this.partners = _partners;
 };
 
 
 ImporterApp.prototype.Init = function()
 {
-    var self = this;
-    
-    var url = '../synapseList/?continName='+self.partners.continName +
-	'&series='+self.partners.series; 
-    var pnav = document.getElementById('main-nav');
-    var pnava = document.createElement('a');
-    pnava.href = url;
-    pnava.innerHTML = 'Synapse list'
-    pnav.appendChild(pnava);
+  // link to synapse list
+  const urlSynapseList = '../synapseList/'
+    + `?continName=${this.partners.continName}`
+    + `&series=${this.partners.series}`;
+  const pnava = document.getElementById('nav-synapse-list');
+  pnava.href = urlSynapseList;
+  const pnava2 = document.getElementById('nav-synapse-list-alt');
+  pnava2.href = urlSynapseList;
 
-    var cell = document.getElementById('cell-name');
-    cell.innerHTML = 'Cell Name: ' + self.partners.continName;
+  const cellElem = document.getElementById('cell-name');
+  cellElem.innerHTML = `Cell Name: ${this.partners.continName}`;
 
-    var url = '../php/getPartnerList.php/?continName='+
-	self.partners.continName+'&series='+self.partners.series;
-    var xhttp = new XMLHttpRequest();    
-    xhttp.onreadystatechange = function(){
-	if (this.readyState == 4 && this.status == 200){
-	    var data = JSON.parse(this.responseText);
-	    var headers = ['header1','header2','header3'];
-	    for (var i=0; i<3; i++){
-		var _header = document.getElementsByClassName(headers[i]);
-		for (var j= 0; j<_header.length; j++){
-		    _header[j].innerHTML = data.headers[i];
-		};
-	    };
-	    
-	    var ptype = ['elec','pre','post']
-	    for (let p of ptype){
-		var tbl = document.getElementById(p);
-		for (var i in data[p]){
-		    var tr = document.createElement('tr');
-		    for (var j=0; j<data[p][i].length;j++){
-			var td = document.createElement('td');
-			if ( j == 0){
-			    td.colSpan = 3;
-			    td.class = 'rcol';
-			} else {
-			    td.colSpan = 1;
-			    td.class = 'lcol';
-			};
-			td.innerHTML = data[p][i][j];
-			tr.appendChild(td)
-		    };
-		    tbl.appendChild(tr);
-		};
-		
-	    };
-	}
-    };
-    xhttp.open("GET",url,true);
-    xhttp.send();
-     
-    
-   
+  //const url = '../php/getPartnerList.php/'
+  //  + `?series=${this.partners.series}`
+  //  + `&continName=${this.partners.continName}`;
+  const url = '../php/getPartnerList-alt.php/'
+    + `?db=${this.partners.db}`
+    + `&cell=${this.partners.cell}`;
+  const xhttp = new XMLHttpRequest();    
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      const data = JSON.parse(this.responseText);
+        
+      const syntypes = ['gap','pre','post']; // 'gap' was 'elec'
+      for (let type of syntypes){
+    	  const tbl = document.getElementById(type);
+    	  for (const row of data[type]){
+          console.log(row);
+    	    const tr = document.createElement('tr');
+    		  const tdPartner = document.createElement('td');
+    		  const tdCount = document.createElement('td');
+    		  const tdSections = document.createElement('td');
+          tbl.appendChild(tr);
+          tr.appendChild(tdPartner);
+          tr.appendChild(tdCount);
+          tr.appendChild(tdSections);
+    		  
+          tdPartner.colSpan = 3;
+    		  tdPartner.classList.add('rcol');
+    		  tdPartner.innerHTML = row[0];
+    		  
+          tdCount.colSpan = 1;
+    		  tdCount.classList.add('lcol');
+          tdCount.innerHTML = row[1];
+    		  
+          tdSections.colSpan = 1;
+    		  tdSections.classList.add('lcol');
+          tdSections.innerHTML = row[2];
+    	  };
+      };
+    }
+  };
+  xhttp.open("GET",url,true);
+  xhttp.send();
 };
