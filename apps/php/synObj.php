@@ -24,8 +24,9 @@ class Syn{
       
       
       
+	    //$syn = (partner, db, num sections, contin number, z-coord)
       function add_syn($syn){
-      	       if (!array_key_exists($syn[0],$this->synList)){
+      	 if (!array_key_exists($syn[0],$this->synList)){
 	       	  $this->synList[$syn[0]] = array();
 	       }
 	       $this->synList[$syn[0]][] = $syn;

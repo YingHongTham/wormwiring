@@ -10,13 +10,16 @@
  *
  * for chemical synpases,
  * pre means synapses where given cell is pre, likewise for post
+ *
+ * see chemical synapses section for note on how to deal with
+ * polyads where the same cell is contacted multiple times
  */
 
 include('./dbconnect.php');
 
 // get database, cellname value from url
 $db = $_GET['db']; // 'series' in old version
-$cell = $_GET['cell']; // 'cell' in old version
+$cell = $_GET['cell']; // 'continName' in old version
 
 // connection to mysql database; dbconnect.php
 $dbcon = new DB();
@@ -90,12 +93,10 @@ foreach ($query_results as $v) {
 }
 
 $data = array(
-  'headers' => $db,
   'gap' => $gap,
   'pre' => $pre,
   'post' => $post
 );
 
 echo json_encode($data);
-
 ?>

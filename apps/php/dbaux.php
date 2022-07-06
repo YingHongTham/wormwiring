@@ -135,25 +135,24 @@ function _get_dbs($series){
 	return $dbs;
 }
 
-function get_gap_junction_synapses($db,$cell){
-	  $_db = new DB();
-	  $_db->connect($db);
-	  $unk = new Unk($db);
-	  $syn = new Syn($cell);
-	  $data = $_db->get_gap_junction_synapses($cell);
-	  foreach ($data as $r){
-	    $partner = $r[0];
-	    if ($partner == $cell){
-		$partner = $r[1];
-	    }
-	    $partner = $unk->check_syn($partner);
-	    $tmp = array($partner,$db,
-	 			$r[2],$r[3],$r[4]);
-	    $syn->add_syn($tmp);
-	  }
+function get_gap_junction_synapses($db,$cell) {
+	$_db = new DB();
+	$_db->connect($db);
+	$unk = new Unk($db);
+	$syn = new Syn($cell);
+	$data = $_db->get_gap_junction_synapses($cell);
+	foreach ($data as $r) {
+		$partner = $r[0];
+		if ($partner == $cell) {
+			$partner = $r[1];
+		}
+		$partner = $unk->check_syn($partner);
+		$tmp = array($partner,$db,$r[2],$r[3],$r[4]);
+		$syn->add_syn($tmp); // helps group by partner
+	}
 
-	  $_db->con->close();
-          return $syn;
+	$_db->con->close();
+	return $syn;
 }
 
 function get_pre_chemical_synapses($db,$cell){
@@ -166,9 +165,8 @@ function get_pre_chemical_synapses($db,$cell){
 	  foreach ($data as $r){
 	    $partner = $r[1];
 	    $partner = $unk->check_syn($partner);
-	    $tmp = array($partner,$db,
-	    	 		$r[2],$r[3],$r[4]);
-	    $syn->add_syn($tmp);
+	    $tmp = array($partner,$db,$r[2],$r[3],$r[4]);
+	    $syn->add_syn($tmp); // helps group by partner
 	  }
 	  
 	  $_db->con->close();
@@ -184,9 +182,10 @@ function get_post_chemical_synapses($db,$cell){
 	  $data = $_db->get_post_chemical_synapses($cell);
 	  foreach ($data as $r){
 	    $partner = $unk->check_syn($r[0])."->".$unk->check_syn($r[1]);
-	    $tmp = array($partner,$db,
-	    	 		$r[2],$r[3],$r[4]);
-	    $syn->add_syn($tmp);
+
+    //r = pre,post,sections,continNum,image.IMG_SectionNumber
+	    $tmp = array($partner,$db,$r[2],$r[3],$r[4]);
+	    $syn->add_syn($tmp); // helps group by partner
 	  }
 	  $_db->con->close();
 	  return $syn;  
@@ -248,44 +247,68 @@ function get_syncell($db,$continNum,$synObject){
 }
 
 
+// helps in checking whether some names are unk(nown)
+// essentially holds a list of 'unk(nown)' names,
+// (unknown neurite process identification)
 class Unk {
+  function __construct($series) {
+  	$this->series = $series;
+	  $herm = array('N2U','JSE'); // N2W handled below, but JSH?
+	  $male = array('n2y','n930');
+	  if (in_array($series,$herm)) {
+			$this->unk_file = '../../cell_files/unk_herm.txt';
+	  } else if (in_array($series,$male)) {
+			$this->unk_file = '../../cell_files/unk_male.txt';
+	  } else if ($series == 'N2W'){
+			$this->unk_file = '../../cell_files/unk_pharynx.txt';
+	  }
+	  $this->unk_array = array_map('trim',file($this->unk_file));
+	}
 
-      function __construct($series){
-      	      $this->series = $series;
-	      $herm = array('N2U','JSE');
-	      $male = array('n2y','n930');
-	      if (in_array($series,$herm)) {
-	      	 $this->unk_file = '../../cell_files/unk_herm.txt';
-	       } else if (in_array($series,$male)) {
-	         $this->unk_file = '../../cell_files/unk_male.txt';
-	       } else if ($series == 'N2W'){
-	       	 $this->unk_file = '../../cell_files/unk_pharynx.txt';
-	       }
-	       
-	       $this->unk_array = array_map('trim',file($this->unk_file));
-      }
+	// obsolete, use clean_name_or_unk
+	// terrible naming, not check (which suggests return bool)
+	// returns the cell name, trimmed (remove whitespaces),
+	// or converted to 'unk' if is indeed an 'unk'
+	function check_unk($cell){
+		$this->clean_name_or_unk($cell);
+	}
+
+	function clean_name_or_unk($cell) {
+  	$cell = trim($cell);
+  	if (in_array($cell,$this->unk_array)){
+	   	return 'unk';
+	  } else {
+	   	return $cell;
+  	}
+	}
+
+	// obsolete, use clean_names_csv
+	// this is a terrible name, the input is a comma-sep list
+	// of cell names,
+	// and we're still checking/cleaning the names using check_unk
+	// my guess is that this is often used to clean
+	// the 'post' cells of synapse, hence the name check_syn
+  function check_syn($syn){
+  	$syn = trim($syn);
+  	$_syn = explode(",",$syn);
+	  foreach ($_syn as &$s){
+	   	$s = $this->check_unk($s);
+	  }
+	  $syn = implode(",",$_syn);
+	  return $syn;
+  }
 
 
-      function check_unk($cell){
-      	       $cell = trim($cell);
-      	       if (in_array($cell,$this->unk_array)){
-	       	  return 'unk';
-	       } else {
-	       	  return $cell;
-      	       }
-      }
-
-
-      function check_syn($syn){
-      	       $syn = trim($syn);
-      	       $_syn = explode(",",$syn);
-	       foreach ($_syn as &$s){
-	       	       $s = $this->check_unk($s);
-	       }
-	       $syn = implode(",",$_syn);
-	       return $syn;
-      }
-
+	// good function name; stolen from check_syn
+	// applies clean_name_or_unk to a comman-sep list of cells
+  function clean_names_csv($cells){
+  	$cells = trim($cells);
+  	$cellList = explode(",",$cells);
+	  foreach ($cellList as &$cell) { // alter in place
+	   	$cell = $this->clean_name_or_unk($cell);
+	  }
+	  return implode(",",$cellList);
+  }
 }
 
 
