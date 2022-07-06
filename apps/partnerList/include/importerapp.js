@@ -1,3 +1,5 @@
+// obsolete, put everything into build_partnerList.js
+
 ImporterApp = function (_partners) {
   this.partners = _partners;
 };
@@ -7,15 +9,15 @@ ImporterApp.prototype.Init = function()
 {
   // link to synapse list
   const urlSynapseList = '../synapseList/'
-    + `?continName=${this.partners.continName}`
-    + `&series=${this.partners.series}`;
+    + `?series=${this.partners.db}`
+    + `&continName=${this.partners.cell}`;
   const pnava = document.getElementById('nav-synapse-list');
   pnava.href = urlSynapseList;
   const pnava2 = document.getElementById('nav-synapse-list-alt');
   pnava2.href = urlSynapseList;
 
   const cellElem = document.getElementById('cell-name');
-  cellElem.innerHTML = `Cell Name: ${this.partners.continName}`;
+  cellElem.innerHTML = `Cell Name: ${this.partners.cell}`;
 
   //const url = '../php/getPartnerList.php/'
   //  + `?series=${this.partners.series}`
@@ -29,10 +31,11 @@ ImporterApp.prototype.Init = function()
       const data = JSON.parse(this.responseText);
         
       const syntypes = ['gap','pre','post']; // 'gap' was 'elec'
-      for (let type of syntypes){
+      for (let type of syntypes) {
     	  const tbl = document.getElementById(type);
-    	  for (const row of data[type]){
-          console.log(row);
+
+        // one row for each partner
+    	  for (const partner in data[type]){
     	    const tr = document.createElement('tr');
     		  const tdPartner = document.createElement('td');
     		  const tdCount = document.createElement('td');
@@ -42,19 +45,19 @@ ImporterApp.prototype.Init = function()
           tr.appendChild(tdCount);
           tr.appendChild(tdSections);
     		  
-          tdPartner.colSpan = 3;
+          tdPartner.colSpan = 3; // width of column
     		  tdPartner.classList.add('rcol');
-    		  tdPartner.innerHTML = row[0];
+    		  tdPartner.innerHTML = partner;
     		  
           tdCount.colSpan = 1;
     		  tdCount.classList.add('lcol');
-          tdCount.innerHTML = row[1];
+          tdCount.innerHTML = data[type][partner]['count'];
     		  
           tdSections.colSpan = 1;
     		  tdSections.classList.add('lcol');
-          tdSections.innerHTML = row[2];
-    	  };
-      };
+          tdSections.innerHTML = data[type][partner]['sections'];
+    	  }
+      }
     }
   };
   xhttp.open("GET",url,true);

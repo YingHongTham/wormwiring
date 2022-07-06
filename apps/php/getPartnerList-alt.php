@@ -14,24 +14,9 @@
 
 include('./dbconnect.php');
 
-// get database value from url
-// (checking for 'series' for backward compatibility)
-if (isset($_GET['db'])) {
-	$db = $_GET['db'];
-} elseif (isset($_GET['series'])) {
-	$db = $_GET['series'];
-} else {
-	return;
-}
-// get cell name from url
-// (checking for 'continName' for backward compatibility)
-if (isset($_GET['cell'])) {
-	$cell = $_GET['cell'];
-} elseif (isset($_GET['continName'])) {
-	$cell = $_GET['continName'];
-} else {
-	return;
-}
+// get database, cellname value from url
+$db = $_GET['db']; // 'series' in old version
+$cell = $_GET['cell']; // 'cell' in old version
 
 // connection to mysql database; dbconnect.php
 $dbcon = new DB();
@@ -106,33 +91,10 @@ foreach ($query_results as $v) {
 
 $data = array(
   'headers' => $db,
-  'gap' => array(), // 'elec' in old version
-  'pre' => array(),
-  'post' => array()
+  'gap' => $gap,
+  'pre' => $pre,
+  'post' => $post
 );
-
-// convert to old form
-foreach ($gap as $partner => $val) {
-	$data['gap'][] = array(
-		$partner,
-		$val['count'],
-		$val['sections']
-	);
-}
-foreach ($pre as $partner => $val) {
-	$data['pre'][] = array(
-		$partner,
-		$val['count'],
-		$val['sections']
-	);
-}
-foreach ($post as $partner => $val) {
-	$data['post'][] = array(
-		$partner,
-		$val['count'],
-		$val['sections']
-	);
-}
 
 echo json_encode($data);
 
