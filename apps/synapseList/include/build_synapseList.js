@@ -41,9 +41,9 @@ window.onload = function()
   cellElem.innerHTML = `Cell Name: ${cell}`;
 
   // url to php which makes the MySQL queries
-  const url = '../php/getSynapseList.php/'
-    + `?series=${db}`
-    + `&continName=${cell}`;
+  const url = '../php/getSynapseList-alt.php/'
+    + `?db=${db}`
+    + `&cell=${cell}`;
   const xhttp = new XMLHttpRequest();    
   xhttp.onreadystatechange = function() {
 	  if (this.readyState == 4 && this.status == 200) {
@@ -52,8 +52,21 @@ window.onload = function()
 	    for (let type of syntypes) {
     	  const tbl = document.getElementById('table-'+type);
 
-        if (type==='gap') {
-          type = 'elec';
+        // group by partner
+        const synByPartner = {};
+        for (const syn of data[type]) {
+          if (!synByPartner.hasOwnProperty(syn.partner)) {
+            synByPartner[syn.partner] = {
+              summary: {
+                count: 0,
+                sections: 0,
+              },
+              synList: [],
+            };
+          }
+          synByPartner[syn.partner].summary.count += 1;
+          synByPartner[syn.partner].summary.sections += syn.sections;
+          synByPartner[syn.partner].push(syn);
         }
 
 		    //visible list element

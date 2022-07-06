@@ -1,4 +1,25 @@
 <?php
+/*
+ * gets list of synapses of a given cell
+ * separated by synapse type (gap/pre/post),
+ *
+ * a row of data returned is an associative array of the form
+ * array(
+ *  "partner" => "ADFL->ADAL,RIAL",
+ *  "db" => "N2U",
+ *  "sections" => 2,
+ *  "contin" => 5860,
+ *  "z" => 212
+ * );
+ *
+ * (so unlike the old version getSynapseList.php,
+ * we do not group by partner (which the Syn class does),
+ * and instead let the client-side handle)
+ * (TODO have partnerList.js also use this php)
+ *
+ * for chemical synpases,
+ * pre means synapses where given cell is pre, likewise for post
+ */
 
 include('./dbconnect.php'); // for DB, connection to MySQL
 include('./dbaux.php'); // for Unk
@@ -48,10 +69,6 @@ foreach ($query_results as $v) {
     'sections' => $v['sections'],
     'contin' => $v['contin'],
     'z' => $v['z']);
-  // in old version, query results are 
-  // added to Syn class object (from synObj.php)
-  // which helps to group by partner
-  // here we leave it to the client side to group accorindly
 }
 
 
@@ -87,10 +104,6 @@ foreach ($query_results as $v) {
     'sections' => $v['sections'],
     'contin' => $v['contin'],
     'z' => $v['z']);
-  // in old version, query results are 
-  // added to Syn class object (from synObj.php)
-  // which helps to group by partner
-  // here we leave it to the client side to group accorindly
 }
 
 
@@ -137,10 +150,6 @@ foreach ($query_results as $v) {
     'sections' => $v['sections'],
     'contin' => $v['contin'],
     'z' => $v['z']);
-  // in old version, query results are 
-  // added to Syn class object (from synObj.php)
-  // which helps to group by partner
-  // here we leave it to the client side to group accorindly
 }
 
 
