@@ -112,3 +112,7 @@ some errors in the SQL tables
   in display2 check continNum = 5713 and z1 = 379)
   FOR NOW,
   just going to ignore this (that's what has been done)
+
+July 7, TODOs
+-check that listViewer works as advertised,
+  and simplify the importerApp (and add comments/docs)
