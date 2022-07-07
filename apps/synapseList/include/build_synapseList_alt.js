@@ -1,3 +1,54 @@
+/*
+ * given some cell,
+ * gets data on synapses of cell
+ * from php/getSynapseList-alt.php,
+ * which returns data of the form shown below.
+ * for gap, pre always = cell
+ * pre means chemical synapses where pre = cell
+ * post means chemical synapses where cell is among post
+ *
+ * sections = number of EM sections that the synapse appears in
+ * z = the section number (stand in for z-coordinate)
+ *  (I think specifically the z-coordinate of midde of synapse)
+ * contin = continNum = contin ID of synapse
+ *
+ *  data = {
+ *    gap: [
+ *      {
+ *        contin: 6138,
+ *        db: "N2U",
+ *        post: "PVQL",
+ *        pre: "ADAL",
+ *        sections: 2,
+ *        z: 286,
+ *      },
+ *      ...
+ *    ],
+ *    pre: [
+ *      {
+ *        contin: 556,
+ *        db: "N2U",
+ *        post: "AVBR,AVAR",
+ *        pre: "ADAL",
+ *        sections: 7,
+ *        z: 153,
+ *      },
+ *      ...
+ *    ],
+ *    post: [
+ *      {
+ *        contin: 4521,
+ *        db: "N2U",
+ *        post: "ADAL,AVBL,URYDL",
+ *        pre: "URBL",
+ *        sections: 1,
+ *        z: 88,
+ *      },
+ *      ...
+ *    ],
+ *  };
+ */
+
 window.onload = function()
 {
 	const params = {};

@@ -15,6 +15,8 @@
  *  "contin" => 5860,
  *  "z" => 212
  * );
+ * for a row corresponding to a gap junction,
+ * $pre is always $cell
  *
  * (so unlike the old version getSynapseList.php,
  * we do not group by partner (which the Syn class does),
