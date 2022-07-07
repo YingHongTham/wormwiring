@@ -1,5 +1,11 @@
 <html>
 <head>
+  <!-- bootstrap, for collapsing rows -->
+	<script src='/apps/include/jquery-3.6.0.min.js'></script>
+	<link rel="stylesheet" href='/apps/include/bootstrap-3.3.7.min.css'>
+	<script src='/apps/include/bootstrap-3.3.7.min.js'></script>
+
+
   <link rel="stylesheet" type="text/css" href="./css/synapselist.css">
   
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
@@ -39,8 +45,21 @@
 	      <li>Occasionally, synapes do not display properly in the maps. In cases where there is a discrepancy between the maps and this synapse list, this synapse list should be considered correct. </li>
       </ol>
       <img src="../php/images/synapseexample.png" width="125"></td>
+      <br>
     </div>
 
+    <!-- see synapseList.js for functionality of buttons
+      in particular, note that, if the page does load properly,
+      the button should be automatically clicked,
+      and text becomes 'Hide All Individual Synapses' -->
+    <button id='toggle-all-individual'
+            value='on'>
+      Hide All Individual Synapses
+    </button>
+    <button id='toggle-all-summary'
+            value='on'>
+      Hide All Summary Rows
+    </button>
 
     <table class="synapse-table" id="table-gap">
       <tr>
