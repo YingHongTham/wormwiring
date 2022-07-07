@@ -116,3 +116,5 @@ some errors in the SQL tables
 July 7, TODOs
 -check that listViewer works as advertised,
   and simplify the importerApp (and add comments/docs)
+-in synapseList and partnerList, add link to send to listViewer,
+so that you can select other cells

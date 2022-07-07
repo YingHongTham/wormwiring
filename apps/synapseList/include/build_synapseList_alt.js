@@ -39,11 +39,16 @@ window.onload = function()
     btnIndv.innerHTML = expanded ?
         'Hide All Individual Synapses' :
         'Show All Individual Synapses';
-    const synRows = document.querySelectorAll('.individual');
-    synRows.forEach( row => {
-      row.classList.toggle('in', expanded);
-      row.setAttribute('aria-expanded', expanded);
+    const tbodyList = document.querySelectorAll('.tbody-individual');
+    tbodyList.forEach( tbody => {
+      tbody.classList.toggle('in', expanded);
+      tbody.setAttribute('aria-expanded', expanded);
     });
+    //const synRows = document.querySelectorAll('.individual');
+    //synRows.forEach( row => {
+    //  row.classList.toggle('in', expanded);
+    //  row.setAttribute('aria-expanded', expanded);
+    //});
   }
   const btnIndv = document.getElementById('toggle-all-individual');
   btnIndv.onclick = () => {
@@ -109,8 +114,20 @@ window.onload = function()
         // group by partner
         const synByPartner = {};
         for (const syn of data[type]) {
-          if (!synByPartner.hasOwnProperty(syn.partner)) {
-            synByPartner[syn.partner] = {
+          let partner = '';
+          switch (type) {
+            case 'gap':
+            case 'pre':
+              partner = syn.post;
+              break;
+            case 'post':
+              partner = syn.pre+'->'+syn.post;
+              break;
+            default:
+              console.error('bruh, type?');
+          }
+          if (!synByPartner.hasOwnProperty(partner)) {
+            synByPartner[partner] = {
               summary: {
                 count: 0,
                 sections: 0,
@@ -118,9 +135,9 @@ window.onload = function()
               synList: [],
             };
           }
-          synByPartner[syn.partner].summary.count += 1;
-          synByPartner[syn.partner].summary.sections += syn.sections;
-          synByPartner[syn.partner].synList.push(syn);
+          synByPartner[partner].summary.count += 1;
+          synByPartner[partner].summary.sections += syn.sections;
+          synByPartner[partner].synList.push(syn);
         }
 
         // there are two types of rows:
@@ -164,8 +181,11 @@ window.onload = function()
           // among all elements matching 'data-target'
           // see also in index.html
           trSummary.setAttribute('data-toggle','collapse');
-          trSummary.setAttribute('data-target',
-              `.${groupClassName}.individual`);
+          // use id instead of class
+          //trSummary.setAttribute('data-target',
+          //    `.${groupClassName}.individual`);
+          const tbodyID = `tbody-${type}-${partner}`;
+          trSummary.setAttribute('data-target', '#'+tbodyID);
           // need 'role' attribute because trSummary is not button
           trSummary.setAttribute('role', 'button');
 
@@ -177,6 +197,16 @@ window.onload = function()
           tdCount.colSpan = 1;
           tdSections.innerHTML = summary.sections;
           tdSections.colSpan = 1;
+
+          // tbody used to group individual synapse rows
+          const tbody = document.createElement('tbody');
+          tbl.appendChild(tbody);
+
+          // make tbody collapsible, not individual rows
+          tbody.classList.add(groupClassName);
+          tbody.classList.add('tbody-individual');
+          tbody.id = tbodyID;
+          tbody.classList.add('collapse'); // data-toggle
 
           // row for each individual synapse
           const synList = synByPartner[partner].synList;
@@ -190,7 +220,7 @@ window.onload = function()
             const tdCount = document.createElement('td');
             const tdSections = document.createElement('td');
 
-            tbl.appendChild(trIndiv);
+            tbody.appendChild(trIndiv);
             trIndiv.appendChild(tdPartner);
             trIndiv.appendChild(tdDatabase);
             trIndiv.appendChild(tdContin);
@@ -202,7 +232,7 @@ window.onload = function()
             trIndiv.style.backgroundColor = 'white';
             trIndiv.classList.add(groupClassName);
             trIndiv.classList.add('individual');
-            trIndiv.classList.add('collapse'); // data-toggle
+            //trIndiv.classList.add('collapse'); // data-toggle
             //trIndiv.classList.add('show'); messes things up
 
             tdPartner.innerHTML = partner;

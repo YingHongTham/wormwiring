@@ -5,7 +5,11 @@
  *
  * a row of data returned is an associative array of the form
  * array(
- *  "partner" => "ADFL->ADAL,RIAL",
+ *  // we let client-side recreated partner from pre/post
+ *  // helps with combining this with partnerList app
+ *  //"partner" => "ADFL->ADAL,RIAL",
+ *  "pre" => "ADFL",
+ *  "post" => "ADAL,RIAL",
  *  "db" => "N2U",
  *  "sections" => 2,
  *  "contin" => 5860,
@@ -64,7 +68,9 @@ foreach ($query_results as $v) {
     $v[$k] = intval($v[$k]);
   }
   $gap[] = array(
-    'partner' => $partner,
+    //'partner' => $partner,
+    'pre' => $cell,
+    'post' => $partner,
     'db' => $db,
     'sections' => $v['sections'],
     'contin' => $v['contin'],
@@ -99,7 +105,9 @@ foreach ($query_results as $v) {
     $v[$k] = intval($v[$k]);
   }
   $pre[] = array(
-    'partner' => $partner,
+    //'partner' => $partner,
+    'pre' => $cell,
+    'post' => $partner,
     'db' => $db,
     'sections' => $v['sections'],
     'contin' => $v['contin'],
@@ -136,16 +144,18 @@ $sql = "select
 $query_results = $dbcon->_return_query_rows_assoc($sql);
 
 foreach ($query_results as $v) {
-  $partner = $unk->clean_name_or_unk($v['pre'])
-            ."->"
-            .$unk->clean_names_csv($v['post']);
+  $cleaned_pre = $unk->clean_name_or_unk($v['pre']);
+  $cleaned_post = $unk->clean_names_csv($v['post']);
+  $partner = $cleaned_pre."->".$cleaned_post;
 
   // ensure integer not string
   foreach (['sections','contin','z'] as $k) {
     $v[$k] = intval($v[$k]);
   }
   $post[] = array(
-    'partner' => $partner,
+    //'partner' => $partner,
+    'pre' => $cleaned_pre,
+    'post' => $cleaned_post,
     'db' => $db,
     'sections' => $v['sections'],
     'contin' => $v['contin'],
