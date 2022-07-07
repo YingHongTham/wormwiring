@@ -34,7 +34,7 @@ window.onload = function()
     + `&cell=${cell}`;
   const pnava = document.getElementById('nav-synapse-list');
   pnava.href = urlSynapseList;
-  const pnava2 = document.getElementById('nav-synapse-list-alt');
+  const pnava2 = document.getElementById('nav-synapse-list-2');
   pnava2.href = urlSynapseList;
 
   // set Cell Name in the HTML

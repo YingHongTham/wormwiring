@@ -33,14 +33,61 @@
   <div id="main-title">List of synapses</div>
   <hr>
   <div id="main-info">
-    <div id="cell-name">Cell Name: --</div>
+    <div id="cell-name">Cell Name: 
+      <!-- set by build_synapseList.js -->
+      <span class='cellnameSpan'>--</span>
+    </div>
     <div id="main-info-body">
       Notes:
       <ol>
-	      <li><strong>Click on target cells to expand/collapse synapse list. Synapse IDs linke to EMs.</strong></li>
+        <li>
+          Synapses are grouped into three tables,
+          one for each synapse type:
+          <ul>
+            <li>Gap junctions</li>
+            <li>Presynaptic: synapsees where
+              <span class='cellnameSpan'>--</span>
+              is presynaptic
+            </li>
+            <li>Postsynaptic: synapsees where
+              <span class='cellnameSpan'>--</span>
+              is postsynaptic
+            </li>
+          </ul>
+          Note that the same synapse may appear twice,
+          in the pre- and postsynaptic tables.
+          Note also slight difference with the
+          <a id='nav-partner-list-2'
+             href='../partnerList/'>
+            Synaptic Partner List
+          </a>
+          when it comes to synapses that have repeating partners,
+          e.g.
+          'RIGL -> AIZR,AVER,AIZR' will only appear once
+          in the postsynaptic table for AIZR.
+        </li>
+        <li>
+          Each table is further organized by the synaptic partners.
+          There are two types of rows:
+          <ul>
+            <li>
+              Summary rows: corresponds to a partner(s); shows the total number and sections of synapses
+              with that partner
+            </li>
+            <li>
+              Individual rows: corresponds to a synapse
+            </li>
+          </ul>
+          Click on a <strong>summary row to show/hide synapses</strong> with that partner(s).
+          There are also buttons to show/hide all rows (summary or individual).
+        </li>
+        <li>
+          Click on <strong>Synapse ID to see EM</strong> (opens new tab).
+        </li>
 	      <li>Bracketed Cells (e.g.[PVX]) denotes an inferred process identification (not traced to Cell Body)</li>
 	      <li>unk denotes an unknown neurite process identification</li>
-	      <li>In synapse lists, the listed order of postsynaptic cells in polyads represents the clockwise order of the cells around the presynaptic density, electron micrographs viewed looking toward the head.  Thus, R9AL>DVF,HOB,PVY represents a synapse that appears like this in the electron micrograph:< </li>
+	      <li>In synapse lists, the listed order of postsynaptic cells in polyads represents the clockwise order of the cells around the presynaptic density, electron micrographs viewed looking toward the head.
+          Thus, R9AL->DVF,HOB,PVY represents a synapse that appears like the diagram below in the electron micrograph. </li>
 	      <li>A 'nmj_' in front a synapse denotes a neuromuscular junction. </li>
 	      <li>Occasionally, synapes do not display properly in the maps. In cases where there is a discrepancy between the maps and this synapse list, this synapse list should be considered correct. </li>
       </ol>
@@ -63,10 +110,13 @@
 
     <table class="synapse-table" id="table-gap">
       <tr>
-        <th colspan=6><b>Gap junction partners of <?php echo $continName ?> ---- Click on target cell to expand/collapse synapse list</b></th>
+        <th colspan=6><b>
+          Gap junction partners of
+          <span class='cellnameSpan'></span>
+        </b></th>
       </tr>
       <tr>
-	      <th colspan=1 class="rcol">Target</th>
+	      <th colspan=1 class="rcol">Partner(s)</th>
 	      <th colspan=1 class="lcol">Data series</th>
 	      <th colspan=1 class="lcol">Synapse ID</th>
 	      <th colspan=1 class="lcol">Section #</th>
@@ -78,10 +128,14 @@
 
     <table class="synapse-table" id="table-pre">
       <tr>
-        <th colspan=6><b>Chemical synapses where <?php echo $continName ?> is presynaptic ----- Click on target cell to expand/collapse synapse list</b></th>
+        <th colspan=6><b>
+          Chemical synapses where 
+          <span class='cellnameSpan'></span>
+          is presynaptic
+        </b></th>
       </tr>
       <tr>
-	      <th colspan=1 class="rcol">Target</th>
+	      <th colspan=1 class="rcol">Partner(s)</th>
 	      <th colspan=1 class="lcol">Data series</th>
 	      <th colspan=1 class="lcol">Synapse ID</th>
 	      <th colspan=1 class="lcol">Section #</th>
@@ -93,10 +147,14 @@
 
     <table class="synapse-table" id="table-post">
       <tr>
-        <th colspan=6><b>Chemical synapses where <?php echo $continName ?> is postsynaptic ----- Click on target cell to expand/collapse synapse list</b></th>
+        <th colspan=6><b>
+          Chemical synapses where 
+          <span class='cellnameSpan'></span>
+          is postsynaptic
+        </b></th>
       </tr>
       <tr>
-	      <th colspan=1 class="rcol">Target</th>
+	      <th colspan=1 class="rcol">Partner(s)</th>
 	      <th colspan=1 class="lcol">Data series</th>
 	      <th colspan=1 class="lcol">Synapse ID</th>
 	      <th colspan=1 class="lcol">Section #</th>

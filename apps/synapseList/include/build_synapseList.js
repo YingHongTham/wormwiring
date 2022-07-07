@@ -82,11 +82,15 @@ window.onload = function()
     + `&cell=${cell}`;
   const pnava = document.getElementById('nav-partner-list');
   pnava.href = urlPartnerList;
+  const pnava2 = document.getElementById('nav-partner-list-2');
+  pnava2.href = urlPartnerList;
   
   //================================================
   // set Cell Name in the HTML
-  const cellElem = document.getElementById('cell-name');
-  cellElem.innerHTML = `Cell Name: ${cell}`;
+  const cellElems = document.querySelectorAll('.cellnameSpan');
+  for (const elem of cellElems) {
+    elem.innerHTML = cell;
+  }
 
   //======================================================
   // requesting for data
@@ -155,6 +159,7 @@ window.onload = function()
 
           trSummary.classList.add(groupClassName);
           trSummary.classList.add('summary');
+          trSummary.classList.add('labels');
           // clicking this row toggles the class 'collapse'
           // among all elements matching 'data-target'
           // see also in index.html
@@ -180,6 +185,7 @@ window.onload = function()
             const tdPartner = document.createElement('td');
             const tdDatabase = document.createElement('td');
             const tdContin = document.createElement('td');
+            const continA = document.createElement('a');
             const tdZ = document.createElement('td');
             const tdCount = document.createElement('td');
             const tdSections = document.createElement('td');
@@ -191,7 +197,9 @@ window.onload = function()
             trIndiv.appendChild(tdZ);
             trIndiv.appendChild(tdCount);
             trIndiv.appendChild(tdSections);
+            tdContin.appendChild(continA);
 
+            trIndiv.style.backgroundColor = 'white';
             trIndiv.classList.add(groupClassName);
             trIndiv.classList.add('individual');
             trIndiv.classList.add('collapse'); // data-toggle
@@ -199,7 +207,9 @@ window.onload = function()
 
             tdPartner.innerHTML = partner;
             tdDatabase.innerHTML = db;
-            tdContin.innerHTML = syn.contin;
+            continA.innerHTML = syn.contin;
+            continA.href = `/apps/synapseViewer/?neuron=${cell}&db=${db}&continNum=${syn.contin}`;
+            continA.target = '_blank';
             tdZ.innerHTML = syn.z;
             tdSections.innerHTML = syn.sections;
           }
