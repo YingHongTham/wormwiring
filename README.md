@@ -118,7 +118,6 @@ and it has been smoothed out by Elegance.
   (can be different)
 
 
-
 # Skeleton Viewer
 The Skeleton Viewer app is the app that makes the most queries,
 in quantity and complexity, to the MySQL tables.
@@ -129,6 +128,53 @@ php mostly processed by retrieve_trace_coord_alt.php and dbconnect.php
 in the /apps/php folder.
 
 TODO
+
+
+# JS library files
+Notes on various javascript files.
+(All filepaths are relative to here)
+- header\*.js: helps build the header image and navigation items on all pages
+- apps/include/jquery-3.6.0.min.js: jQuery library
+- apps/include/bootstrap-3.3.7.min.css / js: Bootstrap library, mainly used for
+  implementing accordian-style dropdown menu
+- apps/include/three/\*: still being used by neuronVolume, but that itself is
+  sort of obsolete since volume rendering has been included into neuronMaps
+- apps/include/THREE-alt/\*: using a more recent version of the THREE.js library
+  (4.5 I think)
+  and related things e.g. THREEx;
+  note that I've made some modifications to OBJLoader.js and MTLLoader.js,
+  see comments therein
+- apps/include/cellLists-alt.js: list of cells grouped by database (series)
+  and cell type (neuron/muscle)
+- apps/include/cytoscape-3.21.1.min.js: for 2D viewer
+
+- /apps/include/wa_link.js: provides a function that,
+  given a cell name, returns the WormAtlas link
+
+- /apps/include/floatingdialog.js: library for floating window used in
+  apps to display stuff e.g. Cell Selector, Help Dialog etc.
+- /apps/include/floatingdialog-alt.js: arguably better (but still incomplete)
+  floating window, plan to make it replace floatingdialog.js
+  (better because user can drag with mouse;
+  incomplete because should add option to have 'modal-background',
+  and also to add nice buttons)
+
+- apps/include/importers.js: deals with menu items on the left of apps, still
+  used by neuronVolume,
+  but in neuronMaps has been just written into importerapp-alt.js
+- apps/include/plotParams.js: some parameters like min/max coords that help to
+  adjust cell position in neuronMaps
+- apps/include/spectrum: probably for color selection, but unclear if still used
+  (probably still in neuronVolume)
+- apps/include/three-latest: hmm not used, I think
+
+- TODO more
+
+Obsolete files/folders, probably should delete at some point:
+- apps/include/selectorCells.js: at some point used to avoid requesting for
+  cells in given database
+- apps/include/cellLists.js: replaced by cellLists-alt.js
+- apps/include/importWW.js
 
 # Setup
 
