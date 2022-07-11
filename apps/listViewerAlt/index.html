@@ -8,27 +8,22 @@
 	<meta http-equiv="content-type" content="text/html;charset=utf-8">
 	<link rel="stylesheet" type="text/css" href="/css/home.css">
 	<link rel="stylesheet" type="text/css" href="/css/importer.css">
-	<link rel="stylesheet" type="text/css" href="../css/floatingdialog.css">
+	<link rel="stylesheet" type="text/css" href="/apps/css/floatingdialog-alt.css">
 
 	<!-- jQuery library, bootstrap -->
-	<script src='../include/jquery-3.6.0.min.js'></script>
+	<!--
+	<script type='text/javascript' src='../include/jquery-3.6.0.min.js'></script>
 	<link rel="stylesheet" href='/apps/include/bootstrap-3.3.7.min.css'>
-	<script src='../include/bootstrap-3.3.7.min.js'></script>
+	<script type='text/javascript' src='../include/bootstrap-3.3.7.min.js'></script>
+	-->
 	
 
   <script type='text/javascript' src='/apps/include/cellLists-alt.js'></script>
-
 	<script type="text/javascript" src="../include/importers.js"></script>
-	<script type="text/javascript" src="../include/floatingdialog.js"></script>
 	<script type="text/javascript" src="../include/floatingdialog-alt.js"></script>
-	<script type="text/javascript" src="../include/three/threex.windowresize.js"></script>
-	<script type="text/javascript" src="./include/mapViewer.js"></script>
-  <!--
-	<script type="text/javascript" src="./include/importerapp.js"></script>
-  -->
 	<script type="text/javascript" src="./include/importerapp-alt.js"></script>
-	<script type="text/javascript" src="./include/build_neuronMaps.js"></script>
-	<!--build_neuronMaps loads all the stuff like the viewer-->
+	<script type="text/javascript" src="./include/build_listViewer_alt.js"></script>
+
 
 
 	<title>WormWiring: Neuron Maps</title>
@@ -45,60 +40,19 @@
     document.getElementById('btn-collapse-header-nav').click();
   </script>
 
-	<!--holds the Help, Select Neurons, Clear-->
-	<div id='top'>
-    <div class='topItem'>Help</div>
-    <div class='topItem'>Select Cells</div>
-    <div class='topItem'>2D Viewer</div>
-    <div class='topItem'>Clear Maps</div>
-  </div>
-
-	<!--holds the stuff on the left -->
-  <!-- functionality is added in importerapp-alt.js
-    (and also from bootstrap, e.g. data-toggle etc. -->
-  <!-- bootstrap documentation failed to add that
-    need to add 'collapse in' class to the collapsible,
-    not just 'collapse' -->
-  <!-- note the +/- sign is added by CSS in /css/importer.css -->
+	<!--holds the stuff on the left, collapsible to the left
+		(implement from scratch, without bootstrap-->
+	<!-- functionality is added in importerapp-alt.js -->
   <div id='left'><div id='menu'>
-    <div class='accordionSection'>
-      <div class='sectionTitle'
-           data-toggle='collapse'
-           data-target='#mapsContentDiv'
-           role='button'
-           aria-expanded='true'>
-        Maps
-      </div>
-      <div class='sectionContent collapse in show'
-           id='mapsContentDiv'>
-        <!-- where all the cells go -->
-      </div>
+    Cells
+    <div class='sectionContent'
+          id='cellsContentDiv'>
+       <!-- where all the cells go -->
     </div>
-    <div class='accordionSection'>
-      <div class='sectionTitle'
-           data-toggle='collapse'
-           data-target='#seriesSelectorContentDiv'
-           role='button'
-           aria-expanded='true'>
-        Series Selector
-      </div>
-      <div class='sectionContent collapse in show'
-           id='seriesSelectorContentDiv'>
-        <div>
-          <select id='series-selector' name='series-selector'>
-            <option value='N2U' selected>Herm: Adult head (N2U)</option>
-            <option value='JSE'>Herm: Adult tail (JSE)</option>
-            <option value='N2W'>Herm: Pharynx (N2W)</option>
-            <option value='JSH'>Herm: L4 head (JSH)</option>
-            <option value='n2y'>Male: Adult tail (N2Y)</option>
-            <option value='n930'>Male: Adult head (N930)</option>
-          </select>
-        </div>
-      </div>
-    </div>
+		<button id='select-cells-btn'>
+			Add cells
+		</button>
   </div></div>
-	<!-- holds the neuron viewer -->
-  <canvas id='meshviewer' width='0' height='0'></canvas>
 </body>
 
 </html>

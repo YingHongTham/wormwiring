@@ -7,6 +7,11 @@
  *
  * largely stolen from https://www.columbia.edu/~njn2118/journal/2019/4/26.html
  *
+ * see CreateHTML for structure of HTML of window
+ *
+ * user writes stuff into content div
+ * (obtained by this.GetContentDiv() )
+ *
  * @param {HTMLElement} parent - to which the window is appended as child;
  *    if null/not given, attach window as first child of document.body
  * @param {String} title
@@ -17,8 +22,7 @@
 FloatingDialog2 = function(parent=null, title='', isHidden=falsemodal=false) {
   this.parent = parent;
 
-  // initialized in CreateHTML(); see comments
-  // for overall HTML structure
+  // initialized in CreateHTML()
   this.window = null; // the whole window div
   this.bar = null; // div containing title
   this.body = null; // div containing content
@@ -64,7 +68,7 @@ FloatingDialog2 = function(parent=null, title='', isHidden=falsemodal=false) {
  *    </div>
  *    <div class="floating-window-body"> -- this.body
  *      <div> -- this.content
- *        Window body/content
+ *        Window body/content - user put stuff here
  *      </div>
  *    </div>
  *  </div>
@@ -149,7 +153,6 @@ FloatingDialog2.prototype.CreateHTML = function(title,modal) {
     this.parent.insertBefore(modalBackground, this.parent.firstChild);
   }
 
-
   this.renderWindow(); // in particular sets visibility
 
   return windowDiv;
@@ -223,18 +226,22 @@ FloatingDialog2.prototype.GetContentDiv = function() {
   return this.content;
 };
 
+//========================================================
+// size related stuff
 
 FloatingDialog2.prototype.ComputeHeight = function() {
   return window.innerHeight - 50;
 };
 
-// is 0 if hidden
+// note: is 0 if hidden
 FloatingDialog2.prototype.GetContentWidth = function() {
   return this.GetContentDiv().offsetWidth;
 };
 
 // should do after window becomes visible
 FloatingDialog2.prototype.FitWidthToContent = function() {
+  // maybe have a minimum?
+  //const newWidth = max(this.GetContentWidth(), 
   this.SetWidthHeight(this.GetContentWidth()+2, null);
 };
 
@@ -243,6 +250,8 @@ FloatingDialog2.prototype.OnResize = function() {
   this.SetWidthHeight(null, this.ComputeHeight());
 };
 
+//========================================================
+// fundamental window stuff
 
 // positions dialog to state.x/y relative to parent
 FloatingDialog2.prototype.renderWindow = function() {
@@ -270,4 +279,20 @@ FloatingDialog2.prototype.OpenWindow = function() {
 FloatingDialog2.prototype.CloseWindow = function() {
   this.state.isHidden = true;
   this.renderWindow();
+};
+
+FloatingDialog2.prototype.DeleteWindowFromHTML = function() {
+  this.window.remove();
+  if (this.modalBackground != null) {
+    this.modalBackground.remove();
+  }
+
+  this.parent = null;
+  this.window = null;
+  this.bar = null;
+  this.body = null;
+  this.content = null;
+  this.modalBackground = null;
+
+  this.state = {};
 };

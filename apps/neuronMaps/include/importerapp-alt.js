@@ -2,7 +2,7 @@
  * new version of ImporterApp,
  * where we expect index.html to have most of the elements,
  * and we just need to link functionality to those elements
- * TODO perhaps do the same to FloatingDialog to
+ * TODO? perhaps do the same to FloatingDialog too
  *
  * note confusing terminology:
  * series can refer to database N2U etc
@@ -21,9 +21,9 @@
  */
 
 
-// requires /apps/include/cellLists.js, wa_link.js, etc.
+// required libraries/classes
 if (celllistByDbType === undefined) {
-  console.error('expect /apps/include/cellLists.js');
+  console.error('expect /apps/include/cellLists-alt.js');
 }
 if (cellnameWALinkDict === undefined
     || cellnameToWALink === undefined) {
@@ -34,6 +34,9 @@ if (helpDialogItems === undefined) {
 }
 if (typeof(FloatingDialog) === undefined) {
   console.error('expect /apps/include/floatingdialog.js');
+}
+if (typeof(FloatingDialog2) === undefined) {
+  console.error('expect /apps/include/floatingdialog-alt.js');
 }
 
 ImporterApp = function()
@@ -834,7 +837,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
  * (meant to be used in loadMapMenu2 which is after loadMap2
  */
 ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
-  const nn = new FloatingDialog2(null, cellname, isHidden=true, modal=true);
+  const nn = new FloatingDialog2(null, cellname, isHidden=true, modal=false);
   this.synapseListWindows[cellname] = nn;
 
   // form table of synapses
