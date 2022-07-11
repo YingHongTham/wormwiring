@@ -834,7 +834,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
  * (meant to be used in loadMapMenu2 which is after loadMap2
  */
 ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
-  const nn = new FloatingDialog2(null, cellname, isHidden=true);
+  const nn = new FloatingDialog2(null, cellname, isHidden=true, modal=true);
   this.synapseListWindows[cellname] = nn;
 
   // form table of synapses

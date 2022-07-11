@@ -8,20 +8,28 @@
  * largely stolen from https://www.columbia.edu/~njn2118/journal/2019/4/26.html
  *
  * @param {HTMLElement} parent - to which the window is appended as child;
- *    if null/not given, attach window as first child of body
+ *    if null/not given, attach window as first child of document.body
  * @param {String} title
  * @param {Boolean} isHidden - default visibility
+ * @param {Boolean} modal - have modal background?
  */
 
-FloatingDialog2 = function(parent=null, title='', isHidden=false) {
+FloatingDialog2 = function(parent=null, title='', isHidden=falsemodal=false) {
   this.parent = parent;
 
-  // initialized in CreateHTML
+  // initialized in CreateHTML(); see comments
+  // for overall HTML structure
   this.window = null; // the whole window div
   this.bar = null; // div containing title
   this.body = null; // div containing content
   this.content = null; // where stuff should go
-  // (extra layer body-content for measuring width)
+  // ^ extra layer for measuring width of actual content
+
+  // window-sized div that the floating window floats over
+  // slightly opaque
+  // when clicked, floating window should close
+  // remains null if choose not to use modal background
+  this.modalBackground = null;
 
   this.barHeight = 26;
 
@@ -42,12 +50,13 @@ FloatingDialog2 = function(parent=null, title='', isHidden=false) {
     yDiff: 0,
   };
 
-  this.CreateHTML(title);
+  this.CreateHTML(title, modal);
   this.EnableDragging();
 };
 
 
 /*
+ *  <div></div> -- modalBackground, if applicable
  *  <div class="floating-window"> -- this.window
  *    <div class="floating-window-bar"> -- this.bar
  *      <div>Window Title</div>
@@ -60,7 +69,8 @@ FloatingDialog2 = function(parent=null, title='', isHidden=false) {
  *    </div>
  *  </div>
  */
-FloatingDialog2.prototype.CreateHTML = function(title) {
+FloatingDialog2.prototype.CreateHTML = function(title,modal) {
+  // floating window; add modal background last
   const windowDiv = document.createElement('div');
   const windowBar = document.createElement('div');
   const windowTitle = document.createElement('div');
@@ -114,6 +124,33 @@ FloatingDialog2.prototype.CreateHTML = function(title) {
   window.addEventListener('resize', () => {
     self.OnResize();
   },false);
+
+  //=======================
+  // modal background
+
+  if (!modal) {
+    return windowDiv;
+  }
+
+  const modalBackground = document.createElement('div');
+  this.modalBackground = modalBackground;
+
+  // see css/importer.css
+  modalBackground.classList.add('modal-background');
+  modalBackground.onclick = () => {
+    self.CloseWindow();
+  };
+
+  if (this.parent === null) {
+    setTimeout(() => {
+      document.body.insertBefore(modalBackground, document.body.firstChild);
+    },0);
+  } else {
+    this.parent.insertBefore(modalBackground, this.parent.firstChild);
+  }
+
+
+  this.renderWindow(); // in particular sets visibility
 
   return windowDiv;
 };
@@ -211,8 +248,14 @@ FloatingDialog2.prototype.OnResize = function() {
 FloatingDialog2.prototype.renderWindow = function() {
   if (this.state.isHidden) {
     this.window.style.display = 'none';
+    if (this.modalBackground != null) {
+      this.modalBackground.style.display = 'none';
+    }
   } else {
     this.window.style.display = '';
+    if (this.modalBackground != null) {
+      this.modalBackground.style.display = '';
+    }
   }
 
   this.window.style.transform = 'translate(' + this.state.x + 'px, ' + this.state.y + 'px)';

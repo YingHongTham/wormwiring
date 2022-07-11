@@ -133,6 +133,8 @@ TODO
 # JS library files
 Notes on various javascript files.
 (All filepaths are relative to here)
+
+
 General purpose libraries:
 - apps/include/jquery-3.6.0.min.js: jQuery library
 - apps/include/bootstrap-3.3.7.min.css / js: Bootstrap library, mainly used for
@@ -148,9 +150,9 @@ General purpose libraries:
 
 - header\*.js: helps build the header image and navigation items on all pages
 
-- /apps/include/floatingdialog.js: library for floating window used in
+- apps/include/floatingdialog.js: library for floating window used in
   apps to display stuff e.g. Cell Selector, Help Dialog etc.
-- /apps/include/floatingdialog-alt.js: arguably better (but still incomplete)
+- apps/include/floatingdialog-alt.js: arguably better (but still incomplete)
   floating window, plan to make it replace floatingdialog.js
   (better because user can drag with mouse;
   incomplete because should add option to have 'modal-background',
@@ -168,7 +170,7 @@ most should be updated if databases are updated:
 - apps/include/cellLists-alt.js: list of cells grouped by database (series)
   and cell type (neuron/muscle)
 
-- /apps/include/wa_link.js: provides a function that,
+- apps/include/wa_link.js: provides a function that,
   given a cell name, returns the WormAtlas link
 
 - apps/include/plotParams.js: some parameters like min/max coords that help to
@@ -191,10 +193,12 @@ App-specific files (apps/\<app name\>/\*):
 
 - apps/synapseList/include/build_synapseList_alt.js:
 	requests data from apps/php/getSynapseList-alt.php,
-	groups by partner, and loads into table
+	groups by partner, and loads into table;
+  for synapseList app
 - apps/partnerList/include/build_partnerList_alt2.js:
 	requests data from apps/php/getSynapseList-alt.php,
-	groups by partner, and loads into table
+	groups by partner, and loads into table;
+  for partnerList app
 
 - apps/synapseViewer/include/build_synapseViewer.js
 - apps/synapseViewer/include/importerapp.js
