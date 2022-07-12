@@ -1,5 +1,29 @@
-/* largely stolen from https://www.columbia.edu/~njn2118/journal/2019/4/26.html */
+/********************************************************
+ * div that's put on top of everything to make it dark
+ * modal means user must address the dialog
+ * (like the save dialog in other applications)
+ ***************************************************/
+.modal-background {
+  display: inline-block;
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: black;
+  opacity: 0.2;
+}
 
+/* Modal Content */
+.modal-content {
+	z-index: 2;
+}
+
+
+/* the following is largely stolen from
+ * https://www.columbia.edu/~njn2118/journal/2019/4/26.html */
 
 .floating-window {
   z-index: 2;

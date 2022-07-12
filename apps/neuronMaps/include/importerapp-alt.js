@@ -577,7 +577,7 @@ ImporterApp.prototype.CellSelectorDialog = function()
 
   //adds cells from selected database to the dialog
   const contentDiv = this.dialog.GetContentDiv();
-  for (const celltype in this.cellsInSlctdSrs){
+  for (const celltype in this.cellsInSlctdSrs) {
     contentDiv.appendChild(this.AddSelectPanel(celltype));
   }
 };
@@ -1016,7 +1016,7 @@ ImporterApp.prototype.AddSelectPanel = function(celltype) {
   panel.style.display = 'none';
   //panel.classList.add('collapse');
   // add cell entries to panel div
-  for (const cell of this.cellsInSlctdSrs[celltype]){
+  for (const cell of this.cellsInSlctdSrs[celltype]) {
     const cellDiv = document.createElement('div');
     cellDiv.classList.add('cellDiv');
     //cellDiv.id = cell;
@@ -1033,7 +1033,7 @@ ImporterApp.prototype.AddSelectPanel = function(celltype) {
     cellDiv.onclick = () => {
       cellDiv.classList.toggle('cellDivSelected');
     };
-  };
+  }
 
   panelHeader.onclick = () => {
     const disp = panel.style.display;

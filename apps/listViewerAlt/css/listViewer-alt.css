@@ -1,0 +1,4 @@
+input:checked + span {
+  font-weight: bold;
+  background-color: rgba(0,255,0,0.2);
+}
