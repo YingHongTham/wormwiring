@@ -536,6 +536,7 @@ ImporterApp.prototype.OpenInfoDialog = function(url,title)
  *
  * use adding cellDivSelected class to cellDiv's
  * as means of identifying selected cells
+ * (also CSS in /css/importer.css)
  *
  * old: NeuronSelectorDialog
  *
@@ -544,6 +545,8 @@ ImporterApp.prototype.OpenInfoDialog = function(url,title)
 ImporterApp.prototype.CellSelectorDialog = function()
 {
   const self = this;
+
+  // create floating dialog with appropriate buttons
   this.dialog.Open({
     className: 'cell-selector',
     title : 'Cell Selector',
@@ -811,7 +814,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
 
   //===============================================
   // Synapse List
-  this.InitSynapseListWindow(cellname);
+  this.InitSynapseListWindow(cellname); // creates, hidden
 
   synapseListBtn.innerHTML = 'Synapse List';
   synapseListBtn.onclick = () => {
@@ -837,8 +840,13 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
  * (meant to be used in loadMapMenu2 which is after loadMap2
  */
 ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
-  const nn = new FloatingDialog2(null, cellname, isHidden=true, modal=false);
-  this.synapseListWindows[cellname] = nn;
+  const dialog = new FloatingDialog2(
+    parent=null,
+    title=cellname,
+    isHidden=true,
+    modal=false
+  );
+  this.synapseListWindows[cellname] = dialog;
 
   // form table of synapses
 
@@ -862,7 +870,7 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
   }
   table.style.color = '#000000';
 
-  nn.GetContentDiv().appendChild(table);
+  dialog.GetContentDiv().appendChild(table);
 
   let allSynList = [];
   let map = this.viewer.maps[cellname];
@@ -974,6 +982,11 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
       }
     };
   });
+
+  setTimeout(() => {
+    dialog.FitWidthToContent();
+    console.log('Dialog:', dialog.width, dialog.height);
+  }, 0);
 };
 
 

@@ -39,6 +39,9 @@ FloatingDialog2 = function(parent=null, title='', isHidden=falsemodal=false) {
 
   this.defaultWidth = 300;
 
+  this.windowWidth = 0;
+  this.windowHeight = 0;
+
   this.state = {
     isDragging: false,
     isHidden: isHidden,
@@ -199,16 +202,27 @@ FloatingDialog2.prototype.ClampY = function(y) {
 };
 
 FloatingDialog2.prototype.SetWidthHeight = function(width=null, height=null) {
-  if (width === null) {
-    width = this.window.offsetWidth;
+  //if (width === null) {
+  //  width = this.window.offsetWidth;
+  //}
+  //if (height === null) {
+  //  height = this.window.offsetHeight;
+  //}
+  //this.window.style.width = width+'px';
+  //this.window.style.height = height+'px';
+  //this.body.style.width = (width-2)+'px';
+  //this.body.style.height = (height-this.barHeight-2)+'px';
+  //this.renderWindow();
+  if (width !== null) {
+    this.width = width;
   }
-  if (height === null) {
-    height = this.window.offsetHeight;
+  if (height !== null) {
+    this.height = height;
   }
-  this.window.style.width = width+'px';
-  this.window.style.height = height+'px';
-  this.body.style.width = (width-2)+'px';
-  this.body.style.height = (height-this.barHeight-2)+'px';
+  this.window.style.width = this.width+'px';
+  this.window.style.height = this.height+'px';
+  this.body.style.width = (this.width-2)+'px';
+  this.body.style.height = (this.height-this.barHeight-2)+'px';
   this.renderWindow();
 };
 
@@ -229,20 +243,28 @@ FloatingDialog2.prototype.GetContentDiv = function() {
 //========================================================
 // size related stuff
 
+
+// currently always maintain height to be just smaller than
+// the browser window
 FloatingDialog2.prototype.ComputeHeight = function() {
   return window.innerHeight - 50;
 };
 
-// note: is 0 if hidden
-FloatingDialog2.prototype.GetContentWidth = function() {
-  return this.GetContentDiv().offsetWidth;
+// note: is 0 if hidden, so open, measure, then close
+FloatingDialog2.prototype.ComputeContentWidth = function() {
+  if (!this.state.isHidden) {
+    return this.GetContentDiv().offsetWidth;
+  }
+  this.OpenWindow();
+  const ans = this.GetContentDiv().offsetWidth;
+  this.CloseWindow();
+  return ans;
 };
 
-// should do after window becomes visible
 FloatingDialog2.prototype.FitWidthToContent = function() {
   // maybe have a minimum?
-  //const newWidth = max(this.GetContentWidth(), 
-  this.SetWidthHeight(this.GetContentWidth()+2, null);
+  const newWidth = this.ComputeContentWidth() + 2;
+  this.SetWidthHeight(newWidth, null);
 };
 
 // when browser window resize
@@ -254,6 +276,7 @@ FloatingDialog2.prototype.OnResize = function() {
 // fundamental window stuff
 
 // positions dialog to state.x/y relative to parent
+// also implements visibility from isHidden
 FloatingDialog2.prototype.renderWindow = function() {
   if (this.state.isHidden) {
     this.window.style.display = 'none';
@@ -273,7 +296,7 @@ FloatingDialog2.prototype.renderWindow = function() {
 FloatingDialog2.prototype.OpenWindow = function() {
   this.state.isHidden = false;
   this.renderWindow();
-  this.FitWidthToContent();
+  //this.FitWidthToContent();
 };
 
 FloatingDialog2.prototype.CloseWindow = function() {

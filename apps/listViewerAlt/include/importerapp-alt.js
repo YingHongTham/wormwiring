@@ -29,13 +29,17 @@ ImporterApp = function() {
  *    <div id='cellListDiv-N2U'> -- dbDiv['N2U']
  *      <form name='cellListDiv-N2U-form'> -- dbDivForm['N2U']
  *        <span> neuron </span>
- *        <label>
- *          <input name='cellListDiv-N2U-form' value='ADAL' ..>
- *          <span> ADAL </span>
- *        </label>
- *        ...
+ *        <div> -- typeDiv
+ *          <label>
+ *            <input name='cellListDiv-N2U-form' value='ADAL' ..>
+ *            <span> ADAL </span>
+ *          </label>
+ *          ...
+ *        </div>
  *        <span> muscle </span>
- *        ...
+ *        <div> -- typeDiv
+ *          ...
+ *        </div>
  *      </form>
  *    </div>
  *  </div>
@@ -47,6 +51,8 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
     isHidden=true,
     modal=true
   );
+
+  this.dialog.SetWidthHeight(400, null);
 
   const contentDiv = this.dialog.GetContentDiv();
 
@@ -80,6 +86,7 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
   contentDiv.appendChild(loadButton);
 
   loadButton.innerHTML = 'Load';
+  loadButton.style.float = 'right';
   const self = this;
   loadButton.onclick = () => {
     self.LoadSelectedCells();
@@ -110,6 +117,12 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
       form.appendChild(span);
 
       span.innerHTML = type;
+      span.style.display = 'inline-block';
+      span.style.fontWeight = 'bold';
+      //span.style.float = 'left';
+
+      const typeDiv = document.createElement('div');
+      form.appendChild(typeDiv);
 
       const celllist = celllistByDbType[db][type];
 
@@ -118,7 +131,7 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
         const cellSpan = document.createElement('span');
         const label = document.createElement('label');
 
-        form.appendChild(label);
+        typeDiv.appendChild(label);
         label.appendChild(input);
         label.appendChild(cellSpan);
 
@@ -128,6 +141,10 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
         input.name = dbDivForm[db].name;
         input.value = cell;
         cellSpan.innerHTML = cell;
+
+        label.style.width = '100px';
+        label.style.display = 'inline-block';
+        //label.style.float = 'left';
       }
     }
   }
