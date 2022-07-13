@@ -16,4 +16,7 @@ window.onload = function ()
     && params.hasOwnProperty('cell')) {
     importerApp.LoadCell(db, cell);
   }
+
+  // access importerApp in the console
+	window.importerApp = importerApp;
 };

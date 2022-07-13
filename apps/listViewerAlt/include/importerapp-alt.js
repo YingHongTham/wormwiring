@@ -11,12 +11,22 @@ ImporterApp = function() {
   // key = db, value = list of selected cells from that db
   this.selectedCells = {};
 
-  // reference to HTML elements in menu (see LoadCell)
+  // reference to div's in menu (see LoadCell)
   this.menuDbSections = {};
 
+  // reference to div's containing tables, by db and cell
+  this.synapseTableDiv = {};
+  this.partnerTableDiv = {};
+
+  // div containing all the content
+  this.content = document.getElementById('main-content');
+
   this.dialog = null; // floating window for cell selector
-  this.dbDivForm = null; // cell selector forms
+  this.dbDivForm = null; // cell selector forms (may be useless)
+  this.dbDivFormNames = null; // just the names of those forms
   this.prepareCellSelectorDialog();
+
+  this.content.appendChild(this.CreateHTMLSynapseListInfoSection());
 
   this.InitLinkFunctionalityWithHTML();
 };
@@ -220,11 +230,189 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
 
   cellDiv.innerHTML = cell;
 
-  this.HTMLSynapseList(document.body);
+  //================================================
+  // initialize empty tables
+
+  if (!this.synapseTableDiv.hasOwnProperty(db)) {
+    this.synapseTableDiv[db] = {};
+  }
+  this.synapseTableDiv[db][cell] =
+      this.InitHTMLSynapseListTables(db, cell);
+  this.content.appendChild(this.synapseTableDiv[db][cell]);
+
+  //======================================================
+  // requesting for data
+  // url to php which makes the MySQL queries
+  const url = '../php/getSynapseList-alt.php/'
+    + `?db=${db}`
+    + `&cell=${cell}`;
+  const xhttp = new XMLHttpRequest();    
+  const self = this;
+  xhttp.onreadystatechange = function() {
+	  if (this.readyState == 4 && this.status == 200) {
+	    const data = JSON.parse(this.responseText);
+      self.PopulateSynapseListRows(db,cell,data);
+      // TODO self.PopulatePartnerListRows(db,cell,data);
+	  }
+  };
+  xhttp.open("GET",url,true);
+  xhttp.send();
+};
+
+// data retreived from php
+// based on build_synapseList_alt.js
+ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
+	const syntypes = ['gap','pre','post'];
+	for (let type of syntypes) {
+    const tbl = document.getElementById(
+        this.GetTableID(db,cell,type));
+
+    tbl.colSpan = 6;
+
+    // group by partner
+    const synByPartner = {};
+    for (const syn of data[type]) {
+      let partner = '';
+      switch (type) {
+        case 'gap':
+        case 'pre':
+          partner = syn.post;
+          break;
+        case 'post':
+          partner = syn.pre+'->'+syn.post;
+          break;
+        default:
+          console.error('bruh, type?');
+      }
+      if (!synByPartner.hasOwnProperty(partner)) {
+        synByPartner[partner] = {
+          summary: {
+            count: 0,
+            sections: 0,
+          },
+          synList: [],
+        };
+      }
+      synByPartner[partner].summary.count += 1;
+      synByPartner[partner].summary.sections += syn.sections;
+      synByPartner[partner].synList.push(syn);
+    }
+
+    // there are two types of rows:
+    // -summary of synapses with given partner
+    // -individual synapse
+    // kept track globally with addition of classes
+    // 'summary' and 'individual'
+    //
+    // they are organized to have the summary row
+    // followed by synapses with that partner
+    // and they would have a class distinguishing them
+    // from other partners/synapse type:
+    // `group-${synType}-${partner}`
+    //
+    // so for example, if I want to target the rows
+    // corresponding to individual synapses
+    // which has the partner 'AVDR' of 'gap' type,
+    // I would query for elements with classes
+    // '.individual .group-gap-AVDR'
+    //
+    // in particular, we use bootstrap, data-toggle,
+    // to target rows to collapse/show
+    for (const partner in synByPartner) {
+      const groupClassName = `group-${type}-${partner}`;
+
+      // row showing summary for given partner
+      const trSummary = document.createElement('tr');
+      const tdPartner = document.createElement('td');
+      const tdCount = document.createElement('td');
+      const tdSections = document.createElement('td');
+      
+      tbl.appendChild(trSummary);
+      trSummary.appendChild(tdPartner);
+      trSummary.appendChild(tdCount);
+      trSummary.appendChild(tdSections);
+
+      trSummary.classList.add(groupClassName);
+      trSummary.classList.add('summary');
+      trSummary.classList.add('labels');
+      // clicking this row toggles the class 'collapse'
+      // among all elements matching 'data-target'
+      // see also in index.html
+      trSummary.setAttribute('data-toggle','collapse');
+      // use id instead of class
+      //trSummary.setAttribute('data-target',
+      //    `.${groupClassName}.individual`);
+      const tbodyID = `tbody-${type}-${partner}`;
+      trSummary.setAttribute('data-target', '#'+tbodyID);
+      // need 'role' attribute because trSummary is not button
+      trSummary.setAttribute('role', 'button');
+
+      const summary = synByPartner[partner].summary;
+
+      tdPartner.innerHTML = partner;
+      tdPartner.colSpan = 4;
+      tdCount.innerHTML = summary.count;
+      tdCount.colSpan = 1;
+      tdSections.innerHTML = summary.sections;
+      tdSections.colSpan = 1;
+
+      // tbody used to group individual synapse rows
+      const tbody = document.createElement('tbody');
+      tbl.appendChild(tbody);
+
+      // make tbody collapsible, not individual rows
+      tbody.classList.add(groupClassName);
+      tbody.classList.add('tbody-individual');
+      tbody.id = tbodyID;
+      tbody.classList.add('collapse'); // data-toggle
+      tbody.colSpan = 6;
+
+      // row for each individual synapse
+      const synList = synByPartner[partner].synList;
+      for (const syn of synList) {
+        const trIndiv = document.createElement('tr');
+        const tdPartner = document.createElement('td');
+        const tdDatabase = document.createElement('td');
+        const tdContin = document.createElement('td');
+        const continA = document.createElement('a');
+        const tdZ = document.createElement('td');
+        const tdCount = document.createElement('td');
+        const tdSections = document.createElement('td');
+
+        tbody.appendChild(trIndiv);
+        trIndiv.appendChild(tdPartner);
+        trIndiv.appendChild(tdDatabase);
+        trIndiv.appendChild(tdContin);
+        trIndiv.appendChild(tdZ);
+        trIndiv.appendChild(tdCount);
+        trIndiv.appendChild(tdSections);
+        tdContin.appendChild(continA);
+
+        trIndiv.style.backgroundColor = 'white';
+        trIndiv.classList.add(groupClassName);
+        trIndiv.classList.add('individual');
+        //trIndiv.classList.add('show'); messes things up
+
+        tdPartner.innerHTML = partner;
+        tdDatabase.innerHTML = db;
+        continA.innerHTML = syn.contin;
+        continA.href = `/apps/synapseViewer/?neuron=${cell}&db=${db}&continNum=${syn.contin}`;
+        continA.target = '_blank';
+        tdZ.innerHTML = syn.z;
+        tdSections.innerHTML = syn.sections;
+
+        for (const td of trIndiv.children) {
+          td.colSpan = 1;
+        }
+      }
+    }
+	}
+
+  toggleAllIndividualRows(true);
 };
 
 ImporterApp.prototype.LoadSelectedCells = function() {
-  for (const db in this.dbDivForm) {
+  for (const db in this.dbDivFormNames) {
     const formName = this.dbDivFormNames[db];
     const checkedBoxes = document.querySelectorAll(`input[name=${formName}]:checked`);
     for (const node of checkedBoxes) {
@@ -237,7 +425,8 @@ ImporterApp.prototype.LoadSelectedCells = function() {
 // 
 // @param {HTMLDivElement} parent - where to put HTML stuff;
 //  if parent=null, creates new div, returned
-ImporterApp.prototype.HTMLSynapseList = function(parent=null) {
+//ImporterApp.prototype.HTMLSynapseList = function(parent=null) {
+ImporterApp.prototype.CreateHTMLSynapseListInfoSection = function(parent=null) {
   const mainDiv = parent === null ?
     document.createElement('div') : parent;
 
@@ -249,7 +438,22 @@ ImporterApp.prototype.HTMLSynapseList = function(parent=null) {
   infoDiv.appendChild(titleDiv);
   infoDiv.appendChild(helpDiv);
 
-  titleDiv.innerHTML = 'Synapse List';
+  titleDiv.append('Synapse List for ');
+  titleDiv.appendChild(this.CreateCellNameSpan());
+  titleDiv.append(' from ');
+  titleDiv.appendChild(this.CreateDbNameSpan());
+  
+  // TODO some help stuff
+
+  setTimeout(() => this.SetDbNameSpan('GARAGE'));
+  setTimeout(() => this.SetCellNameSpan('BOOKS'));
+
+  return mainDiv;
+}
+
+// creates 'empty' tables (and buttons) for db,cell
+ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
+  const mainDiv = document.createElement('div');
 
   //===========================================
   // two buttons for toggling individual or summary rows
@@ -279,27 +483,26 @@ ImporterApp.prototype.HTMLSynapseList = function(parent=null) {
 
     mainDiv.appendChild(table);
     table.appendChild(trTitle);
-    table.appendChild(thTitle);
+    trTitle.appendChild(thTitle);
 
-    thTitle.colspan = 6;
+    table.id = this.GetTableID(db, cell, type);
+
+    thTitle.colSpan = 6;
     thTitle.style.fontWeight = 'bold';
 
-    const cellSpan = document.createElement('span');
-    cellSpan.classList.add('cellnameSpan');
-    
     switch(type) {
       case 'gap':
         thTitle.append('Gap junction partners of ');
-        thTitle.appendChild(cellSpan);
+        thTitle.appendChild(this.CreateCellNameSpan());
         break;
       case 'pre':
         thTitle.append('Chemical synapses where ');
-        thTitle.appendChild(cellSpan);
+        thTitle.appendChild(this.CreateCellNameSpan());
         thTitle.append(' is presynaptic');
         break;
       case 'post':
         thTitle.append('Chemical synapses where ');
-        thTitle.appendChild(cellSpan);
+        thTitle.appendChild(this.CreateCellNameSpan());
         thTitle.append(' is postsynaptic');
         break;
     }
@@ -317,10 +520,104 @@ ImporterApp.prototype.HTMLSynapseList = function(parent=null) {
     table.appendChild(tr);
     for (const entry of topRowEntries) {
       const th = document.createElement('th');
+      tr.appendChild(th);
+
       th.classList.add(entry.class);
-      th.innerHTML = entry.innerHMTL;
+      th.innerHTML = entry.innerHTML;
     }
   }
 
   return mainDiv;
+};
+
+// creates span element with appropriate class
+// so can update db/cell in the HTML
+// by calling SetDbNameSpan/SetCellNameSpan
+// if no argument is given,
+// attempts to find the value by checking other spans
+// (and if that fails, just set to empty string)
+ImporterApp.prototype.CreateDbNameSpan = function(db=null) {
+  const span = document.createElement('span');
+  span.innerHTML = db === null ?
+    this.GetDbNameSpanValue() : db;
+  span.classList.add('dbNameSpan');
+  return span;
+};
+ImporterApp.prototype.CreateCellNameSpan = function(cell=null) {
+  const span = document.createElement('span');
+  span.innerHTML = cell === null ?
+    this.GetCellNameSpanValue() : cell;
+  span.classList.add('cellNameSpan');
+  return span;
+};
+
+ImporterApp.prototype.SetDbNameSpan = function(db) {
+  const dbElems = document.querySelectorAll('.dbNameSpan');
+  for (const elem of dbElems) {
+    elem.innerHTML = db;
+  }
+};
+ImporterApp.prototype.SetCellNameSpan = function(cell) {
+  const cellElems = document.querySelectorAll('.cellNameSpan');
+  for (const elem of cellElems) {
+    elem.innerHTML = cell;
+  }
+};
+
+ImporterApp.prototype.GetDbNameSpanValue = function() {
+  const dbElems = document.querySelectorAll('.dbNameSpan');
+  for (const elem of dbElems) {
+    if (elem.innerHTML !== '') return elem.innerHTML
+  }
+  return '';
+};
+ImporterApp.prototype.GetCellNameSpanValue = function() {
+  const cellElems = document.querySelectorAll('.cellNameSpan');
+  for (const elem of cellElems) {
+    if (elem.innerHTML !== '') return elem.innerHTML;
+  }
+  return '';
+};
+
+// ID of table for given db, cell, synapse type
+ImporterApp.prototype.GetTableID = function(db, cell, type) {
+  return `table-${db}-${cell}-${type}`;
+};
+
+
+
+//====================================
+// functionality of buttons
+
+ImporterApp.prototype.toggleAllIndividualRows = function(cell,expanded) {
+  const btnIndv = document.getElementById('toggle-all-individual');
+  // set value, text accordingly
+  btnIndv.value = expanded ? 'on' : 'off';
+  btnIndv.innerHTML = expanded ?
+      'Hide All Individual Synapses' :
+      'Show All Individual Synapses';
+  const tbodyList = document.querySelectorAll('.tbody-individual');
+  tbodyList.forEach( tbody => {
+    tbody.classList.toggle('in', expanded);
+    tbody.setAttribute('aria-expanded', expanded);
+  });
+  //const synRows = document.querySelectorAll('.individual');
+  //synRows.forEach( row => {
+  //  row.classList.toggle('in', expanded);
+  //  row.setAttribute('aria-expanded', expanded);
+  //});
+};
+const btnIndv = document.getElementById('toggle-all-individual');
+
+function toggleAllSummaryRows(expanded) {
+  const btnSumm = document.getElementById('toggle-all-summary');
+  // set value, text accordingly
+  btnSumm.value = expanded ? 'on' : 'off';
+  btnSumm.innerHTML = expanded ?
+      'Hide All Summary Rows' :
+      'Show All Summary Rows';
+  const summRows = document.querySelectorAll('.summary');
+  summRows.forEach( row => {
+    row.classList.toggle('collapse', !expanded);
+  });
 }
