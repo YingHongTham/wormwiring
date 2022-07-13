@@ -219,6 +219,8 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
   this.menuDbSections[db].appendChild(cellDiv);
 
   cellDiv.innerHTML = cell;
+
+  this.HTMLSynapseList(document.body);
 };
 
 ImporterApp.prototype.LoadSelectedCells = function() {
@@ -230,3 +232,95 @@ ImporterApp.prototype.LoadSelectedCells = function() {
     }
   }
 };
+
+// basic template for synapse list (from apps/synapseList)
+// 
+// @param {HTMLDivElement} parent - where to put HTML stuff;
+//  if parent=null, creates new div, returned
+ImporterApp.prototype.HTMLSynapseList = function(parent=null) {
+  const mainDiv = parent === null ?
+    document.createElement('div') : parent;
+
+  const infoDiv = document.createElement('div');
+  const titleDiv = document.createElement('div');
+  const helpDiv = document.createElement('div');
+
+  mainDiv.appendChild(infoDiv);
+  infoDiv.appendChild(titleDiv);
+  infoDiv.appendChild(helpDiv);
+
+  titleDiv.innerHTML = 'Synapse List';
+
+  //===========================================
+  // two buttons for toggling individual or summary rows
+
+  const toggleIndivBtn = document.createElement('button');
+  const toggleSummBtn = document.createElement('button');
+
+  mainDiv.appendChild(toggleIndivBtn);
+  mainDiv.appendChild(toggleSummBtn);
+
+  toggleIndivBtn.id = 'toggle-all-individual';
+  toggleIndivBtn.value = 'on';
+  toggleIndivBtn.style = 'margin: 10px; float:right';
+  toggleIndivBtn.innerHTML = 'Hide All Individual Synapses';
+  toggleSummBtn.id = 'toggle-all-summary';
+  toggleSummBtn.value = 'on';
+  toggleSummBtn.style = 'margin: 10px; float:right';
+  toggleSummBtn.innerHTML = 'Hide All Summary Rows';
+
+  //===========================================
+  // tables
+
+  for (const type of ['gap','pre','post']) {
+    const table = document.createElement('table');
+    const trTitle = document.createElement('tr');
+    const thTitle = document.createElement('th');
+
+    mainDiv.appendChild(table);
+    table.appendChild(trTitle);
+    table.appendChild(thTitle);
+
+    thTitle.colspan = 6;
+    thTitle.style.fontWeight = 'bold';
+
+    const cellSpan = document.createElement('span');
+    cellSpan.classList.add('cellnameSpan');
+    
+    switch(type) {
+      case 'gap':
+        thTitle.append('Gap junction partners of ');
+        thTitle.appendChild(cellSpan);
+        break;
+      case 'pre':
+        thTitle.append('Chemical synapses where ');
+        thTitle.appendChild(cellSpan);
+        thTitle.append(' is presynaptic');
+        break;
+      case 'post':
+        thTitle.append('Chemical synapses where ');
+        thTitle.appendChild(cellSpan);
+        thTitle.append(' is postsynaptic');
+        break;
+    }
+
+    const topRowEntries = [
+      { class: 'rcol', innerHTML: 'Partner(s)' },
+	    { class: 'lcol', innerHTML: 'Data series' },
+	    { class: 'lcol', innerHTML: 'Synapse ID' },
+	    { class: 'lcol', innerHTML: 'Section #' },
+	    { class: 'lcol', innerHTML: '#Synapses' },
+	    { class: 'lcol', innerHTML: '#Sections' }
+    ];
+
+    const tr = document.createElement('tr');
+    table.appendChild(tr);
+    for (const entry of topRowEntries) {
+      const th = document.createElement('th');
+      th.classList.add(entry.class);
+      th.innerHTML = entry.innerHMTL;
+    }
+  }
+
+  return mainDiv;
+}
