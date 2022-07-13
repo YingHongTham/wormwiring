@@ -11,6 +11,9 @@ ImporterApp = function() {
   // key = db, value = list of selected cells from that db
   this.selectedCells = {};
 
+  // reference to HTML elements in menu (see LoadCell)
+  this.menuDbSections = {};
+
   this.dialog = null; // floating window for cell selector
   this.dbDivForm = null; // cell selector forms
   this.prepareCellSelectorDialog();
@@ -58,8 +61,10 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
 
   const dbDiv = {}; // ref to each div
   const dbDivID = {}; // id of div containing cells in a db
-  const dbDivForm = {}; // name of form for db
+  const dbDivForm = {}; // form for db
+  const dbDivFormNames = {}; // names of form for db
   this.dbDivForm = dbDivForm;
+  this.dbDivFormNames = dbDivFormNames;
 
   //======================================
   // selector for db
@@ -108,11 +113,11 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
     div.appendChild(form);
 
     dbDivForm[db] = form;
-    form.name = dbDivID[db] + '-form';
+    dbDivFormNames[db] = dbDivID[db] + '-form';
+    form.name = dbDivFormNames[db];
 
     // type = 'neuron' or 'muscle'
     for (const type in celllistByDbType[db]) {
-      console.log(db, type);
       const span = document.createElement('span');
       form.appendChild(span);
 
@@ -138,7 +143,7 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
         // input given css in ../css/listViewer-alt.css
         // makes cellSpan turn bold when clicked
         input.type = 'checkbox';
-        input.name = dbDivForm[db].name;
+        input.name = dbDivFormNames[db];
         input.value = cell;
         cellSpan.innerHTML = cell;
 
@@ -175,14 +180,50 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   };
 };
 
+
+// adds menu item for cell/db and retrieves synapse data,
+// and loads page
 ImporterApp.prototype.LoadCell = function(db, cell) {
   console.log(db, cell);
+
+  // already loaded
+  if (this.selectedCells.hasOwnProperty(db)
+      && this.selectedCells[db].includes(cell)) {
+    return;
+  }
+
+  //===================================
+  // add entry in menu
+
+  const menuDiv = document.getElementById('cellsContentDiv');
+
+  // first time adding cell from this db
+  if (!this.selectedCells.hasOwnProperty(db)) {
+    this.selectedCells[db] = [];
+
+    const menuDbSection = document.createElement('div');
+    menuDiv.appendChild(menuDbSection);
+    this.menuDbSections[db] = menuDbSection;
+
+    const titleDiv = document.createElement('div');
+    menuDbSection.appendChild(titleDiv);
+
+    titleDiv.innerHTML = db;
+    titleDiv.style.fontWeight = 'bold';
+    titleDiv.style.backgroundColor = 'rgba(0,0,0,0.4)';
+  }
+
+  this.selectedCells[db].push(cell);
+
+  const cellDiv = document.createElement('div');
+  this.menuDbSections[db].appendChild(cellDiv);
+
+  cellDiv.innerHTML = cell;
 };
 
 ImporterApp.prototype.LoadSelectedCells = function() {
   for (const db in this.dbDivForm) {
-    const form = this.dbDivForm[db];
-    const formName = form.name;
+    const formName = this.dbDivFormNames[db];
     const checkedBoxes = document.querySelectorAll(`input[name=${formName}]:checked`);
     for (const node of checkedBoxes) {
       this.LoadCell(db, node.value);

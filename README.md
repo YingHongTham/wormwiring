@@ -148,7 +148,9 @@ General purpose libraries:
   see comments therein
 - apps/include/cytoscape-3.21.1.min.js: for 2D viewer in neuronMaps
 
-- header\*.js: helps build the header image and navigation items on all pages
+- header\*.js: helps build the header image and navigation items on all pages;
+  header-retractable.js allows the header to be hidden, makes more space for
+  viewer etc.
 
 - apps/include/floatingdialog.js: library for floating window used in
   apps to display stuff e.g. Cell Selector, Help Dialog etc.

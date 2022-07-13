@@ -5,6 +5,17 @@
  * makes the header-nav collapsible
  *
  * assumes header-alt.js has been 'applied' to id=header-nav
+ *
+ * user should add a div with id='btn-collapse-header-nav'
+ * right after the header, and this script right after this div:
+ *
+ * <div id='header-nav'></div>
+ * <script type='text/javascript' src='/header-alt.js'></script>
+
+ * <div id='btn-collapse-header-nav' class='hiddenByDefault'></div>
+ * <script type='text/javascript' src='/header-retractable.js'></script>
+ *
+ * add class='hiddenByDefault' if want header to be hidden by default
  */
 
 // don't pollute namespace
@@ -52,5 +63,11 @@
   sp1.innerHTML = '<b>WormWiring</b>';
   sp2.innerHTML = 'Show Navigation';
   sp2.style.float = 'right';
+
+  //============================
+  // default visibility
+  if (btn.classList.contains('hiddenByDefault')) {
+    btn.click();
+  }
 }
 
