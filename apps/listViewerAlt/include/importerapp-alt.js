@@ -333,7 +333,8 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
       trSummary.appendChild(tdSections);
 
       trSummary.classList.add(groupClassName);
-      trSummary.classList.add('summary');
+      trSummary.classList.add(
+          this.GetSummaryTrClassName(db,cell));
       trSummary.classList.add('labels');
       // clicking this row toggles the class 'collapse'
       // among all elements matching 'data-target'
@@ -342,7 +343,7 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
       // use id instead of class
       //trSummary.setAttribute('data-target',
       //    `.${groupClassName}.individual`);
-      const tbodyID = `tbody-${type}-${partner}`;
+      const tbodyID = `tbody-${db}-${cell}-${type}-${partner}`;
       trSummary.setAttribute('data-target', '#'+tbodyID);
       // need 'role' attribute because trSummary is not button
       trSummary.setAttribute('role', 'button');
@@ -362,7 +363,7 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
 
       // make tbody collapsible, not individual rows
       tbody.classList.add(groupClassName);
-      tbody.classList.add('tbody-individual');
+      tbody.classList.add(this.GetIndivTBodyClassName(db,cell));
       tbody.id = tbodyID;
       tbody.classList.add('collapse'); // data-toggle
       tbody.colSpan = 6;
@@ -408,7 +409,8 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
     }
 	}
 
-  toggleAllIndividualRows(true);
+  // show individual rows by default
+  setTimeout(() => this.toggleAllIndividualRows(db,cell,true));
 };
 
 ImporterApp.prototype.LoadSelectedCells = function() {
@@ -464,7 +466,7 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
   mainDiv.appendChild(toggleIndivBtn);
   mainDiv.appendChild(toggleSummBtn);
 
-  toggleIndivBtn.id = 'toggle-all-individual';
+  toggleIndivBtn.id = `toggle-all-individual-${db}-${cell}`;
   toggleIndivBtn.value = 'on';
   toggleIndivBtn.style = 'margin: 10px; float:right';
   toggleIndivBtn.innerHTML = 'Hide All Individual Synapses';
@@ -472,6 +474,16 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
   toggleSummBtn.value = 'on';
   toggleSummBtn.style = 'margin: 10px; float:right';
   toggleSummBtn.innerHTML = 'Hide All Summary Rows';
+
+  toggleIndivBtn.onclick = () => {
+    const expanded = toggleIndivBtn.value !== 'on';
+    this.toggleAllIndividualRows(db, cell, expanded);
+  }
+
+  toggleSummBtn.onclick = () => {
+    const expanded = toggleSummBtn.value !== 'on';
+    this.toggleAllSummaryRows(db, cell, expanded);
+  }
 
   //===========================================
   // tables
@@ -584,40 +596,52 @@ ImporterApp.prototype.GetTableID = function(db, cell, type) {
   return `table-${db}-${cell}-${type}`;
 };
 
+// class name which identifies those tbody that contain
+// 'individual' rows
+ImporterApp.prototype.GetIndivTBodyClassName = function(db, cell) {
+ return `tbody-individual-${db}-${cell}`;
+}
+
+// class name which identifies those tbody that contain
+// 'individual' rows
+ImporterApp.prototype.GetSummaryTrClassName = function(db, cell) {
+ return `summary-${db}-${cell}`;
+}
 
 
 //====================================
 // functionality of buttons
 
-ImporterApp.prototype.toggleAllIndividualRows = function(cell,expanded) {
-  const btnIndv = document.getElementById('toggle-all-individual');
+// 'All' refers to all for one db,cell
+// reads current state from value of button
+ImporterApp.prototype.toggleAllIndividualRows = function(db,cell,expanded) {
+  console.log(db,cell,expanded);
+  const btnIndv = document.getElementById(`toggle-all-individual-${db}-${cell}`);
   // set value, text accordingly
   btnIndv.value = expanded ? 'on' : 'off';
   btnIndv.innerHTML = expanded ?
       'Hide All Individual Synapses' :
       'Show All Individual Synapses';
-  const tbodyList = document.querySelectorAll('.tbody-individual');
+  const tbodyList = document.querySelectorAll(
+    '.' + this.GetIndivTBodyClassName(db,cell));
+  console.log(this.GetIndivTBodyClassName(db,cell));
+  console.log(tbodyList.length);
   tbodyList.forEach( tbody => {
     tbody.classList.toggle('in', expanded);
     tbody.setAttribute('aria-expanded', expanded);
   });
-  //const synRows = document.querySelectorAll('.individual');
-  //synRows.forEach( row => {
-  //  row.classList.toggle('in', expanded);
-  //  row.setAttribute('aria-expanded', expanded);
-  //});
 };
-const btnIndv = document.getElementById('toggle-all-individual');
 
-function toggleAllSummaryRows(expanded) {
+ImporterApp.prototype.toggleAllSummaryRows = function(db,cell,expanded) {
   const btnSumm = document.getElementById('toggle-all-summary');
   // set value, text accordingly
   btnSumm.value = expanded ? 'on' : 'off';
   btnSumm.innerHTML = expanded ?
       'Hide All Summary Rows' :
       'Show All Summary Rows';
-  const summRows = document.querySelectorAll('.summary');
+  const summRows = document.querySelectorAll(
+    '.' + this.GetSummaryTrClassName(db,cell));
   summRows.forEach( row => {
     row.classList.toggle('collapse', !expanded);
   });
-}
+};
