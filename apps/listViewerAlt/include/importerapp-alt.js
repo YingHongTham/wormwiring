@@ -240,7 +240,7 @@ ImporterApp.prototype.SetDbInCellSelectorDialog = function(db) {
 };
 
 // ensure that cell selector dialog form is checked
-ImporterApp.prototype.SetCellInCellSelectorDialog = function(cell) {
+ImporterApp.prototype.SetCellInCellSelectorDialog = function(db, cell) {
   const formName = this.dbDivFormNames[db];
   const inputBoxes = document.querySelectorAll(`input[name=${formName}]`);
   for (const node of inputBoxes) {
@@ -261,7 +261,7 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
   setTimeout(() => {
     // ensure stuff loaded already
     this.SetDbInCellSelectorDialog(db);
-    this.SetCellInCellSelectorDialog(cell);
+    this.SetCellInCellSelectorDialog(db, cell);
   }, 0);
 
   // already loaded?
@@ -303,7 +303,7 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
   };
 
   //================================================
-  // initialize empty tables
+  // initialize empty tables for Synapse List
 
   if (!this.synapseTableDiv.hasOwnProperty(db)) {
     this.synapseTableDiv[db] = {};
@@ -311,6 +311,16 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
   this.synapseTableDiv[db][cell] =
       this.InitHTMLSynapseListTables(db, cell);
   this.content.appendChild(this.synapseTableDiv[db][cell]);
+
+  //================================================
+  // initialize empty tables for Partner List
+
+  if (!this.partnerTableDiv.hasOwnProperty(db)) {
+    this.partnerTableDiv[db] = {};
+  }
+  this.partnerTableDiv[db][cell] =
+      this.InitHTMLPartnerListTables(db, cell);
+  this.content.appendChild(this.partnerTableDiv[db][cell]);
 
   //======================================================
   // requesting for data
@@ -324,6 +334,7 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
 	  if (this.readyState == 4 && this.status == 200) {
 	    const data = JSON.parse(this.responseText);
       self.PopulateSynapseListRows(db,cell,data);
+      self.PopulatePartnerListRows(db,cell,data);
       self.ShowTables(db,cell);
       // TODO self.PopulatePartnerListRows(db,cell,data);
 	  }
@@ -338,7 +349,7 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
 	const syntypes = ['gap','pre','post'];
 	for (let type of syntypes) {
     const tbl = document.getElementById(
-        this.GetTableID(db,cell,type));
+        this.GetSynapseTableID(db,cell,type));
 
     tbl.colSpan = 6;
 
@@ -483,6 +494,140 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
 
   // show individual rows by default
   setTimeout(() => this.toggleAllIndividualRows(db,cell,true));
+};
+
+ImporterApp.prototype.PopulatePartnerListRows = function(db,cell,data) {
+  // group by type and partner
+  const synByTypePartner = {
+    'gap': {},
+    'pre': {}, // post partners when cell is pre
+    'post': {}, // pre partner when cell is post
+    'post-post': {}, // post partners when cell is post also
+  };
+  // synByTypePartner[type][X] summarizes the synapses
+  // with X as a partner of given type:
+  //  synByTypePartner[type][X] = {
+  //    count: #synapses
+  //    sections: total # sections across synapses
+  //  }
+  // note that these groups are not mutually exclusive,
+  // and may count synapses several times
+  // (we choose to do so as it indicates "strength"
+  // of the partner as a synaptic partner);
+  // a synapse like X -> X,Y,X,X,
+  // as a synapse of X (i.e. when given cell == X),
+  // would be counted in the groups several times:
+  // synByTypePartner['pre'][X] (counted 3 times)
+  // synByTypePartner['pre'][Y] (counted 1 time)
+  // synByTypePartner['post'][X] (counted 1 time)
+  // synByTypePartner['post'][Y] (counted 1 time)
+  // synByTypePartner['post-post'][X] (counted 2 times)
+  // synByTypePartner['post-post'][Y] (counted 1 time)
+
+  let synByPartner = synByTypePartner['gap'];
+  for (const syn of data['gap']) {
+    // syn.pre is guaranteed to be ==cell
+    if (!synByPartner.hasOwnProperty(syn.post)) {
+      synByPartner[syn.post] = {
+        count: 0,
+        sections: 0,
+      };
+    }
+    synByPartner[syn.post].count += 1;
+    synByPartner[syn.post].sections += syn.sections;
+  }
+
+  synByPartner = synByTypePartner['pre'];
+  for (const syn of data['pre']) {
+    // syn.pre is guaranteed to be ==cell
+    // go through post, which is comma-sep list
+    for (const post of syn.post.split(',')) {
+      if (!synByPartner.hasOwnProperty(post)) {
+        synByPartner[post] = {
+          count: 0,
+          sections: 0,
+        };
+      }
+      synByPartner[post].count += 1;
+      synByPartner[post].sections += syn.sections;
+    }
+  }
+
+  // pre partner when cell is in post
+  synByPartner = synByTypePartner['post'];
+  for (const syn of data['post']) {
+    if (!synByPartner.hasOwnProperty(syn.pre)) {
+      synByPartner[syn.pre] = {
+        count: 0,
+        sections: 0,
+      };
+    }
+    synByPartner[syn.pre].count += 1;
+    synByPartner[syn.pre].sections += syn.sections;
+  }
+
+  // post partners when cell is in post
+  synByPartner = synByTypePartner['post-post'];
+  for (const syn of data['post']) {
+    const postList = syn.post.split(',');
+
+    // if cell appears once in post, we shouldn't count,
+    // but if appears twice in post, count once, etc.
+    // put simply, we remove cell exactly once
+    // from the list of post partners
+    if (postList.includes(cell)) {
+      const ind = postList.indexOf(cell);
+      postList.splice(ind, 1);
+    }
+    for (const post of postList) {
+      if (!synByPartner.hasOwnProperty(post)) {
+        synByPartner[post] = {
+          count: 0,
+          sections: 0,
+        };
+      }
+      synByPartner[post].count += 1;
+      synByPartner[post].sections += syn.sections;
+    }
+  }
+
+  // grouping done
+  //================================================
+  // back to loading rows
+
+  const syntypes = ['gap','pre','post','post-post'];
+  for (let type of syntypes) {
+    const tbl = document.getElementById(
+        this.GetPartnerTableID(db, cell, type));
+
+    synByPartner = synByTypePartner[type];
+
+    // one row for each partner
+    for (const partner in synByPartner) {
+      // row container
+      const tr = document.createElement('tr');
+      // three column entries for row
+  	  const tdPartner = document.createElement('td');
+  	  const tdCount = document.createElement('td');
+  	  const tdSections = document.createElement('td');
+      tbl.appendChild(tr);
+      tr.appendChild(tdPartner);
+      tr.appendChild(tdCount);
+      tr.appendChild(tdSections);
+  	  
+      tdPartner.colSpan = 3; // width of column
+  	  tdPartner.classList.add('rcol');
+  	  tdPartner.innerHTML = partner;
+  	  
+      tdCount.colSpan = 1;
+  	  tdCount.classList.add('lcol');
+      tdCount.innerHTML = synByPartner[partner]['count'];
+  	  
+      tdSections.colSpan = 1;
+  	  tdSections.classList.add('lcol');
+      tdSections.innerHTML = synByPartner[partner]['sections'];
+    }
+  }
 };
 
 ImporterApp.prototype.LoadSelectedCells = function() {
@@ -654,14 +799,14 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
     table.appendChild(trTitle);
     trTitle.appendChild(thTitle);
 
-    table.id = this.GetTableID(db, cell, type);
+    table.id = this.GetSynapseTableID(db, cell, type);
 
     thTitle.colSpan = 6;
     thTitle.style.fontWeight = 'bold';
 
     switch(type) {
       case 'gap':
-        thTitle.append('Gap junction partners of ');
+        thTitle.append('Gap junctions of ');
         thTitle.appendChild(this.CreateCellNameSpan());
         break;
       case 'pre':
@@ -673,6 +818,75 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
         thTitle.append('Chemical synapses where ');
         thTitle.appendChild(this.CreateCellNameSpan());
         thTitle.append(' is postsynaptic');
+        break;
+    }
+
+    const topRowEntries = [
+      { class: 'rcol', innerHTML: 'Partner(s)' },
+	    { class: 'lcol', innerHTML: 'Data series' },
+	    { class: 'lcol', innerHTML: 'Synapse ID' },
+	    { class: 'lcol', innerHTML: 'Section #' },
+	    { class: 'lcol', innerHTML: '#Synapses' },
+	    { class: 'lcol', innerHTML: '#Sections' }
+    ];
+
+    const tr = document.createElement('tr');
+    table.appendChild(tr);
+    for (const entry of topRowEntries) {
+      const th = document.createElement('th');
+      tr.appendChild(th);
+
+      th.classList.add(entry.class);
+      th.innerHTML = entry.innerHTML;
+    }
+
+    // add a new line
+    mainDiv.appendChild(document.createElement('br'));
+  }
+
+  return mainDiv;
+};
+
+
+ImporterApp.prototype.InitHTMLPartnerListTables = function(db, cell) {
+  const mainDiv = document.createElement('div');
+
+  //===========================================
+  // tables
+
+  for (const type of ['gap','pre','post','post-post']) {
+    const table = document.createElement('table');
+    const trTitle = document.createElement('tr');
+    const thTitle = document.createElement('th');
+
+    mainDiv.appendChild(table);
+    table.appendChild(trTitle);
+    trTitle.appendChild(thTitle);
+
+    table.id = this.GetPartnerTableID(db, cell, type);
+
+    thTitle.colSpan = 6;
+    thTitle.style.fontWeight = 'bold';
+
+    switch(type) {
+      case 'gap':
+        thTitle.append('Gap junction partners of ');
+        thTitle.appendChild(this.CreateCellNameSpan());
+        break;
+      case 'pre':
+        thTitle.append('Chemical postsynaptic partners of ');
+        thTitle.appendChild(this.CreateCellNameSpan());
+        thTitle.append(' when it is presynaptic');
+        break;
+      case 'post':
+        thTitle.append('Chemical presynaptic partners of ');
+        thTitle.appendChild(this.CreateCellNameSpan());
+        thTitle.append(' when it is postsynaptic');
+        break;
+      case 'post-post':
+        thTitle.append('Chemical postsynaptic partners of ');
+        thTitle.appendChild(this.CreateCellNameSpan());
+        thTitle.append(' when it is also postsynaptic');
         break;
     }
 
@@ -753,9 +967,14 @@ ImporterApp.prototype.GetCellNameSpanValue = function() {
   return '--';
 };
 
-// ID of table for given db, cell, synapse type
-ImporterApp.prototype.GetTableID = function(db, cell, type) {
-  return `table-${db}-${cell}-${type}`;
+// ID of synapse table for given db, cell, synapse type
+ImporterApp.prototype.GetSynapseTableID = function(db, cell, type) {
+  return `table-synapse-${db}-${cell}-${type}`;
+};
+
+// ID of partner table for given db, cell, synapse type
+ImporterApp.prototype.GetPartnerTableID = function(db, cell, type) {
+  return `table-partner-${db}-${cell}-${type}`;
 };
 
 // class name which identifies those tbody that contain
