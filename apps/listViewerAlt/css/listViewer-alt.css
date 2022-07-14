@@ -11,6 +11,17 @@ input:checked + span {
   background-color: rgba(0,0,255,0.4);
 }
 
+.summary {
+  background-color: rgba(0,128,255,0.1);
+}
+.summary:hover {
+  background-color: rgba(0,128,255,0.2);
+}
+
+#left {
+  width: 100px;
+}
+
 /* for testing
 * {
   background-color: rgba(0,0,0,0.8);

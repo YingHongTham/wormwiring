@@ -12,10 +12,13 @@ window.onload = function ()
   const importerApp = new ImporterApp();
 
   // preload cell if given param in url
-  if (params.hasOwnProperty('db')
-    && params.hasOwnProperty('cell')) {
-    importerApp.LoadCell(db, cell);
-  }
+  setTimeout(() => {
+    // to ensure everything in importerApp is properly loaded
+    if (params.hasOwnProperty('db')
+      && params.hasOwnProperty('cell')) {
+      importerApp.LoadCell(db, cell);
+    }
+  });
 
   // access importerApp in the console
 	window.importerApp = importerApp;
