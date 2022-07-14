@@ -20,6 +20,7 @@ ImporterApp = function() {
 
   // div containing all the content
   this.content = document.getElementById('main-content');
+  this.content.style.overflow = 'auto';
 
   this.dialog = null; // floating window for cell selector
   this.dbDivForm = null; // cell selector forms (may be useless)
@@ -29,6 +30,13 @@ ImporterApp = function() {
   this.content.appendChild(this.CreateHTMLSynapseListInfoSection());
 
   this.InitLinkFunctionalityWithHTML();
+
+
+  const self = this;
+  window.addEventListener('resize', () => {
+    self.Resize();
+  },false);
+  this.Resize();
 };
 
 
@@ -190,13 +198,40 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   };
 };
 
+// resize the content div containing tables
+// (it's set to fixed size so that table, being long,
+// can scroll within it)
+ImporterApp.prototype.Resize = function() {
+  function SetWidth (elem, value) {
+    elem.width = value;
+    elem.style.width = value + 'px';
+  }
+
+  function SetHeight (elem, value) {
+    elem.height = value;
+    elem.style.height = value + 'px';
+  }
+
+  let headerNav = document.getElementById ('header-nav');
+  let headerNavCollapse = document.getElementById ('btn-collapse-header-nav');
+
+  let left = document.getElementById ('left');
+  let content = this.content;
+
+  let height = window.innerHeight - headerNav.offsetHeight - headerNavCollapse.offsetHeight - 10;
+
+  SetHeight(left, height);
+
+  SetHeight(content, height);
+  SetWidth(content, document.body.clientWidth - left.offsetWidth);
+};
+
+
 
 // adds menu item for cell/db and retrieves synapse data,
 // and loads page
 ImporterApp.prototype.LoadCell = function(db, cell) {
-  console.log(db, cell);
-
-  // already loaded
+  // already loaded?
   if (this.selectedCells.hasOwnProperty(db)
       && this.selectedCells[db].includes(cell)) {
     return;
@@ -229,6 +264,10 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
   this.menuDbSections[db].appendChild(cellDiv);
 
   cellDiv.innerHTML = cell;
+  cellDiv.classList.add('menuCellDiv');
+  cellDiv.onclick = () => {
+    this.ShowTables(db, cell);
+  };
 
   //================================================
   // initialize empty tables
@@ -252,6 +291,7 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
 	  if (this.readyState == 4 && this.status == 200) {
 	    const data = JSON.parse(this.responseText);
       self.PopulateSynapseListRows(db,cell,data);
+      self.ShowTables(db,cell);
       // TODO self.PopulatePartnerListRows(db,cell,data);
 	  }
   };
@@ -326,7 +366,7 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
       const tdPartner = document.createElement('td');
       const tdCount = document.createElement('td');
       const tdSections = document.createElement('td');
-      
+
       tbl.appendChild(trSummary);
       trSummary.appendChild(tdPartner);
       trSummary.appendChild(tdCount);
@@ -337,13 +377,12 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
           this.GetSummaryTrClassName(db,cell));
       trSummary.classList.add('labels');
       // clicking this row toggles the class 'collapse'
-      // among all elements matching 'data-target'
-      // see also in index.html
+      // in the element(s) pointed to by data-target
       trSummary.setAttribute('data-toggle','collapse');
-      // use id instead of class
-      //trSummary.setAttribute('data-target',
-      //    `.${groupClassName}.individual`);
-      const tbodyID = `tbody-${db}-${cell}-${type}-${partner}`;
+      // having comma in id is bad
+      const partnerEdit = partner.replace(/[>,]/g, '-');
+      console.log(partner, partnerEdit);
+      const tbodyID = `tbody-${db}-${cell}-${type}-${partnerEdit}`;
       trSummary.setAttribute('data-target', '#'+tbodyID);
       // need 'role' attribute because trSummary is not button
       trSummary.setAttribute('role', 'button');
@@ -423,6 +462,19 @@ ImporterApp.prototype.LoadSelectedCells = function() {
   }
 };
 
+ImporterApp.prototype.ShowTables = function(db,cell) {
+  for (const db in this.selectedCells) {
+    for (const cell of this.selectedCells[db]) {
+      this.synapseTableDiv[db][cell].style.display = 'none';
+    }
+  }
+
+  this.synapseTableDiv[db][cell].style.display = '';
+
+  this.SetDbNameSpan(db);
+  this.SetCellNameSpan(cell);
+};
+
 // basic template for synapse list (from apps/synapseList)
 // 
 // @param {HTMLDivElement} parent - where to put HTML stuff;
@@ -470,7 +522,7 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
   toggleIndivBtn.value = 'on';
   toggleIndivBtn.style = 'margin: 10px; float:right';
   toggleIndivBtn.innerHTML = 'Hide All Individual Synapses';
-  toggleSummBtn.id = 'toggle-all-summary';
+  toggleSummBtn.id = `toggle-all-summary-${db}-${cell}`;
   toggleSummBtn.value = 'on';
   toggleSummBtn.style = 'margin: 10px; float:right';
   toggleSummBtn.innerHTML = 'Hide All Summary Rows';
@@ -633,7 +685,7 @@ ImporterApp.prototype.toggleAllIndividualRows = function(db,cell,expanded) {
 };
 
 ImporterApp.prototype.toggleAllSummaryRows = function(db,cell,expanded) {
-  const btnSumm = document.getElementById('toggle-all-summary');
+  const btnSumm = document.getElementById(`toggle-all-summary-${db}-${cell}`);
   // set value, text accordingly
   btnSumm.value = expanded ? 'on' : 'off';
   btnSumm.innerHTML = expanded ?

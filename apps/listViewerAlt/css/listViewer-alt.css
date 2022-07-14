@@ -1,6 +1,14 @@
+input + span {
+  font-weight: normal;
+}
+
 input:checked + span {
   font-weight: bold;
   background-color: rgba(0,255,0,0.2);
+}
+
+.menuCellDiv:hover {
+  background-color: rgba(0,0,255,0.4);
 }
 
 /* for testing
