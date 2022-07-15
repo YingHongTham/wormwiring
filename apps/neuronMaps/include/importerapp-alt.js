@@ -808,7 +808,8 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
   synPartnerListBtn.innerHTML = 'Synapse By Partners';
   synPartnerListBtn.onclick = () => {
     const series = self.GetSeriesFromHTML();
-    const url = `../synapseList/?db=${series}&cell=${cellname}`;
+    //const url = `../synapseList/?db=${series}&cell=${cellname}`;
+    const url = `../listViewerAlt/?db=${series}&cell=${cellname}&listtype=partner`;
     self.OpenInfoDialog(url,'Synaptic Partners');
   };
 
