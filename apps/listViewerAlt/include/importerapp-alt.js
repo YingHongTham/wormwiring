@@ -11,6 +11,10 @@ ImporterApp = function() {
   // key = db, value = list of selected cells from that db
   this.selectedCells = {};
 
+  this.currentDb = '';
+  this.currentCell = '';
+  this.showingPartnerList = false; // starting list type
+
   // reference to div's in menu (see LoadCell)
   this.menuDbSections = {};
 
@@ -29,8 +33,12 @@ ImporterApp = function() {
 
   // info section (cell name, database),
   // and help items
-  this.content.appendChild(
-    this.CreateHTMLSynapseListInfoSection());
+  this.infoSectionSynapse = 
+    this.CreateHTMLSynapseListInfoSection();
+  this.infoSectionPartner = 
+    this.CreateHTMLPartnerListInfoSection();
+  this.content.appendChild(this.infoSectionSynapse);
+  this.content.appendChild(this.infoSectionPartner);
 
   // buttons
   this.InitLinkFunctionalityWithHTML();
@@ -336,7 +344,7 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
       self.PopulateSynapseListRows(db,cell,data);
       self.PopulatePartnerListRows(db,cell,data);
       self.ShowTables(db,cell);
-      // TODO self.PopulatePartnerListRows(db,cell,data);
+      self.ToggleSynapseOrPartner(self.showingPartnerList);
 	  }
   };
   xhttp.open("GET",url,true);
@@ -493,7 +501,7 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
 	}
 
   // show individual rows by default
-  setTimeout(() => this.toggleAllIndividualRows(db,cell,true));
+  setTimeout(() => this.ToggleAllIndividualRows(db,cell,true));
 };
 
 ImporterApp.prototype.PopulatePartnerListRows = function(db,cell,data) {
@@ -644,20 +652,28 @@ ImporterApp.prototype.ShowTables = function(db,cell) {
   for (const db in this.selectedCells) {
     for (const cell of this.selectedCells[db]) {
       this.synapseTableDiv[db][cell].style.display = 'none';
+      this.partnerTableDiv[db][cell].style.display = 'none';
     }
   }
 
-  this.synapseTableDiv[db][cell].style.display = '';
+  if (this.showingPartnerList)
+    this.partnerTableDiv[db][cell].style.display = '';
+  else
+    this.synapseTableDiv[db][cell].style.display = '';
+
+  this.currentDb = db;
+  this.currentCell = cell;
 
   this.SetDbNameSpan(db);
   this.SetCellNameSpan(cell);
 };
 
-// basic template for synapse list (from apps/synapseList)
+
+// basic template for synapse list
+// (taken from apps/synapseList, alt versions)
 // 
 // @param {HTMLDivElement} parent - where to put HTML stuff;
 //  if parent=null, creates new div, returned
-//ImporterApp.prototype.HTMLSynapseList = function(parent=null) {
 ImporterApp.prototype.CreateHTMLSynapseListInfoSection = function(parent=null) {
   const mainDiv = parent === null ?
     document.createElement('div') : parent;
@@ -666,11 +682,15 @@ ImporterApp.prototype.CreateHTMLSynapseListInfoSection = function(parent=null) {
   const titleDiv = document.createElement('div');
   const helpDiv = document.createElement('div');
   const helpBtn = document.createElement('button');
+  const switchBtn = document.createElement('button');
 
   mainDiv.appendChild(infoDiv);
   infoDiv.appendChild(titleDiv);
   infoDiv.appendChild(helpBtn);
+  infoDiv.appendChild(switchBtn);
   infoDiv.appendChild(helpDiv);
+
+  infoDiv.id = 'infoSectionSynapse';
 
   titleDiv.append('Synapse List for ');
   titleDiv.appendChild(this.CreateCellNameSpan());
@@ -678,7 +698,7 @@ ImporterApp.prototype.CreateHTMLSynapseListInfoSection = function(parent=null) {
   titleDiv.appendChild(this.CreateDbNameSpan());
   titleDiv.style = 'font-size:200%';
 
-  helpDiv.id = 'helpDiv';
+  helpDiv.id = 'helpDivSynapse';
   helpDiv.classList.add('collapse');
   helpBtn.setAttribute('data-toggle','collapse');
   helpBtn.setAttribute('data-target', '#'+helpDiv.id);
@@ -687,66 +707,166 @@ ImporterApp.prototype.CreateHTMLSynapseListInfoSection = function(parent=null) {
     helpBtn.innerHTML = helpBtn.innerHTML === 'Show Help' ?
       'Hide Help' : 'Show Help';
   };
+
+  switchBtn.innerHTML = 'Switch to Partner List';
+  switchBtn.onclick = () => {
+    this.ToggleSynapseOrPartner();
+  };
+
+
   //setTimeout(() => { helpBtn.click(); });
   helpDiv.innerHTML = `
-      <ol>
-        <li>
-          Synapses are grouped into three tables,
-          one for each synapse type:
-          <ul>
-            <li>Gap junctions</li>
-            <li>Presynaptic: synapses where
-              <span class='cellNameSpan'>--</span>
-              is presynaptic
-            </li>
-            <li>Postsynaptic: synapses where
-              <span class='cellNameSpan'>--</span>
-              is postsynaptic
-            </li>
-          </ul>
-          Note that the same synapse may appear twice,
-          in the pre- and postsynaptic tables.
-          Note also slight difference with the
-          <a id='nav-partner-list-2'
-             href='../partnerList/'>
-            Synaptic Partner List
-          </a>
-          when it comes to synapses that have repeating partners,
-          e.g.
-          'RIGL -> AIZR,AVER,AIZR' will only appear once
-          in the postsynaptic table for AIZR.
-        </li>
-        <li>
-          Each table is further organized by the synaptic partners.
-          There are two types of rows:
-          <ul>
-            <li>
-              Summary rows: corresponds to a partner(s); shows the total number and sections of synapses
-              with that partner
-            </li>
-            <li>
-              Individual rows: corresponds to a synapse
-            </li>
-          </ul>
-          Click on a <strong>summary row to show/hide synapses</strong> with that partner(s).
-          There are also buttons to show/hide all rows (summary or individual).
-        </li>
-        <li>
-          Click on <strong>Synapse ID to see EM</strong> (opens new tab).
-        </li>
-	      <li>Bracketed Cells (e.g.[PVX]) denotes an inferred process identification (not traced to Cell Body)</li>
-	      <li>unk denotes an unknown neurite process identification</li>
-	      <li>In synapse lists, the listed order of postsynaptic cells in polyads represents the clockwise order of the cells around the presynaptic density, electron micrographs viewed looking toward the head.
-          Thus, R9AL->DVF,HOB,PVY represents a synapse that appears like the diagram below in the electron micrograph. </li>
-	      <li>A 'nmj_' in front a synapse denotes a neuromuscular junction. </li>
-	      <li>Occasionally, synapes do not display properly in the maps. In cases where there is a discrepancy between the maps and this synapse list, this synapse list should be considered correct. </li>
-      </ol>
-      <img src="../php/images/synapseexample.png" width="125"></td>
+    <ol>
+      <li>
+        Synapses are grouped into three tables,
+        one for each synapse type:
+        <ul>
+          <li>Gap junctions</li>
+          <li>Presynaptic: synapses where
+            <span class='cellNameSpan'>--</span>
+            is presynaptic
+          </li>
+          <li>Postsynaptic: synapses where
+            <span class='cellNameSpan'>--</span>
+            is postsynaptic
+          </li>
+        </ul>
+        Note that the same synapse may appear twice,
+        in the pre- and postsynaptic tables.
+        Note also slight difference with the
+        <a id='nav-partner-list-2'
+           href='../partnerList/'>
+          Synaptic Partner List
+        </a>
+        when it comes to synapses that have repeating partners,
+        e.g.
+        'RIGL -> AIZR,AVER,AIZR' will only appear once
+        in the postsynaptic table for AIZR.
+      </li>
+      <li>
+        Each table is further organized by the synaptic partners.
+        There are two types of rows:
+        <ul>
+          <li>
+            Summary rows: corresponds to a partner(s); shows the total number and sections of synapses
+            with that partner
+          </li>
+          <li>
+            Individual rows: corresponds to a synapse
+          </li>
+        </ul>
+        Click on a <strong>summary row to show/hide synapses</strong> with that partner(s).
+        There are also buttons to show/hide all rows (summary or individual).
+      </li>
+      <li>
+        Click on <strong>Synapse ID to see EM</strong> (opens new tab).
+      </li>
+	    <li>Bracketed Cells (e.g.[PVX]) denotes an inferred process identification (not traced to Cell Body)</li>
+	    <li>unk denotes an unknown neurite process identification</li>
+	    <li>In synapse lists, the listed order of postsynaptic cells in polyads represents the clockwise order of the cells around the presynaptic density, electron micrographs viewed looking toward the head.
+        Thus, R9AL->DVF,HOB,PVY represents a synapse that appears like the diagram below in the electron micrograph. </li>
+	    <li>A 'nmj_' in front a synapse denotes a neuromuscular junction. </li>
+	    <li>Occasionally, synapes do not display properly in the maps. In cases where there is a discrepancy between the maps and this synapse list, this synapse list should be considered correct. </li>
+      <li>Link to this page, directly to this cell:
+        ${window.location.hostname + window.location.pathname}?db=<span class='dbNameSpan'>--</span>&cell=<span class='cellNameSpan'>--</span>&listtype=synapse
+      </li>
+    </ol>
+    <img src="../php/images/synapseexample.png" width="125"></td>
   `;
 
+  return mainDiv;
+};
+
+// basic template for partner list
+// (taken from apps/partnerList, alt versions)
+// 
+// @param {HTMLDivElement} parent - where to put HTML stuff;
+//  if parent=null, creates new div, returned
+//ImporterApp.prototype.HTMLSynapseList = function(parent=null) {
+ImporterApp.prototype.CreateHTMLPartnerListInfoSection = function(parent=null) {
+  const mainDiv = parent === null ?
+    document.createElement('div') : parent;
+
+  const infoDiv = document.createElement('div');
+  const titleDiv = document.createElement('div');
+  const helpDiv = document.createElement('div');
+  const helpBtn = document.createElement('button');
+  const switchBtn = document.createElement('button');
+
+  mainDiv.appendChild(infoDiv);
+  infoDiv.appendChild(titleDiv);
+  infoDiv.appendChild(helpBtn);
+  infoDiv.appendChild(switchBtn);
+  infoDiv.appendChild(helpDiv);
+
+  infoDiv.id = 'infoSectionPartner';
+
+  titleDiv.append('Partner List for ');
+  titleDiv.appendChild(this.CreateCellNameSpan());
+  titleDiv.append(' from ');
+  titleDiv.appendChild(this.CreateDbNameSpan());
+  titleDiv.style = 'font-size:200%';
+
+  helpDiv.id = 'helpDivPartner';
+  helpDiv.classList.add('collapse');
+  helpBtn.setAttribute('data-toggle','collapse');
+  helpBtn.setAttribute('data-target', '#'+helpDiv.id);
+  helpBtn.innerHTML = 'Show Help';
+  helpBtn.onclick = () => {
+    helpBtn.innerHTML = helpBtn.innerHTML === 'Show Help' ?
+      'Hide Help' : 'Show Help';
+  };
+
+  switchBtn.innerHTML = 'Switch to Synapse List';
+  switchBtn.onclick = () => {
+    this.ToggleSynapseOrPartner();
+  };
+
+
+  //setTimeout(() => { helpBtn.click(); });
+  helpDiv.innerHTML = `
+    <ol>
+      <li>This is essentially a summary version of
+        <a id='nav-synapse-list-2'
+           href='../synapseList/'>Synapse List</a>,
+        where we group synapses by partner
+        (ignores polyadic structure;
+        see below on exactly how).
+      </li>
+      <li>
+        We have 4 tables: 1 for electrical,
+        and 3 for chemical: 'pre', 'post', 'post-post'.
+        Say the chosen cell is 'X'.
+        The 'pre' table shows the postsynaptic partners
+        when 'X' is presynaptic.
+        The 'post' table shows the presynaptic partner
+        when 'X' is postsynaptic.
+        The 'post-post' table shows the postsynaptic partners
+        when 'X' is also postsynaptic.
+        <br>
+        A synapse may count towards several tables;
+        for example, a chemical synapse of the form
+        'X -> X,X,Y,X' would contribute to all three tables.
+        More precisely, here is how many times the syanpse
+        contributes to each relevant row
+        <ul>
+          <li>'pre', Partner='X': 3 times</li>
+          <li>'pre', Partner='Y': 1 time</li>
+          <li>'post', Partner='X': 1 time</li>
+          <li>'post', Partner='Y': 0 times</li>
+          <li>'post-post', Partner='X': 2 times</li>
+          <li>'post-post', Partner='Y': 1 time</li>
+        </ul>
+	    <li>Bracketed Cells (e.g.[PVX]) denotes an inferred process identification (not traced to Cell Body)</li>
+	    <li>unk denotes an unkown neurite process identification</li>
+      <li>Link to this page, directly to this cell:
+        ${window.location.hostname + window.location.pathname}?db=<span class='dbNameSpan'>--</span>&cell=<span class='cellNameSpan'>--</span>&listtype=partner
+      </li>
+    </ol>
+  `;
 
   return mainDiv;
-}
+};
 
 // creates 'empty' tables (and buttons) for db,cell
 ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
@@ -774,12 +894,12 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
 
   toggleIndivBtn.onclick = () => {
     const expanded = toggleIndivBtn.value !== 'on';
-    this.toggleAllIndividualRows(db, cell, expanded);
+    this.ToggleAllIndividualRows(db, cell, expanded);
   }
 
   toggleSummBtn.onclick = () => {
     const expanded = toggleSummBtn.value !== 'on';
-    this.toggleAllSummaryRows(db, cell, expanded);
+    this.ToggleAllSummaryRows(db, cell, expanded);
   }
 
   // new line; need style='clear:both' to clear the float
@@ -865,7 +985,7 @@ ImporterApp.prototype.InitHTMLPartnerListTables = function(db, cell) {
 
     table.id = this.GetPartnerTableID(db, cell, type);
 
-    thTitle.colSpan = 6;
+    thTitle.colSpan = 5;
     thTitle.style.fontWeight = 'bold';
 
     switch(type) {
@@ -891,12 +1011,9 @@ ImporterApp.prototype.InitHTMLPartnerListTables = function(db, cell) {
     }
 
     const topRowEntries = [
-      { class: 'rcol', innerHTML: 'Partner(s)' },
-	    { class: 'lcol', innerHTML: 'Data series' },
-	    { class: 'lcol', innerHTML: 'Synapse ID' },
-	    { class: 'lcol', innerHTML: 'Section #' },
-	    { class: 'lcol', innerHTML: '#Synapses' },
-	    { class: 'lcol', innerHTML: '#Sections' }
+      { class: 'rcol', innerHTML: 'Partner', colSpan: 3},
+      { class: 'lcol', innerHTML: 'Count', colSpan: 1 },
+      { class: 'lcol', innerHTML: '#Sections', colSpan: 1 }
     ];
 
     const tr = document.createElement('tr');
@@ -907,6 +1024,7 @@ ImporterApp.prototype.InitHTMLPartnerListTables = function(db, cell) {
 
       th.classList.add(entry.class);
       th.innerHTML = entry.innerHTML;
+      th.colSpan = entry.colSpan;
     }
 
     // add a new line
@@ -995,7 +1113,7 @@ ImporterApp.prototype.GetSummaryTrClassName = function(db, cell) {
 
 // 'All' refers to all for one db,cell
 // reads current state from value of button
-ImporterApp.prototype.toggleAllIndividualRows = function(db,cell,expanded) {
+ImporterApp.prototype.ToggleAllIndividualRows = function(db,cell,expanded) {
   const btnIndv = document.getElementById(`toggle-all-individual-${db}-${cell}`);
   // set value, text accordingly
   btnIndv.value = expanded ? 'on' : 'off';
@@ -1010,7 +1128,7 @@ ImporterApp.prototype.toggleAllIndividualRows = function(db,cell,expanded) {
   });
 };
 
-ImporterApp.prototype.toggleAllSummaryRows = function(db,cell,expanded) {
+ImporterApp.prototype.ToggleAllSummaryRows = function(db,cell,expanded) {
   const btnSumm = document.getElementById(`toggle-all-summary-${db}-${cell}`);
   // set value, text accordingly
   btnSumm.value = expanded ? 'on' : 'off';
@@ -1022,4 +1140,34 @@ ImporterApp.prototype.toggleAllSummaryRows = function(db,cell,expanded) {
   summRows.forEach( row => {
     row.classList.toggle('collapse', !expanded);
   });
+};
+
+ImporterApp.prototype.ToggleSynapseOrPartner = function(showingPartnerList=null) {
+  if (typeof(showingPartnerList) === 'boolean')
+    this.showingPartnerList = showingPartnerList;
+  else
+    this.showingPartnerList = !this.showingPartnerList;
+
+  const db = this.currentDb;
+  const cell = this.currentCell;
+
+  if (this.showingPartnerList) {
+    this.synapseTableDiv[db][cell].style.display = 'none';
+    this.partnerTableDiv[db][cell].style.display = '';
+    this.infoSectionSynapse.style.display = 'none';
+    this.infoSectionPartner.style.display = '';
+  }
+  else {
+    this.synapseTableDiv[db][cell].style.display = '';
+    this.partnerTableDiv[db][cell].style.display = 'none';
+    this.infoSectionSynapse.style.display = '';
+    this.infoSectionPartner.style.display = 'none';
+  }
+};
+
+// always use ToggleSynapseOrPartner unless want to set
+// the default list type before loading cell
+// (see build_listViewer_alt.js)
+ImporterApp.prototype.SetStartingListType = function(showingPartnerList) {
+  this.showingPartnerList = showingPartnerList;
 };
