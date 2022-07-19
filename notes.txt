@@ -73,12 +73,9 @@ meant to mimic the worms server.
 it's the only thing that's not in the wormwiring-dev folder
 should delete it as it has some password in plain text
 
-add a save function
-
 
 TODO:
 -add volumetric data from n2y and harvard group
-	--done, but current version doesn't seem to load n2y
 -related: in apps/neuronMaps/include/mapViewer.js,
   check that parameters like this.XYScale = 0.05
   is correct, make proper documentation
@@ -113,8 +110,3 @@ some errors in the SQL tables
   FOR NOW,
   just going to ignore this (that's what has been done)
 
-July 7, TODOs
--check that listViewer works as advertised,
-  and simplify the importerApp (and add comments/docs)
--in synapseList and partnerList, add link to send to listViewer,
-so that you can select other cells

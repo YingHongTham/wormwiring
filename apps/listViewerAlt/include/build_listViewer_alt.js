@@ -12,6 +12,8 @@ window.onload = function ()
   const importerApp = new ImporterApp();
 
   // preload cell if given param in url
+  // gotta wait in event loop
+  // to make sure importerApp finish initializing
   setTimeout(() => {
     // which list to show first
     if (params.hasOwnProperty('listtype')) {

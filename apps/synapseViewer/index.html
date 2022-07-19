@@ -1,32 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <link rel="stylesheet" type="text/css" href="/css/home.css">
   <link rel="stylesheet" type="text/css" href="./css/synapseViewer.css">
   
-  <script type="text/javascript" src="./include/importerapp.js"></script>
-  <script type="text/javascript" src="./include/build_synapseViewer.js"></script>
+  <script type="text/javascript" src="./include/importerapp-alt.js"></script>
+  <script type="text/javascript" src="./include/build_synapseViewer_alt.js"></script>
 </head>
 
 <body>
+  <div id='header-nav'></div>
+  <script type='text/javascript' src='/header-alt.js'></script>
+
+  <div id='btn-collapse-header-nav' class='hiddenByDefault'></div>
+  <script type='text/javascript' src='/header-retractable.js'></script>
 
 <div id="main">
   <div id="main-nav"></div>
   <div id="main-title">Synapse viewer</div>
   <div id="main-help">
-    Select EM section from dropdown. Allow a few seconds for images to load.
+    <button id="helpBtn">Hide Help</button>
+    <div id="helpDiv">
+      <ol>
+        <li>Select EM section from dropdown.</li>
+        <li>Allow a few seconds for images to load, they are quite big files.</li>
+        <li>Load other synapses via the Synapse/Partner List app
+          (<a id="listViewerA"></a>)
+          or via the 3D Viewer app
+          (<a id="neuronMapsA"></a>).
+        </li>
+        <li>If nothing loads, check that the URL has the keys 'db', 'cell', and 'continNum';
+          for an example, go to the Synapse/Partner List app,
+          choose some cell, and click on some synapse ID.
+        </li>
+      </ol>
+    </div>
     <br/>
-    <!--
-    (Open in separate tab:
-    <a id="selfUrl" target="_blank"></a>)
-    -->
   </div>
-  <script>
-    const el = document.getElementById('selfUrl');
-    const url = window.location.href;
-    console.log(url);
-    el.innerHTML = url;
-    el.href = url;
-  </script>
   <div id="main-info">
     <div class="main-info-left">
       <div class="info-left">Database:</div><div class="info-right" id="database">---</div>

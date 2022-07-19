@@ -148,7 +148,8 @@ General purpose libraries:
   see comments therein
 - apps/include/cytoscape-3.21.1.min.js: for 2D viewer in neuronMaps
 
-- header\*.js: helps build the header image and navigation items on all pages;
+- header\*.js: helps build the header image and navigation items on all pages
+  (note that this needs /css/home.css to work properly);
   header-retractable.js allows the header to be hidden, makes more space for
   viewer etc.
 
@@ -181,29 +182,29 @@ most should be updated if databases are updated:
 - apps/neuronMaps/include/helpDialogItems.js
 
 
-App-specific files (apps/\<app name\>/\*):
-- apps/listViewer/include/build_listViewer.js:
+**App-specific files**, grouped by apps,
+as named in the Emmonslab page
+
+Synapse/Partner List:
+- apps/listViewerAlt/include/build_listViewer_alt.js:
 	entry point for listViewer,
 	variables are initiliazed here,
 	reads url parameters and preloads
-- apps/listViewer/include/importerapp.js:
+- apps/listViewerAlt/include/importerapp-alt.js:
 	provides ImporterApp class,
 	which interacts with html to allow user to
 	select database/cells,
-	and also loads either synapseList or partnerList,
-	depending on url parameter 'listtype'
+  requests list data from php and loads tables;
+  differs from old in that we make one request for both
+  synapse list and partner list,
+  but simply processes them separately,
+  and loads table for both
+  (see listViewer in the obsolete list)
 
-- apps/synapseList/include/build_synapseList_alt.js:
-	requests data from apps/php/getSynapseList-alt.php,
-	groups by partner, and loads into table;
-  for synapseList app
-- apps/partnerList/include/build_partnerList_alt2.js:
-	requests data from apps/php/getSynapseList-alt.php,
-	groups by partner, and loads into table;
-  for partnerList app
-
+Synapse Viewer
 - apps/synapseViewer/include/build_synapseViewer.js
 - apps/synapseViewer/include/importerapp.js
+
 
 - apps/neuronMaps/include/build_neuronMaps.js:
 	entry point for neuronMaps,
@@ -246,6 +247,26 @@ Obsolete files/folders, probably should delete at some point:
 
 - apps/neuronContacts/include/mapViewer.js: hmm neuronContacts itself seems to
 	be obsolete..
+- apps/listViewer/include/build_listViewer.js:
+	entry point for listViewer,
+	variables are initiliazed here,
+	reads url parameters and preloads
+- apps/listViewer/include/importerapp.js:
+	provides ImporterApp class,
+	which interacts with html to allow user to
+	select database/cells,
+	and also *loads* either synapseList or partnerList,
+	depending on url parameter 'listtype';
+  here 'loads' means literally loads the entire page
+  within an iframe element.
+- apps/synapseList/include/build_synapseList_alt.js:
+	requests data from apps/php/getSynapseList-alt.php,
+	groups by partner, and loads into table;
+  for synapseList app
+- apps/partnerList/include/build_partnerList_alt2.js:
+	requests data from apps/php/getSynapseList-alt.php,
+	groups by partner, and loads into table;
+  for partnerList app
 
 # Setup
 

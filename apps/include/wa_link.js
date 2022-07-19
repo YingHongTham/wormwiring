@@ -2,9 +2,9 @@
  * lookup table for getting WormAtlas(wa) link from cellname
  * e.g., cellname = 'ADAL', the "stem" is 'ADA',
  * which is what cellnameWALinkDict gives;
+ * the main 'output' is cellnameToWALink(cellname),
  * the function all the way at the bottom,
- * cellnameToWALink,
- * returns the WormAtlas link, in this case,
+ * returns the WormAtlas link, e.g. for 'ADAL',
  * https://www.wormatlas.org/neurons/Individual%20Neurons/ADAmainframe.htm
  *
  * as pointed out in selectorCells.php,
@@ -420,5 +420,8 @@ const cellnameWALinkDict = {
 
 function cellnameToWALink(cellname) {
   let stem = cellnameWALinkDict[cellname];
+  if (!cellnameWALinkDict.hasOwnProperty(cellname)) {
+    return '';
+  }
   return `https://www.wormatlas.org/neurons/Individual%20Neurons/${stem}mainframe.htm`;
 }

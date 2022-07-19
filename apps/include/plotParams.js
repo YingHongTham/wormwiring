@@ -1,14 +1,16 @@
-// for mapViewer to make plotParams
-//
-// the queries were made with:
-//select max(x1), min(x1), min(y1), max(y1), min(z1), max(z1) from {DB}.display2;
-// where DB is N2U, N2W, JSE, JSH, n2y, n930
-// 
-// we also apply *(-1) to the x's (so min and max flipped)
-// because I dunno all over the place there are negatives
-// in say dbaux.php
-//
-// xMin = xScaleMin in old version etc.
+/*
+ * for mapViewer to make plotParams
+ *
+ * the queries were made manually for each database, with:
+ *  select max(x1), min(x1), min(y1), max(y1), min(z1), max(z1) from {DB}.display2;
+ * where DB is N2U, N2W, JSE, JSH, n2y, n930
+ * 
+ * we also apply *(-1) to the x's (so min and max flipped)
+ * because for some reason all over the place there are negatives
+ * in say dbaux.php
+ *
+ * xMin = xScaleMin in old version etc.
+ */
 
 const plotMinMaxValues = {
   N2U: {
@@ -20,7 +22,6 @@ const plotMinMaxValues = {
     zMax: 2550,
   },
 //select max(x1), min(x1), min(y1), max(y1), min(z1), max(z1) from N2W.display2;
-//|    |    |    
   N2W: {
     xMin: -9372,
     xMax: -2401,
