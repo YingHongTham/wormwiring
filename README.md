@@ -35,6 +35,12 @@ to extract the IMG_SectionNumber.
 Sometimes name means cell, other times it means number..
 e.g. objName1 is a number
 
+**On Coordinates**:
+- positive x is right,
+- positive y is dorsal,
+- positive z is posterior.
+(TODO but actually it's the opposite because of all the negative signs?)
+
 Here is a summary of the relevant tables:
 
 **contin**: conti(g)uous pieces; only connects across z-sections
@@ -90,13 +96,32 @@ NOT the coordinates of the synapse object
 - type: chemical/gap junction
 - members: objects in the synapse (comma-sep list of length = sections)
 - sections: number of sections; used as proxy for size
-- post1,2.. : just post, separated out
+- post1/2/3/4 : post but separated out
 - type2: ??
 - series: VC, NR, etc. (possibly multiple)
 - partnerNum: number of post ??
 - mid: object number of object in middle of contin of synapse
-- preobj, postobj1.. : object number of pre,post
+- preobj, postobj1/2/3/4 : object number of pre, post1/2/3/4
 - continNum: clear
+
+
+**object**:
+- OBJ_Name: object number in other tables, often used to join,
+  e.g. object join synapsecombined on object.OBJ_Name = synapsecombined.postobj1
+- OBJ_X, OBJ_Y: x,y coordinates
+- OBJ_Remarks: remarks attached to respective objects
+  (e.g. 'end', 'start dorsal commissure')
+- IMG_Number: z coordinate
+- CON_Number: continNum of contin to which this object belongs
+- type: cell/cell branch point/electrical/chemical
+- fromObj, toObj: pre,post object numbers (assuming object is part of synapse); toObj is comma-separated list of numbers if more than one
+- checked: unclear
+- username: person who recorded this object
+- DateEntered: obvious
+- certainty: we also recorded object that are uncertain
+- size: unclear
+- cellType: unclear - 0 or 1... same as cellbody?
+- forMap: unclear - '' or 'normal'
 
 
 **display2**: essentially relationship, but with the coordinates,

@@ -1,3 +1,12 @@
+/*
+ * requests/loads image each time a different section/zoom level
+ * is selected;
+ * probably very inefficient.
+ * at the very least,
+ * changing zoom level shouldn't have to request again;
+ * browser probably caches though
+ */
+
 ImporterApp = function() {
   // set up section selector/zoom level
 
