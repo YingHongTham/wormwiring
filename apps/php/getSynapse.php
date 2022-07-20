@@ -2,6 +2,9 @@
 
 // returns object with keys:
 // pre, post, section, image
+//
+// for my local testing, I only have N2U/NR/0(61,62,63).tif
+// so test on synapse with CON_Number = 3221
 
 ini_set('memory_limit',"10240M");
 require_once('./dbconnect.php');

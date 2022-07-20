@@ -15,30 +15,6 @@ window.onload = function()
   // hide help by default
   setTimeout(() => { helpBtn.click(); });
 
-  // set the links to listViewerAlt and neuronMaps
-  // note that we reset these to the specific cell
-  // if the url does provide db and cell
-  function SetLinks(db=null,cell=null) {
-    console.log(db, cell);
-    const listViewerLink = '//' + window.location.hostname +
-      '/apps/listViewerAlt/' +
-      ( cell === null ?
-        'index.html' : `?db=${db}&cell=${cell}` );
-    const neuronMapsLink = '//' + window.location.hostname +
-      '/apps/neuronMaps/' +
-      ( cell === null ?
-        'index.html' : `?db=${db}&cell=${cell}` );
-
-    const listViewerA = document.getElementById('listViewerA');
-    listViewerA.href = listViewerLink;
-    listViewerA.innerHTML = listViewerLink;
-
-    const neuronMapsA = document.getElementById('neuronMapsA');
-    neuronMapsA.href = neuronMapsLink;
-    neuronMapsA.innerHTML = neuronMapsLink;
-  }
-  SetLinks();
-
   //=====================================================
 	const params = {};
   const urlParams = new URLSearchParams(document.location.search);
@@ -48,27 +24,21 @@ window.onload = function()
   }
 
   let db = params.db;
-  let cell = params.cell;
-  let contin = params.contin;
+  let contin = params.continNum;
 
   if (!params.hasOwnProperty('db')) {
     console.log('no db provided in url');
     return;
   }
-  if (!params.hasOwnProperty('cell')) {
-    console.log('no cell provided in url');
-    return;
-  }
 
-  // reset the links to load the cells too
-  SetLinks(db,cell);
-
-  if (!params.hasOwnProperty('contin')) {
+  if (!params.hasOwnProperty('continNum')) {
     console.log('no continNum provided in url');
     return;
   }
 
-  const importerApp = new ImporterApp();
-  importerApp.LoadSynapse(params);
+	document.getElementById('info-database').innerHTML = db;
+	document.getElementById('info-contin').innerHTML = contin;
 
+  const importerApp = new ImporterApp();
+  importerApp.LoadSynapse(db, contin);
 }

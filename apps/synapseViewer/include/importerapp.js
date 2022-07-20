@@ -1,3 +1,6 @@
+// note some changes have been made to index.html,
+// particularly the id's in the info section
+
 ImporterApp = function (_synapse)
 {
     this.synapse = _synapse;

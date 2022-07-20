@@ -28,10 +28,34 @@
           (<a id="listViewerA"></a>)
           or via the 3D Viewer app
           (<a id="neuronMapsA"></a>).
+          <script>
+            const listViewerLink = '//'
+                + window.location.hostname
+                + '/apps/listViewerAlt';
+            const neuronMapsLink = '//'
+                + window.location.hostname
+                + '/apps/neuronMaps/';
+
+            const listViewerA = document.getElementById('listViewerA');
+            listViewerA.href = listViewerLink;
+            listViewerA.innerHTML = listViewerLink;
+
+            const neuronMapsA = document.getElementById('neuronMapsA');
+            neuronMapsA.href = neuronMapsLink;
+            neuronMapsA.innerHTML = neuronMapsLink;
+          </script>
+
         </li>
-        <li>If nothing loads, check that the URL has the keys 'db', 'cell', and 'continNum';
-          for an example, go to the Synapse/Partner List app,
-          choose some cell, and click on some synapse ID.
+        <li>If nothing loads, check that the URL has the keys 'db'and 'continNum';
+          for example,
+          <span id="spanExample"></span>
+          <script>
+            const exampleLink = '//'
+                + window.location.hostname
+                + '/apps/synapseViewer/?db=N2U&continNum=3321';
+            const exampleSpan = document.getElementById('spanExample');
+            exampleSpan.innerHTML = exampleLink;
+          </script>
         </li>
       </ol>
     </div>
@@ -39,28 +63,63 @@
   </div>
   <div id="main-info">
     <div class="main-info-left">
-      <div class="info-left">Database:</div><div class="info-right" id="database">---</div>
-      <div class="info-left">Cell:</div> <div class="info-right" id="cell">---</div>
-      <div class="info-left">Synapse ID:</div> <div class="info-right" id="contin">---</div>
+      <ul style='list-style:none'>
+        <li>
+          Database:
+          <span id="info-database">---</span>
+        </li>
+        <!--
+        <li>
+          Cell:
+          <span id="info-cell">---</span>
+        </li>
+        -->
+        <li>
+          Synapse ID:
+          <span id="info-contin">---</span>
+        </li>
+      </ul>
     </div>
     <div id class="main-info-right">
-      <div class="info-left">Source:</div> <div class="info-right" id="source">---</div>
-      <div class="info-left">Target:</div> <div class="info-right" id="target">---</div>
-      <div class="info-left">#EM sections:</div> <div class="info-right" id="sections">---</div>
+      <ul style='list-style:none'>
+        <li>
+          Source:
+          <span id="info-source">---</span>
+        </li>
+        <li>
+          Target(s):
+          <span id="info-target">---</span>
+        </li>
+        <li>
+          #EM sections:
+          <span id="info-sections">---</span>
+        </li>
+      </ul>
     </div>
   </div>
   <div id="main-selector">
-    <div class="selector-left">Select EM sections: <select id="section"></select></div>
+    <div class="selector-left">
+      Select EM sections:
+      <select id="section"></select>
+    </div>
     <div class="selector-right">
       Zoom level: 
       <form id="zoomForm">
-      <label><input type="radio" name="zoomMode" value="0" checked="checked">Low</input></label>
-      <label><input type="radio" name="zoomMode" value="1">High</input></label>
+        <label>
+          <input type="radio" name="zoomMode" value="0"
+                 checked="checked">
+          <span>Low</span>
+        </label>
+        <label>
+          <input type="radio" name="zoomMode" value="1">
+          <span>High</span>
+        </label>
       </form>
     </div>
   </div>
   
-  <div id="canvas"></div>
+  <!-- image goes here; old id = "canvas", which's confusing -->
+  <div id="imageDiv"></div>
 
 </div>
 </body>
