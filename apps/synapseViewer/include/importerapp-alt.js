@@ -32,6 +32,15 @@ ImporterApp = function() {
   prevBtn.onclick = () => { this.SelectPrevImage(); };
   nextBtn.onclick = () => { this.SelectNextImage(); };
 
+  document.addEventListener('keydown', ev => {
+    if (ev.code === 'KeyP') {
+      prevBtn.click();
+    }
+    if (ev.code === 'KeyN') {
+      nextBtn.click();
+    }
+  });
+
   // references to the image elements
   // this.imgElems[objNum][zoomLevel] = image element
   // initialized as empty image element in LoadSynapse,

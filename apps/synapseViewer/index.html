@@ -58,6 +58,7 @@
             exampleSpan.innerHTML = exampleLink;
           </script>
         </li>
+        <li>Press 'N' or 'P' to go next or previous image</li>
       </ol>
     </div>
     <br/>
@@ -105,9 +106,16 @@
 	<div id="main-selector">
 		<div> <!-- class="selector-left" -->
       Select EM sections:
-      <select id="section"></select>
-			<button id='prevBtn' style='margin-left:5px'>Prev</button>
-			<button id='nextBtn' style='margin-left:5px'>Next</button>
+      <select id="section"
+        title="Press 'N' or 'P'"></select>
+			<button id='prevBtn' style='margin-left:5px'
+        title="Press 'N' or 'P'">
+        <u>P</u>rev
+      </button>
+			<button id='nextBtn' style='margin-left:5px'
+        title="Press 'N' or 'P'">
+        <u>N</u>ext
+      </button>
     </div>
 		<div> <!-- class="selector-right" -->
       Zoom level: 
