@@ -75,8 +75,11 @@
         </li>
         -->
         <li>
-          Synapse ID:
+          Synapse ID/Contin Number:
           <span id="info-contin">---</span>
+        </li>
+        <li>
+          <span id="info-error"></span>
         </li>
       </ul>
     </div>
@@ -97,12 +100,15 @@
       </ul>
     </div>
   </div>
-  <div id="main-selector">
-    <div class="selector-left">
+	<br style='clear:both'>
+	<div id="main-selector">
+		<div> <!-- class="selector-left" -->
       Select EM sections:
       <select id="section"></select>
+			<button id='prevBtn' style='margin-left:5px'>Prev</button>
+			<button id='nextBnt' style='margin-left:5px'>Next</button>
     </div>
-    <div class="selector-right">
+		<div> <!-- class="selector-right" -->
       Zoom level: 
       <form id="zoomForm">
         <label>
