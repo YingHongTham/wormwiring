@@ -267,7 +267,9 @@ ImporterApp.prototype.SetCellInCellSelectorDialog = function(db, cell) {
 // and loads page
 ImporterApp.prototype.LoadCell = function(db, cell) {
   setTimeout(() => {
-    // ensure stuff loaded already
+    // ensure that HTML looks like we selected this db,cell last
+    // (HTML would otherwise be out of sync if LoadCell called
+    // directly and not via the HTML, e.g. when preload)
     this.SetDbInCellSelectorDialog(db);
     this.SetCellInCellSelectorDialog(db, cell);
   }, 0);
@@ -278,19 +280,29 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
     return;
   }
 
+
+  //=========================================
+  // keep track of db,cell
+  if (!this.selectedCells.hasOwnProperty(db)) {
+    // first time adding a cell from this db
+    this.selectedCells[db] = [];
+  }
+  this.selectedCells[db].push(cell);
+
   //===================================
-  // add entry in menu
+  // add entry in menuDiv (on the left side)
 
   const menuDiv = document.getElementById('cellsContentDiv');
 
-  // first time adding cell from this db
-  if (!this.selectedCells.hasOwnProperty(db)) {
-    this.selectedCells[db] = [];
+  if (!this.menuDbSections.hasOwnProperty(db)) {
+    // first time adding a cell from this db
 
+    // creates section div for db
     const menuDbSection = document.createElement('div');
     menuDiv.appendChild(menuDbSection);
     this.menuDbSections[db] = menuDbSection;
 
+    // adds a section title div for this db
     const titleDiv = document.createElement('div');
     menuDbSection.appendChild(titleDiv);
 
@@ -298,8 +310,6 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
     titleDiv.style.fontWeight = 'bold';
     titleDiv.style.backgroundColor = 'rgba(0,0,0,0.4)';
   }
-
-  this.selectedCells[db].push(cell);
 
   const cellDiv = document.createElement('div');
   this.menuDbSections[db].appendChild(cellDiv);
@@ -332,10 +342,10 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
 
   //======================================================
   // requesting for data
+
   // url to php which makes the MySQL queries
-  const url = '../php/getSynapseList-alt.php/'
-    + `?db=${db}`
-    + `&cell=${cell}`;
+  const url = '/apps/php/getSynapseList-alt.php/'
+    + `?db=${db}&cell=${cell}`;
   const xhttp = new XMLHttpRequest();    
   const self = this;
   xhttp.onreadystatechange = function() {
@@ -353,6 +363,10 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
 
 // data retreived from php
 // based on build_synapseList_alt.js
+//
+// there are two types of rows,
+// the 'summary' rows and 'individual' rows;
+// see inside for more details
 ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
 	const syntypes = ['gap','pre','post'];
 	for (let type of syntypes) {
@@ -361,7 +375,7 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
 
     tbl.colSpan = 6;
 
-    // group by partner
+    // group by partner, see below on summary rows
     const synByPartner = {};
     for (const syn of data[type]) {
       let partner = '';
@@ -415,10 +429,13 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
 
       // row showing summary for given partner
       const trSummary = document.createElement('tr');
+
+      // elements for entries of summary row
       const tdPartner = document.createElement('td');
       const tdCount = document.createElement('td');
       const tdSections = document.createElement('td');
 
+      // add row/entries to table
       tbl.appendChild(trSummary);
       trSummary.appendChild(tdPartner);
       trSummary.appendChild(tdCount);
@@ -441,12 +458,16 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
 
       const summary = synByPartner[partner].summary;
 
+      // entries text
       tdPartner.innerHTML = partner;
       tdPartner.colSpan = 4;
       tdCount.innerHTML = summary.count;
       tdCount.colSpan = 1;
       tdSections.innerHTML = summary.sections;
       tdSections.colSpan = 1;
+
+      //===================================
+      // now add individual synapse rows
 
       // tbody used to group individual synapse rows
       const tbody = document.createElement('tbody');
@@ -462,7 +483,10 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
       // row for each individual synapse
       const synList = synByPartner[partner].synList;
       for (const syn of synList) {
+        // row element
         const trIndiv = document.createElement('tr');
+        
+        // entry elements for row
         const tdPartner = document.createElement('td');
         const tdDatabase = document.createElement('td');
         const tdContin = document.createElement('td');
@@ -471,24 +495,26 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
         const tdCount = document.createElement('td');
         const tdSections = document.createElement('td');
 
+        // add row/entries to table
         tbody.appendChild(trIndiv);
         trIndiv.appendChild(tdPartner);
         trIndiv.appendChild(tdDatabase);
         trIndiv.appendChild(tdContin);
+        tdContin.appendChild(continA);
         trIndiv.appendChild(tdZ);
         trIndiv.appendChild(tdCount);
         trIndiv.appendChild(tdSections);
-        tdContin.appendChild(continA);
 
         trIndiv.style.backgroundColor = 'white';
         trIndiv.classList.add(groupClassName);
         trIndiv.classList.add('individual');
         //trIndiv.classList.add('show'); messes things up
 
+        // entries text
         tdPartner.innerHTML = partner;
         tdDatabase.innerHTML = db;
         continA.innerHTML = syn.contin;
-        continA.href = `/apps/synapseViewer/?neuron=${cell}&db=${db}&continNum=${syn.contin}`;
+        continA.href = `/apps/synapseViewer/?db=${db}&continNum=${syn.contin}`;
         continA.target = '_blank';
         tdZ.innerHTML = syn.z;
         tdSections.innerHTML = syn.sections;
@@ -532,6 +558,9 @@ ImporterApp.prototype.PopulatePartnerListRows = function(db,cell,data) {
   // synByTypePartner['post-post'][X] (counted 2 times)
   // synByTypePartner['post-post'][Y] (counted 1 time)
 
+  //===========================================
+  // grouping by partner
+  // method is different for each type
   let synByPartner = synByTypePartner['gap'];
   for (const syn of data['gap']) {
     // syn.pre is guaranteed to be ==cell
@@ -612,12 +641,15 @@ ImporterApp.prototype.PopulatePartnerListRows = function(db,cell,data) {
 
     // one row for each partner
     for (const partner in synByPartner) {
-      // row container
+      // row element
       const tr = document.createElement('tr');
+
       // three column entries for row
   	  const tdPartner = document.createElement('td');
   	  const tdCount = document.createElement('td');
   	  const tdSections = document.createElement('td');
+
+      // add row/entries to table
       tbl.appendChild(tr);
       tr.appendChild(tdPartner);
       tr.appendChild(tdCount);
@@ -669,8 +701,33 @@ ImporterApp.prototype.ShowTables = function(db,cell) {
 };
 
 
-// creates, initializes tables (and buttons) for db,cell
-// (only title rows in tables, no data)
+/*
+ * creates and returns a div with the tables for Synapse List
+ * caller should recevie returned div and appendChild
+ * (nothing is added to document yet)
+ *
+ * tables are initialized with title rows, no data yet
+ * also buttons for showing/hiding individual/summary rows
+ *
+ * HTML form (for db=N2U, cell=ADAL)
+ *  <div> -- mainDiv
+ *    <button id='toggle-all-individual-N2U-ADAL' value='on'>
+ *      Hide All Individual Synapses
+ *    </button>
+ *    <button id='toggle-all-summary-N2U-ADAL' value='on'>
+ *      Hide ALl Summary Rows
+ *    </button>
+ *    <br style='clear:both'> -- gets rid of float
+ *    <table id='table-synapse-N2U-ADAL-gap'></table>
+ *    <br>
+ *    <table id='table-synapse-N2U-ADAL-pre'></table>
+ *    <br>
+ *    <table id='table-synapse-N2U-ADAL-post'></table>
+ *    <br>
+ *  </div>
+ *
+ * (see inside for table form)
+ */
 ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
   const mainDiv = document.createElement('div');
 
@@ -713,6 +770,9 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
 
   //===========================================
   // tables
+  // initialize each table with two rows,
+  // a title row and a column names row
+  // see 
 
   for (const type of ['gap','pre','post']) {
     const table = document.createElement('table');
@@ -725,6 +785,8 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
 
     table.id = this.GetSynapseTableID(db, cell, type);
 
+    //====================
+    // add title row
     thTitle.colSpan = 6;
     thTitle.style.fontWeight = 'bold';
 
@@ -745,6 +807,8 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
         break;
     }
 
+    //====================
+    // second row showing column names
     const topRowEntries = [
       { class: 'rcol', innerHTML: 'Partner(s)' },
 	    { class: 'lcol', innerHTML: 'Data series' },
@@ -772,6 +836,13 @@ ImporterApp.prototype.InitHTMLSynapseListTables = function(db, cell) {
 };
 
 
+/*
+ * creates and returns a div with the tables for Partner List
+ * caller should recevie returned div and appendChild
+ * (nothing is added to document yet)
+ *
+ * tables are initialized with title rows, no data yet
+ */
 ImporterApp.prototype.InitHTMLPartnerListTables = function(db, cell) {
   const mainDiv = document.createElement('div');
 
