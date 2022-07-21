@@ -26,8 +26,11 @@ ImporterApp = function() {
 	  self.ShowImageSelectedInHTML();
   };
 
+  // prev/next buttons for navigating images
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
+  prevBtn.onclick = () => { this.SelectPrevImage(); };
+  nextBtn.onclick = () => { this.SelectNextImage(); };
 
   // references to the image elements
   // this.imgElems[objNum][zoomLevel] = image element
@@ -53,6 +56,7 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
   const self = this;
   
   const url = `../php/getSynapse-alt.php?db=${this.db}&contin=${this.contin}`;
+  console.log('get synapse sections from: ', url);
   const xhttp = new XMLHttpRequest();    
   xhttp.onreadystatechange = function() {
 	  if (this.readyState == 4 && this.status == 200) {
@@ -66,8 +70,6 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
           `<i style='color:red'>No such synapse found</i>`;
         return;
       }
-
-      console.log(data);
 
       // set the info section (main-info)
 	    document.getElementById('info-source').innerHTML =
@@ -84,10 +86,15 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
       const selector = self.GetSectionSelector();
       for (let sect of data) {
 	      const opt = document.createElement('option');
-	      opt.value = sect.objNum;
+        const objNum = parseInt(sect.objNum);
+
+	      opt.value = objNum;
 	      opt.innerHTML =
-          `${self.db}: ${sect.imgNum}, ObjectID: ${sect.objNum}`;
+          `${self.db}: ${sect.imgNum}, ObjectID: ${objNum}`;
 	      selector.appendChild(opt);
+
+        // keep track of order of sections
+        self.objsOrdered.push(objNum);
 	    };
       
       // add img elements to imageDiv,
@@ -154,8 +161,13 @@ ImporterApp.prototype.GetHTMLZoomLevel = function() {
 ImporterApp.prototype.GetSectionSelector = function() {
 	return document.getElementById('section');
 };
+ImporterApp.prototype.SetSectionSelector = function(objNum) {
+  const selector = this.GetSectionSelector();
+  selector.value = objNum;
+  selector.onchange();
+};
 ImporterApp.prototype.GetHTMLObjNum = function() {
-	return this.GetSectionSelector().value;
+	return parseInt(this.GetSectionSelector().value);
 };
 
 ImporterApp.prototype.ShowImage = function(objNum, zoomLevel) {
@@ -172,4 +184,22 @@ ImporterApp.prototype.ShowImageSelectedInHTML = function() {
   let obj = this.GetHTMLObjNum();
   let zoom = this.GetHTMLZoomLevel();
   this.ShowImage(obj, zoom);
+};
+
+ImporterApp.prototype.SelectPrevImage = function() {
+  const currentObjNum = this.GetHTMLObjNum();
+  const ind = this.objsOrdered.indexOf(currentObjNum);
+  if (ind < 1) {
+    return;
+  }
+  this.SetSectionSelector(this.objsOrdered[ind - 1]);
+};
+ImporterApp.prototype.SelectNextImage = function() {
+  const currentObjNum = this.GetHTMLObjNum();
+  const ind = this.objsOrdered.indexOf(currentObjNum);
+  if (ind + 1 >= this.objsOrdered.length
+    || ind < 0) {
+    return;
+  }
+  this.SetSectionSelector(this.objsOrdered[ind + 1]);
 };

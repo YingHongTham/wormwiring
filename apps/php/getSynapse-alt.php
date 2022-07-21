@@ -39,5 +39,13 @@ $sql = "select
   order by image.IMG_SectionNumber";
 
 $query_results = $dbcon->_return_query_rows_assoc($sql);
+
+foreach ($query_results as $v) {
+  foreach (['sections','objNum','sectNum'] as $k) {
+    // objNum somehow still ends up as string when sent back..
+    $v[$k] = intval($v[$k]);
+  }
+}
+
 echo json_encode($query_results);
 ?>

@@ -29,19 +29,20 @@
           or via the 3D Viewer app
           (<a id="neuronMapsA"></a>).
           <script>
-            const listViewerLink = '//'
-                + window.location.hostname
+            const listViewerLink =
+                window.location.hostname
                 + '/apps/listViewerAlt';
-            const neuronMapsLink = '//'
-                + window.location.hostname
+            const neuronMapsLink =
+                window.location.hostname
                 + '/apps/neuronMaps/';
 
             const listViewerA = document.getElementById('listViewerA');
-            listViewerA.href = listViewerLink;
+            // two slashes needed for some reason
+            listViewerA.href = '//' + listViewerLink;
             listViewerA.innerHTML = listViewerLink;
 
             const neuronMapsA = document.getElementById('neuronMapsA');
-            neuronMapsA.href = neuronMapsLink;
+            neuronMapsA.href = '//' + neuronMapsLink;
             neuronMapsA.innerHTML = neuronMapsLink;
           </script>
 
@@ -50,9 +51,9 @@
           for example,
           <span id="spanExample"></span>
           <script>
-            const exampleLink = '//'
-                + window.location.hostname
-                + '/apps/synapseViewer/?db=N2U&continNum=3321';
+            const exampleLink =
+                window.location.hostname
+              + '/apps/synapseViewer/?db=N2U&continNum=3321';
             const exampleSpan = document.getElementById('spanExample');
             exampleSpan.innerHTML = exampleLink;
           </script>
@@ -106,7 +107,7 @@
       Select EM sections:
       <select id="section"></select>
 			<button id='prevBtn' style='margin-left:5px'>Prev</button>
-			<button id='nextBnt' style='margin-left:5px'>Next</button>
+			<button id='nextBtn' style='margin-left:5px'>Next</button>
     </div>
 		<div> <!-- class="selector-right" -->
       Zoom level: 
