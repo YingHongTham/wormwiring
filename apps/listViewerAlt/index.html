@@ -49,7 +49,179 @@
 			Add cells
 		</button>
   </div></div>
-  <div id='main-content'></div>
+
+
+  <div id='main-content'>
+		<div id='infoSectionSynapse'
+				 style='margin:5px'>
+			<div style='font-size:200%'>
+				Synapse List for
+	 	   	<span class='cellNameSpan'>--</span>
+				from
+	 	   	<span class='dbNameSpan'>--</span>
+			</div>
+			<button id='helpBtnSynapse'
+							data-toggle='collapse'
+							data-target='#helpDivSynapse'>
+				Show Help
+			</button>
+			<button id='switchListSynapse'>
+				Switch to Partner List
+			</button>
+			<script>
+				const helpBtnSynapse = document.getElementById('helpBtnSynapse');
+  			helpBtnSynapse.onclick = () => {
+  			  helpBtnSynapse.innerHTML = helpBtnSynapse.innerHTML === 'Show Help' ?
+  			    'Hide Help' : 'Show Help';
+  			};
+  			const switchBtnSynapse = document.getElementById('switchListSynapse');
+  			switchBtnSynapse.onclick = () => {
+					// see build_listViewer_alt.js for importerApp
+  			  importerApp.ToggleSynapseOrPartner();
+  			};
+			</script>
+
+
+			<div id='helpDivSynapse' class='collapse'>
+				<ol>
+		   	  <li>
+	 	   	    Synapses are grouped into three tables,
+	 	   	    one for each synapse type:
+	 	   	    <ul>
+	 	   	      <li>Gap junctions</li>
+	 	   	      <li>Presynaptic: synapses where
+	 	   	        <span class='cellNameSpan'>--</span>
+	 	   	        is presynaptic
+	 	   	      </li>
+	 	   	      <li>Postsynaptic: synapses where
+	 	   	        <span class='cellNameSpan'>--</span>
+	 	   	        is postsynaptic
+	 	   	      </li>
+	 	   	    </ul>
+	 	   	    Note that the same synapse may appear twice,
+	 	   	    in the pre- and postsynaptic tables.
+	 	   	    Note also slight difference with the Partner List
+	 	   	    when it comes to synapses that have repeating partners,
+	 	   	    e.g.
+	 	   	    'RIGL -> AIZR,AVER,AIZR' will only appear once
+	 	   	    in the postsynaptic table for AIZR.
+	 	   	  </li>
+	 	   	  <li>
+	 	   	    Each table is further organized by the synaptic partners.
+	 	   	    There are two types of rows:
+	 	   	    <ul>
+	 	   	      <li>
+	 	   	        Summary rows: corresponds to a partner(s); shows the total number and sections of synapses
+	 	   	        with that partner
+	 	   	      </li>
+	 	   	      <li>
+	 	   	        Individual rows: corresponds to a synapse
+	 	   	      </li>
+	 	   	    </ul>
+	 	   	    Click on a <strong>summary row to show/hide synapses</strong> with that partner(s).
+	 	   	    There are also buttons to show/hide all rows (summary or individual).
+	 	   	  </li>
+	 	   	  <li>
+	 	   	    Click on <strong>Synapse ID to see EM</strong> (opens new tab).
+	 	   	  </li>
+	 	   	  <li>Bracketed Cells (e.g.[PVX]) denotes an inferred process identification (not traced to Cell Body)</li>
+	 	   	  <li>unk denotes an unknown neurite process identification</li>
+	 	   	  <li>In synapse lists, the listed order of postsynaptic cells in polyads represents the clockwise order of the cells around the presynaptic density, electron micrographs viewed looking toward the head.
+	 	   	    Thus, R9AL->DVF,HOB,PVY represents a synapse that appears like the diagram below in the electron micrograph. </li>
+	 	   	  <li>A 'nmj_' in front a synapse denotes a neuromuscular junction. </li>
+	 	   	  <li>Occasionally, synapes do not display properly in the maps. In cases where there is a discrepancy between the maps and this synapse list, this synapse list should be considered correct. </li>
+	 	   	  <li>Link to this page, directly to this cell:
+						<span id='spanLinkSelfSynapse'></span>?db=<span class='dbNameSpan'>--</span>&cell=<span class='cellNameSpan'>--</span>&listtype=synapse
+						<script>
+							const spanLinkSelfSynapse =
+								document.getElementById('spanLinkSelfSynapse');
+							spanLinkSelfSynapse.innerHTML =
+								window.location.hostname + window.location.pathname;
+						</script>
+	 	   	  </li>
+	 	   	</ol>
+				<img src="synapseexample.png" width="125"></td>
+			</div> <!-- helpDivSynapse -->
+		</div> <!-- infoSectionSynapse -->
+
+
+		<div id='infoSectionPartner'
+				 style='margin:5px'>
+			<div style='font-size:200%'>
+				Partner List for
+	 	   	<span class='cellNameSpan'>--</span>
+				from
+	 	   	<span class='dbNameSpan'>--</span>
+			</div>
+			<button id='helpBtnPartner'
+							data-toggle='collapse'
+							data-target='#helpDivPartner'>
+				Show Help
+			</button>
+			<button id='switchListPartner'>
+				Switch to Synapse List
+			</button>
+			<script>
+				const helpBtnPartner = document.getElementById('helpBtnPartner');
+  			helpBtnPartner.onclick = () => {
+  			  helpBtnPartner.innerHTML = helpBtnPartner.innerHTML === 'Show Help' ?
+  			    'Hide Help' : 'Show Help';
+  			};
+  			const switchBtnPartner = document.getElementById('switchListPartner');
+  			switchBtnPartner.onclick = () => {
+					// see build_listViewer_alt.js for importerApp
+  			  importerApp.ToggleSynapseOrPartner();
+  			};
+			</script>
+
+
+			<div id='helpDivPartner' class='collapse'>
+				<ol>
+    		  <li>This is essentially a summary version of
+						Synapse List,
+    		    where we group synapses by partner
+    		    (ignores polyadic structure;
+    		    see below on exactly how).
+    		  </li>
+    		  <li>
+    		    We have 4 tables: 1 for electrical,
+    		    and 3 for chemical: 'pre', 'post', 'post-post'.
+    		    Say the chosen cell is 'X'.
+    		    The 'pre' table shows the postsynaptic partners
+    		    when 'X' is presynaptic.
+    		    The 'post' table shows the presynaptic partner
+    		    when 'X' is postsynaptic.
+    		    The 'post-post' table shows the postsynaptic partners
+    		    when 'X' is also postsynaptic.
+    		    <br>
+    		    A synapse may count towards several tables;
+    		    for example, a chemical synapse of the form
+    		    'X -> X,X,Y,X' would contribute to all three tables.
+    		    More precisely, here is how many times the syanpse
+    		    contributes to each relevant row
+    		    <ul>
+    		      <li>'pre', Partner='X': 3 times</li>
+    		      <li>'pre', Partner='Y': 1 time</li>
+    		      <li>'post', Partner='X': 1 time</li>
+    		      <li>'post', Partner='Y': 0 times</li>
+    		      <li>'post-post', Partner='X': 2 times</li>
+    		      <li>'post-post', Partner='Y': 1 time</li>
+    		    </ul>
+	  		  <li>Bracketed Cells (e.g.[PVX]) denotes an inferred process identification (not traced to Cell Body)</li>
+	  		  <li>unk denotes an unkown neurite process identification</li>
+    		  <li>Link to this page, directly to this cell:
+    		    <span id='spanLinkSelfPartner'></span>?db=<span class='dbNameSpan'>--</span>&cell=<span class='cellNameSpan'>--</span>&listtype=partner
+						<script>
+							const spanLinkSelfPartner =
+								document.getElementById('spanLinkSelfPartner');
+							spanLinkSelfPartner.innerHTML =
+								window.location.hostname + window.location.pathname;
+						</script>
+    		  </li>
+    		</ol>
+			</div> <!-- helpDivPartner -->
+		</div> <!-- infoSectionPartner -->
+	</div> <!-- main content -->
 </body>
 
 </html>

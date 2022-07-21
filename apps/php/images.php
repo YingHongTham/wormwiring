@@ -53,19 +53,20 @@ class Image {
 				$this->maxHeight/$iOrigHeight);
 
 		if ($fScale < 1) {		   
-		   $iNewWidth = floor($fScale*$iOrigWidth);
-		   $iNewHeight = floor($fScale*$iOrigHeight);
+		  $iNewWidth = floor($fScale*$iOrigWidth);
+		  $iNewHeight = floor($fScale*$iOrigHeight);
 
-		   $tmpimg = imagecreatetruecolor($iNewWidth,
-						   $iNewHeight);
+      // creates black image of given size
+      $tmpimg = imagecreatetruecolor(
+        $iNewWidth, $iNewHeight);
 
-		   imagecopyresampled($tmpimg, $this->img, 0, 0, 0, 0,
-		   		$iNewWidth, $iNewHeight, $iOrigWidth, 
-				$iOrigHeight);
+		  imagecopyresampled($tmpimg, $this->img, 0, 0, 0, 0,
+		  	$iNewWidth, $iNewHeight, $iOrigWidth, 
+			  $iOrigHeight);
 		
-		   imagedestroy($this->img);				
-		   $this->img = $tmpimg;
-		   //imagedestroy($tmpimg);
+		  imagedestroy($this->img);				
+		  $this->img = $tmpimg;
+		  //imagedestroy($tmpimg);
 		}      	       
       }
 
@@ -88,57 +89,53 @@ class Image {
       }
 
 
-      function crop($cellsyn){
-      	       $this->load();
-	       if ($this->img){
-	       	  $this->_crop($cellsyn);
-		  }
-      }
+  function crop($cellsyn) {
+  	$this->load();
+	  if ($this->img) {
+	   	$this->_crop($cellsyn);
+	  }
+  }
 
-      function _crop($cellsyn){
-	       
-	       if ($cellsyn['synapse']->get_type() == 'electrical'){
-	       	  $pre = imagecolorallocate($this->img,0,255,255);
+  function _crop($cellsyn) {
+	  if ($cellsyn['synapse']->get_type() == 'electrical') {
+	    $pre = imagecolorallocate($this->img,0,255,255);
 		  $post = imagecolorallocate($this->img,0,255,255);
-	       } else {
-	       	 $pre = imagecolorallocate($this->img,250,88,130);	
-		 $post = imagecolorallocate($this->img,191,0,255);
-	       }	 
-
-	       $white = imagecolorallocate($this->img, 255, 255, 255);
-	       $red = imagecolorallocate($this->img,255,0,0);
-	       $font = './font.ttf';   	
+	  } else {
+	    $pre = imagecolorallocate($this->img,250,88,130);	
+		  $post = imagecolorallocate($this->img,191,0,255);
+	  }
+    $white = imagecolorallocate($this->img, 255, 255, 255);
+    $red = imagecolorallocate($this->img,255,0,0);
+    $font = './font.ttf';   	
 	       
-	       imagettftext($this->img,15,0,
-				$cellsyn['synapse']->get_x(),
-				$cellsyn['synapse']->get_y(),
-				$red,$font,'x');
-
-	       imagettftext($this->img,15,0,
-				$cellsyn['pre']->get_x(),
-				$cellsyn['pre']->get_y(),
-				$pre,$font,$cellsyn['pre']->get_name());
-
-	       $tmp = array('post1','post2','post3','post4');
-	       foreach ($tmp as $k){
-	       	       if (array_key_exists($k,$cellsyn)){
-				imagettftext($this->img,15,0,
-					$cellsyn[$k]->get_x(),
-					$cellsyn[$k]->get_y(),
-					$post,$font,$cellsyn[$k]->get_name());
-			}
-		}		       	  
-
-	       $tmpimg = imagecreatetruecolor($this->width,$this->height);
-	       imagecopyresized($tmpimg,$this->img,0,0,$this->cx,$this->cy,
-			        $this->width,$this->height,
-				$this->width,$this->height);
-
-		imagedestroy($this->img);
-		$this->img = $tmpimg;		
+    imagettftext(
+      $this->img, 15, 0,
+      $cellsyn['synapse']->get_x(),
+      $cellsyn['synapse']->get_y(),
+      $red, $font, 'x');
+   
+    imagettftext($this->img, 15, 0,
+      $cellsyn['pre']->get_x(),
+      $cellsyn['pre']->get_y(),
+      $pre, $font, $cellsyn['pre']->get_name());
+   
+    $tmp = array('post1','post2','post3','post4');
+    foreach ($tmp as $k) {
+      if (array_key_exists($k,$cellsyn)) {
+      imagettftext($this->img, 15, 0,
+   	    $cellsyn[$k]->get_x(),
+   	    $cellsyn[$k]->get_y(),
+   	    $post, $font, $cellsyn[$k]->get_name());
       }
+    }
 
+    $tmpimg = imagecreatetruecolor($this->width,$this->height);
+	  imagecopyresized($tmpimg,$this->img,0,0,$this->cx,$this->cy,
+      $this->width,$this->height,
+      $this->width,$this->height);
 
+    imagedestroy($this->img);
+    $this->img = $tmpimg;
+  }
 }
-
 ?>

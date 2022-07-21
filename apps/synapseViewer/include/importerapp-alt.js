@@ -89,14 +89,6 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
           `${self.db}: ${sect.imgNum}, ObjectID: ${sect.objNum}`;
 	      selector.appendChild(opt);
 	    };
-	    //for (let objNum in data.image){
-      //  const imageNum = data.image[objNum].imgNum;
-	    //  const opt = document.createElement('option');
-	    //  opt.value = objNum;
-	    //  opt.innerHTML =
-      //    `${self.db}: ${imageNum}, ObjectID: ${objNum}`;
-	    //  selector.appendChild(opt);
-	    //};
       
       // add img elements to imageDiv,
       // one for each section and zoom level,
@@ -107,20 +99,14 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
         self.imgElems[objNum] = {};
         for (let zoom of [ZOOM_LOW,ZOOM_HIGH]) {
           const img = document.createElement('img');
-          self.imgElems[objNum][zoom] = img;
-          img.id = `img-${objNum}-zoom-${zoom}`;
           imageDiv.appendChild(img);
+
+          // create reference to img element
+          self.imgElems[objNum][zoom] = img;
+          // and give them unique id's too
+          img.id = `img-${objNum}-zoom-${zoom}`;
         }
       }
-      //for (let objNum in data.image) {
-      //  self.imgElems[objNum] = {};
-      //  for (let zoom of [ZOOM_LOW,ZOOM_HIGH]) {
-      //    const img = document.createElement('img');
-      //    self.imgElems[objNum][zoom] = img;
-      //    img.id = `img-${objNum}-zoom-${zoom}`;
-      //    imageDiv.appendChild(img);
-      //  }
-      //}
 
       self.ShowImageSelectedInHTML();
 

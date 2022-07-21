@@ -1,21 +1,16 @@
 <?php
 
-// returns object with keys:
-// pre, post, section, image
+// new and improved version of getSynapse.php
+// just gets the relevant data about each section
+// of a synapse, given its contin number
+//
+// the image itself, with the drawings over it,
+// is obtained from loadSynapseImage-alt.php
 //
 // for my local testing, I only have N2U/NR/0(61,62,63).tif
 // so test on synapse with CON_Number = 3321
 
-ini_set('memory_limit','10240M');
 require_once('./dbconnect.php');
-require_once('./dbaux.php');
-include('./images.php');
-
-//Parameters
-$_iWidth = 600;
-$_iHeight = 600;
-$RELPATH = '../../image_data/';
-
 
 $db = $_GET['db'];
 $contin = $_GET['contin'];

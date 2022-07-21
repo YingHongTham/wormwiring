@@ -9,6 +9,8 @@ window.onload = function ()
   let db = params.db;
   let cell = params.cell;
 
+  // make sure to change name in index.html too
+  // (used in the buttons' onclick)
   const importerApp = new ImporterApp();
 
   // preload cell if given param in url
