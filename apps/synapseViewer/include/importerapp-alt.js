@@ -141,7 +141,7 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
 
 ImporterApp.prototype.LoadImage = function(objNum,zoom)
 {
-  const url = `../php/loadSynapseImage.php?` +
+  const url = `../php/loadSynapseImage-alt.php?` +
     `contin=${this.contin}&db=${this.db}&` +
     `objNum=${objNum}&zoom=${zoom}`;
   console.log('synapse viewer: ', url);
