@@ -6,14 +6,20 @@
 // from a series/database (given by db)
 // at a particular zoom level (given by zoom)
 
+error_reporting(E_ALL);
+ini_set("display_errors", 1);
+
 ini_set('memory_limit',"10240M");
+
 require_once('./dbconnect.php');
 require_once('./dbaux.php');
-include('./images.php');
+require_once('./images-alt.php');
 
-//Parameters
+// dimensions of rectangle drawn around synapse object
+// (in pixels in original image)
 $iWidth = 600;
 $iHeight = 600;
+
 $RELPATH = "../../image_data/";
 
 $db = $_GET["db"];
@@ -21,30 +27,11 @@ $contin = $_GET["contin"];
 $objNum = $_GET["objNum"];
 $zoom = $_GET["zoom"];
 
-$dbcon = new DB();
+// connect to MySQL database, all queries made through here
+$dbcon = new DB(); // see dbconnect.php
 $dbcon->connect($db);
 
-$cellsyn = get_syncell($db,$contin,$objNum); // dbaux
-
-//Get cell and synapse locations
-$syn_loc = $dbcon->get_object_xy($objNum);
-
-// gets the obj num of cells involved
-// but according to synapsecombined,
-// so it's the same for each section wtf
-// shouldn't one use the objects from each section??
-$cells = $dbcon->get_synapse_cell_objects($contin);
-
-foreach ($cells as $cell){
-	$cell_loc = $dbcon->get_object_xy($objNum);
-	$dx = abs($syn_loc['x'] - $cell_loc['x'])+750;
-  $dy = abs($syn_loc['y'] - $cell_loc['y'])+750;			
-	$iWidth = max($iWidth,$dx);
-  $iHeight = max($iHeight,$dy);
-};
-$x0 = $syn_loc['x'] - $iWidth/2;
-$y0 = $syn_loc['y'] - $iHeight/2;
-
+//===================================================
 // get image filename
 // MySQL has the filename but the tif format
 $sql = "select
@@ -75,25 +62,36 @@ $imageFilenameJPG = substr_replace(
 $fullpathFilename =
 	$RELPATH.$db."/".$series."/".$imageFilenameJPG;
 
+//===============================================
+// Get synapse locations (and cells?)
+$syn_loc = $dbcon->get_object_xy($objNum);
+
 $dbcon->con->close();
 
+//===============================================
+// image
+
 $IMG = new Image($fullpathFilename);
-$IMG->set_dimensions($iWidth,$iHeight);
-$IMG->set_center($x0,$y0);
+$IMG->set_rect_dimensions($iWidth,$iHeight);
+$IMG->set_rect_center($syn_loc['x'], $syn_loc['y']);
+
 $IMG->load();
 
 if ($IMG->img === false) {
-	// file not found
+	// load failed, file not found
 	return;
 }
 
-if ($zoom == 0){
-  $IMG->_rect();
+if ($zoom == 0) {
+  $IMG->draw_rect();
 } else {
-  $IMG->_crop($cellsyn);
+	$cellsyn = get_syncell($db,$contin,$objNum); // dbaux
+  $IMG->crop_image_to_rect($cellsyn);
 };
 
 $data = $IMG->encode();
-$IMG->clear();
+$IMG->clear(); // just destroys image
 
-if ($debug == 0) echo json_encode($data);
+echo json_encode($data);
+
+

@@ -19,10 +19,10 @@ ImporterApp = function() {
   // selector of section of synapse
 	const selector = this.GetSectionSelector();
   // zoom level
-  const zoomform = this.GetHTMLZoomForm();
+  const zoomForm = this.GetHTMLZoomForm();
 
   const self = this;
-	selector.onchange = zoomform.onchange = function() {
+	selector.onchange = zoomForm.onchange = function() {
 	  self.ShowImageSelectedInHTML();
   };
 
@@ -38,6 +38,12 @@ ImporterApp = function() {
     }
     if (ev.code === 'KeyN') {
       nextBtn.click();
+    }
+    if (ev.code === 'KeyL') {
+      self.SetHTMLZoomLevel(ZOOM_LOW);
+    }
+    if (ev.code === 'KeyH') {
+      self.SetHTMLZoomLevel(ZOOM_HIGH);
     }
   });
 
@@ -64,7 +70,7 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
 
   const self = this;
   
-  const url = `../php/getSynapse-alt.php?db=${this.db}&contin=${this.contin}`;
+  const url = `/apps/php/getSynapse-alt.php?db=${this.db}&contin=${this.contin}`;
   console.log('get synapse sections from: ', url);
   const xhttp = new XMLHttpRequest();    
   xhttp.onreadystatechange = function() {
@@ -141,7 +147,7 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
 
 ImporterApp.prototype.LoadImage = function(objNum,zoom)
 {
-  const url = `../php/loadSynapseImage-alt.php?` +
+  const url = `/apps/php/loadSynapseImage-alt.php?` +
     `contin=${this.contin}&db=${this.db}&` +
     `objNum=${objNum}&zoom=${zoom}`;
   console.log('synapse viewer: ', url);
@@ -165,6 +171,11 @@ ImporterApp.prototype.GetHTMLZoomForm = function() {
 };
 ImporterApp.prototype.GetHTMLZoomLevel = function() {
 	return this.GetHTMLZoomForm().elements['zoomMode'].value;
+};
+ImporterApp.prototype.SetHTMLZoomLevel = function(zoom) {
+  const zoomForm = this.GetHTMLZoomForm();
+  zoomForm.elements['zoomMode'].value = zoom;
+  zoomForm.onchange();
 };
 
 ImporterApp.prototype.GetSectionSelector = function() {
