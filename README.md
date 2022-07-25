@@ -44,7 +44,7 @@ e.g. objName1 is a number
 Here is a summary of the relevant tables:
 
 **contin**: conti(g)uous pieces; only connects across z-sections
-note: contins can go up AND down in z-direction (even branch)
+note: contins can go up AND down in z-direction (and even branch)
 - continID: id for the table (other tables don't use this)
 - CON_Number: id used by Elegance; also unique; other tables use this to identify contins (typically as continNum)
 - CON_AlternateName: cell name, if applicable
@@ -307,3 +307,30 @@ Volumetric Viewer gets its .obj and .mtl files from
 (which are also symlinks to the relevant folder)
 
 
+
+
+
+
+
+# Some obsolete files that I deleted
+(but should still be in the repo;
+go back to before July 25, 2022)
+apps/php/synList.php
+maps/neuronPage.php 
+apps/php/redirectMaps.php
+apps/synapseList/\*
+apps/partnerList/\*
+apps/php/images-alt.php
+apps/php/getSynapse.php
+apps/php/loadSynapseImage.php
+apps/php/getSynapseList.php
+apps/php/getPartnerList.php
+apps/php/selectorCells.php
+apps/listViewer/\*
+apps/php/retrieve_trace_coord.php
+apps/php/retrieve_trace_coord_test.php
+wormwiring.m.html
+
+
+eventaully dbaux.php too, but that has Unk,
+TODO put Unk class in it's own file..
