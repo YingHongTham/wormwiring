@@ -11,6 +11,12 @@ class Image {
     $this->maxWidth = 800;
     $this->maxHeight = 800;        
 
+    // this is set in load() because wtf even is PHP
+    $this->gapColor = null;
+    $this->preColor = null;
+    $this->postColor = null;
+    $this->redColor = null;
+
     // to be set by set_rect_dimensions and set_rect_center
     $this->rectWidth = 0;
     $this->rectHeight = 0;
@@ -41,9 +47,16 @@ class Image {
     $this->corner_y = $this->center_y - $this->rectHeight / 2;
   }
 
+  // also sets color; because for some reason color is tied
+  // to an image..
   function load() {
     $this->img = imagecreatefromjpeg($this->file);
     //or die("Cannot create new JPEG image");
+
+    $this->gapColor = imagecolorallocate($this->img,0,255,255);
+    $this->preColor = imagecolorallocate($this->img,250,88,130); 
+    $this->postColor = imagecolorallocate($this->img,191,0,255);
+    $this->redColor = imagecolorallocate($this->img,255,0,0);
   }
 
   // the functions image..() are standard php functions
@@ -99,7 +112,7 @@ class Image {
     echo "<img src='data:image/jpeg;base64,".base64_encode($rawImageBytes)."'/>";         
   }
 
-  function encode(){
+  function encode() {
     ob_start();
     imagejpeg($this->img,NULL,100);
     $rawImageBytes = ob_get_clean();
@@ -110,7 +123,24 @@ class Image {
     imagedestroy($this->img);
   }
 
-  function crop_image_to_rect($cellsyn) {
+  // typically $color = $this->preColor/postColor/gapColor
+  function write_text($text, $pos_x, $pos_y, $color) {
+    $font = './font.ttf';     
+    imagettftext($this->img, 15, 0,
+      $pos_x, $pos_y,
+      $color, $font, $text);
+  }
+
+  function crop_image_to_rect() {
+    $this->img = imagecrop($this->img, [
+      'x' => $this->corner_x,
+      'y' => $this->corner_y,
+      'width' => $this->rectWidth,
+      'height' => $this->rectHeight
+    ]);
+  }
+
+  function label_and_crop_image_to_rect($cellsyn) {
     if ($cellsyn['synapse']->get_type() == 'electrical') {
       $pre = imagecolorallocate($this->img,0,255,255);
       $post = imagecolorallocate($this->img,0,255,255);
