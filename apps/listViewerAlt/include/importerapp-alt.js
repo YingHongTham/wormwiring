@@ -346,6 +346,7 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
   // url to php which makes the MySQL queries
   const url = '/apps/php/getSynapseList-alt.php/'
     + `?db=${db}&cell=${cell}`;
+  console.log('retrieving synapses from ', url);
   const xhttp = new XMLHttpRequest();    
   const self = this;
   xhttp.onreadystatechange = function() {

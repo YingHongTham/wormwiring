@@ -21,14 +21,13 @@
  * (so unlike the old version getSynapseList.php,
  * we do not group by partner (which the Syn class does),
  * and instead let the client-side handle)
- * (TODO have partnerList.js also use this php)
  *
  * for chemical synpases,
  * pre means synapses where given cell is pre, likewise for post
  */
 
 include('./dbconnect.php'); // for DB, connection to MySQL
-include('./dbaux.php'); // for Unk
+include('./unkClass.php'); // for Unk
 
 // get database, cellname value from url
 $db = $_GET['db']; // 'series' in old version
