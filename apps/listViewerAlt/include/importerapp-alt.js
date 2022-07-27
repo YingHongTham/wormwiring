@@ -1029,17 +1029,23 @@ ImporterApp.prototype.ToggleSynapseOrPartner = function(showingPartnerList=null)
   const db = this.currentDb;
   const cell = this.currentCell;
 
+  console.log(this.infoSectionSynapse);
+
   if (this.showingPartnerList) {
-    this.synapseTableDiv[db][cell].style.display = 'none';
-    this.partnerTableDiv[db][cell].style.display = '';
     this.infoSectionSynapse.style.display = 'none';
     this.infoSectionPartner.style.display = '';
+    if (db !== '' && cell !== '') {
+      this.synapseTableDiv[db][cell].style.display = 'none';
+      this.partnerTableDiv[db][cell].style.display = '';
+    }
   }
   else {
-    this.synapseTableDiv[db][cell].style.display = '';
-    this.partnerTableDiv[db][cell].style.display = 'none';
     this.infoSectionSynapse.style.display = '';
     this.infoSectionPartner.style.display = 'none';
+    if (db !== '' && cell !== '') {
+      this.synapseTableDiv[db][cell].style.display = '';
+      this.partnerTableDiv[db][cell].style.display = 'none';
+    }
   }
 };
 

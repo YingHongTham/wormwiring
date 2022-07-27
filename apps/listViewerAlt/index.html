@@ -56,9 +56,9 @@
 				 style='margin:5px'>
 			<div style='font-size:200%'>
 				Synapse List for
-	 	   	<span class='cellNameSpan'>--</span>
+	 	   	<span class='cellNameSpan'></span>
 				from
-	 	   	<span class='dbNameSpan'>--</span>
+	 	   	<span class='dbNameSpan'></span>
 			</div>
 			<button id='helpBtnSynapse'
 							data-toggle='collapse'
@@ -224,6 +224,16 @@
 			</div> <!-- helpDivPartner -->
 		</div> <!-- infoSectionPartner -->
 	</div> <!-- main content -->
+	<script>
+		const cellElems = document.querySelectorAll('.cellNameSpan');
+  	for (const elem of cellElems) {
+  	  elem.innerHTML = '&lt;&lt;cell&gt;&gt;';
+  	}
+		const dbElems = document.querySelectorAll('.dbNameSpan');
+  	for (const elem of dbElems) {
+  	  elem.innerHTML = '&lt;&lt;series&gt;&gt;';
+  	}
+	</script>
 </body>
 
 </html>

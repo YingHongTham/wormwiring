@@ -1,3 +1,10 @@
+/*
+ * initliazes an instance of ImporterApp,
+ * which does all the work;
+ * main job here is to get url parameters
+ * and preload appropriately
+ */
+
 window.onload = function ()
 {
 	const params = {};
@@ -6,8 +13,30 @@ window.onload = function ()
     params[pair[0]] = pair[1];
   }
 
-  let db = params.db;
-  let cell = params.cell;
+  // for preloading the page with cell
+  let db = params.hasOwnProperty('db') ?
+    params.db : '';
+  let cell = params.hasOwnProperty('cell') ?
+    params.cell : '';
+  // choice of which type of list, synapse/partner
+  // to show by default (both are loaded);
+  // default choice is synapse list
+  let listtype = params.hasOwnProperty('listtype') ?
+    params.listtype : 'synapse';
+
+  // for backward compatibility
+  if (!params.hasOwnProperty('db')) {
+    db = params.hasOwnProperty('series') ?
+      params.series : '';
+  }
+
+  if (!params.hasOwnProperty('cell')) {
+    cell = params.hasOwnProperty('neuron') ?
+      params.neruon : '';
+  }
+
+  //==================================================
+  // initializing the app/preload
 
   // make sure to change name in index.html too
   // (used in the buttons' onclick)
@@ -18,19 +47,19 @@ window.onload = function ()
   // to make sure importerApp finish initializing
   setTimeout(() => {
     // which list to show first
-    if (params.hasOwnProperty('listtype')) {
-      if (params['listtype'].toLowerCase() === 'partner') {
-        importerApp.SetStartingListType(true);
+    if (listtype !== '') {
+      if (listtype.toLowerCase() === 'partner') {
+        importerApp.ToggleSynapseOrPartner(true);
+        //importerApp.SetStartingListType(true);
       }
-      else if (params['listtype'].toLowerCase() === 'synapse') {
-        importerApp.SetStartingListType(false);
+      else if (listtype.toLowerCase() === 'synapse') {
+        importerApp.ToggleSynapseOrPartner(false);
+        //importerApp.SetStartingListType(false);
       }
       // else: default is showing synapse list
     }
 
-    // to ensure everything in importerApp is properly loaded
-    if (params.hasOwnProperty('db')
-      && params.hasOwnProperty('cell')) {
+    if (db !== '' && cell !== '') {
       importerApp.LoadCell(db, cell);
     }
   });
