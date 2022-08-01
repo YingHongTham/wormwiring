@@ -118,7 +118,7 @@ MapViewer.prototype.initGL = function()
     posCamera: new THREE.Vector3( -250.0, 225.0, 1000.0),
     posCameraTarget: new THREE.Vector3( 0, 0, 0),
     near: 0.1,
-    far: 10000,
+    far: 20000,
     fov: 45
   };
 
@@ -1959,15 +1959,48 @@ MapViewer.prototype.addTextWithArrow = function(text,params) {
 // Volumetric
 
 MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
-  if (volumeObj === null || volumeObj === undefined) {
+  if (!['N2U','JSH','n2y'].includes(db)) {
+    console.log(`Volumetric data not available for ${db}`);
     return;
   }
-  volumeObj.scale.set(4.5,-4.5,6.5);
-  volumeObj.position.x = -270;
-  volumeObj.position.y = 188;
-  volumeObj.position.z = -5;
 
-  volumeObj.visible = false;
+  if (volumeObj === null || volumeObj === undefined) {
+    console.log(`Volumetric data not available for ${cell}`);
+    return;
+  }
+
+  // seems that, at least for OBJ loaded for n2y,
+  // the object loaded by THREE has one child,
+  // and that child is the actual object
+  // useful to know because this is how to find the
+  // bounding box of the object,
+  // which I used to help look for the loaded object
+  // in the viewer...
+  //const obj = volumeObj.children[0];
+  //obj.geometry.computeBoundingBox();
+  //const boundingBox = obj.geometry.boundingBox;
+  //console.log(boundingBox);
+
+  if (db === 'N2U' || db === 'JSH') {
+    volumeObj.scale.set(4.5,-4.5,6.5);
+    volumeObj.position.x = -270;
+    volumeObj.position.y = 188;
+    volumeObj.position.z = -5;
+  }
+
+  if (db === 'n2y') {
+    // works nicely for R9BR
+    volumeObj.scale.set(0.015,-0.01,0.015);
+    volumeObj.position.x = -185;
+    volumeObj.position.y = -75;
+    volumeObj.position.z = 13890;
+  }
+  //12677 14667
+  // max: 8200, 5800, 50000
+  // min: 6260, 3320, 0
+  // synapse: -100,-100, 12700
+
+  volumeObj.visible = true;
   this.maps[cell].volumeObj = volumeObj;
   this.maps[cell].allGrps.add(volumeObj);
 };

@@ -1275,7 +1275,7 @@ ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
   //mtlLoader.setPath(urlMtl);
   //mtlLoader.setResourcePath(urlBase); // MTLLoader.js says needs this
   
-  console.log('attempt to load mtl');
+  console.log(`attempt to load mtl from ${urlMtl}`);
   mtlLoader.load(urlMtl, function(materials) {
     console.log('mtl loaded');
     materials.preload();
@@ -1283,7 +1283,7 @@ ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
     //objLoader.setPath(urlObj);
     objLoader.setMaterials(materials);
 
-    console.log('attempt to load obj');
+    console.log(`attempt to load obj from ${urlObj}`);
     objLoader.load(urlObj, function(object) {
       console.log('obj loaded');
       volumeObj = object; // for testing

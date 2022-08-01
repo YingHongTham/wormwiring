@@ -1029,8 +1029,6 @@ ImporterApp.prototype.ToggleSynapseOrPartner = function(showingPartnerList=null)
   const db = this.currentDb;
   const cell = this.currentCell;
 
-  console.log(this.infoSectionSynapse);
-
   if (this.showingPartnerList) {
     this.infoSectionSynapse.style.display = 'none';
     this.infoSectionPartner.style.display = '';
