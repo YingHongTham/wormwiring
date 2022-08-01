@@ -1989,16 +1989,12 @@ MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
   }
 
   if (db === 'n2y') {
-    // works nicely for R9BR
-    volumeObj.scale.set(0.015,-0.01,0.015);
-    volumeObj.position.x = -185;
-    volumeObj.position.y = -75;
-    volumeObj.position.z = 13890;
+    // tuned using PGA; also R9BR, EF2
+    volumeObj.scale.set(0.015,-0.015,0.02);
+    volumeObj.position.x = -186;
+    volumeObj.position.y = -50;
+    volumeObj.position.z = 13670;
   }
-  //12677 14667
-  // max: 8200, 5800, 50000
-  // min: 6260, 3320, 0
-  // synapse: -100,-100, 12700
 
   volumeObj.visible = true;
   this.maps[cell].volumeObj = volumeObj;

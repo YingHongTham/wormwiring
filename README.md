@@ -334,3 +334,5 @@ wormwiring.m.html
 
 eventaully dbaux.php too, but that has Unk,
 TODO put Unk class in it's own file..
+
+TODO mtl, obj names for some cells like VB08 are wrong for n2y
