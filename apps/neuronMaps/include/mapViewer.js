@@ -1123,6 +1123,7 @@ MapViewer.prototype.GetSynapseLabelsVisible = function(cellname) {
 //==================
 // Volume
 
+// visibility of volume
 MapViewer.prototype.GetAllVolumeVis = function() {
   for (const cellname in this.maps) {
     if (!this.GetVolumeVis(cellname))
@@ -1138,6 +1139,7 @@ MapViewer.prototype.GetVolumeVis = function(cellname) {
   return volumeObj.visible;
 };
 
+// setter
 MapViewer.prototype.ToggleAllVolume = function(bool=null) {
   if (typeof(bool) !== 'boolean') {
     bool = !this.GetAllVolumeVis();

@@ -90,6 +90,13 @@ and gets the coordinates for that object number,
 NOT the coordinates of the synapse object
 
 **synapsecombined**: each row is one synapse
+(note to self: in the early days of Elegance,
+synapse contins were not being tracked
+(that is, synapse objects were marked but not connected
+to other sections of the same synapse);
+synapsecombined was created to record synapase objects
+as being one synapse;
+contin and object tables were later updated to reflect this)
 - idx: id for table
 - pre: name of pre cell
 - post: name(s) of post cell(s) (comma-sep list)
@@ -342,3 +349,17 @@ have contin with count = 0
 (select * from contin where type = 'neuron' and count = 0;)
 and this seems to freeze everything,
 (importerApp.viewer.controls.target becomes NaN and camera.position too)
+
+TODO volume viewer better feedback on volume availability (perhaps show on the
+cell selector dialog which volumes are available)
+
+TODO get a list of synapses with errors; e.g. contin 445 has inconsistent cells
+as you go through the sections in object
+(the fromObj has 1314, 1315, 1333, 1332, 1312, 1313,
+the first 4 are from AIBR, and the last 2 are from RICR)
+
+another error is the different number of toObj's
+(this is also seen in contin 445)
+
+TODO combine all obj files manually.. loading them all into blender takes too
+long

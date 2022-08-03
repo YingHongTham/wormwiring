@@ -47,10 +47,78 @@ ini_set('memory_limit',"10240M");
  *
  */
 
+$db = "N2U";
+
 require_once('./dbconnect.php');
 $dbcon = new DB(); // see dbconnect.php
-$dbcon->connect("N2U");
+$dbcon->connect($db);
 
+
+//=====================================================
+// table recording bad synapses with error message
+// types of errors
+
+$badSynapses = array();
+
+$NO_OBJECTS_IN_SYNAPSESCOMBINED = array(
+	"table" => "synapsecombined",
+	"error" => "Members field in synapsecombined is empty"
+);
+$NO_OBJECTS_IN_OBJECT = array(
+	"table" => "object",
+	"error" => "No objects for synapse found in object table"
+);
+$VARYING_NUMBER_OF_POST = array(
+	"table" => "object",
+	"error" => "Number of postsynaptic partners varies through sections in object table"
+);
+$VARYING_CELLS = array(
+	"table" => "object",
+	"error" => "Objects in a certain position do not belong to the same cell through sections (e.g. presynaptic partner may be RICR in the beginning but becomes AIBR later"
+);
+
+function recordBadSynapse($contin, $error) {
+	global $badSynapses;
+	$badSynapses[$contin] = $error;
+}
+
+
+//$NO_OBJECTS_IN_SYNAPSESCOMBINED = 0;
+//$NO_OBJECTS_IN_OBJECT = 1;
+//$VARYING_NUMBER_OF_POST = 2;
+//$VARYING_CELLS = 3;
+
+//function recordBadSynapse($contin, $errorType) {
+//	switch($errorType) {
+//		case $NO_OBJECTS_IN_SYNAPSESCOMBINED:
+//			$badSynapses[$contin] = array(
+//				"table" => "synapsecombined",
+//				"error" => "Members field in synapsecombined is empty"
+//			);
+//			return;
+//		case $NO_OBJECTS_IN_OBJECT:
+//			$badSynapses[$contin] = array(
+//				"table" => "object",
+//				"error" => "No objects for synapse found in object table"
+//			);
+//			return;
+//		case $VARYING_NUMBER_OF_POST:
+//			$badSynapses[$contin] = array(
+//				"table" => "object",
+//				"error" => "Number of postsynaptic partners varies through sections in object table"
+//			);
+//			return;
+//		case $VARYING_CELLS:
+//			$badSynapses[$contin] = array(
+//				"table" => "object",
+//				"error" => "Objects in a certain position do not belong to the same cell through sections (e.g. presynaptic partner may be RICR in the beginning but becomes AIBR later"
+//			);
+//			return;
+//	}
+//}
+
+
+// key = obj num of everything
 $objTable = array();
 
 $sql = "select
@@ -62,20 +130,23 @@ $sql = "select
 		toObj
 	from object
 	join contin
-		on object.CON_Number = contin.CON_Number
-	limit 10000";
+		on object.CON_Number = contin.CON_Number";
 $query_results = $dbcon->_return_query_rows_assoc($sql);
 foreach ($query_results as $v) {
 	$v['postObjList'] = explode(',', $v['toObj']);
 	$objTable[$v['objNum']] = $v;
 }
 
+
+
+// key = synapse contin num
 $synapseCombinedTable = array();
 
 $sql = "select
 		pre, post,
 		post1, post2, post3, post4,
 		preobj, postobj1, postobj2, postobj3, postobj4,
+		members,
 		continNum as contin
 	from synapsecombined";
 $query_results = $dbcon->_return_query_rows_assoc($sql);
@@ -83,6 +154,80 @@ foreach ($query_results as $v) {
 	$v['postList'] = explode(',', $v['post']);
 	$synapseCombinedTable[$v['contin']] = $v;
 }
+
+foreach ($synapseCombinedTable as $contin => $v) {
+	// get synapse objects in contin
+	$synObjs = explode(',', $v['members']);
+
+	//==================================================
+	// check if synapsecombined records the objects
+	if (count($synObjs) == 0) {
+		recordBadSynapse($contin, $NO_OBJECTS_IN_SYNAPSESCOMBINED);
+		continue;
+	}
+
+	//==================================================
+	// check consistency of number of post partners
+
+	$pass = true;
+	$numPost0 = count($objTable[$synObjs[0]]['postObjList']);
+	// go through each object in contin
+	foreach($synObjs as $obj) {
+		$numPost = count($objTable[$obj]['postObjList']);
+		if ($numPost != $numPost0) {
+			recordBadSynapse($contin, $VARYING_NUMBER_OF_POST);
+			$pass = false;
+			break;
+		}
+	}
+	if (!$pass) {
+		continue;
+	}
+
+	//===================================================
+	// check consistency of cells involved across sections
+
+	$pass = true;
+	$preObj0 = $objTable[$synObjs[0]]['fromObj'];
+	$preName0 = $objTable[$preObj0]['name'];
+	foreach($synObjs as $obj) {
+		$preObj = $objTable[$obj]['fromObj'];
+		$preName = $objTable[$preObj]['name'];
+		if ($preName != $preName0) {
+			recordBadSynapse($contin, $VARYING_CELLS);
+			$pass = false;
+			break;
+		}
+	}
+	if (!$pass) {
+		continue;
+	}
+}
+
+/*
+ * ok wtf see contin 3278 in object table,
+ * the slice with OBJ_Name = 59556
+ * has fromObj = 35002
+ * but this object is itself not in object table!
+ * (i.e. no row in object table with OBJ_Name = 35002)
+ */
+
+echo "Database: ";
+echo $db;
+echo "; Number of bad synapses: ";
+echo count($badSynapses);
+echo "<br/>";
+foreach ($badSynapses as $contin => $error) {
+	echo $contin;
+	echo ": ";
+	print_r($error);
+	echo "<br/>";
+}
+
+return;
+
+
+
 
 // do chemical first cos no need to flip and check
 foreach ($objTable as $obj => $v) {
@@ -99,8 +244,10 @@ foreach ($objTable as $obj => $v) {
 	if ($synComb['pre'] != $preName) {
 		echo $obj;
 		print_r($objTable[$v['fromObj']]);
+		echo '<br/>';
 		echo 'and';
 		print_r($synComb);
+		echo '<br/>';
 	}
 }
 
