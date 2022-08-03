@@ -1989,11 +1989,11 @@ MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
   }
 
   if (db === 'JSH') {
-    // TODO this was copied from N2U and is wrong
-    volumeObj.scale.set(4.5,-4.5,6.5);
-    volumeObj.position.x = -270;
-    volumeObj.position.y = 188;
-    volumeObj.position.z = -5;
+    // tuned with AINL, refined with AVKL
+    volumeObj.scale.set(15,-15,6);
+    volumeObj.position.x = -110;
+    volumeObj.position.y = 122;
+    volumeObj.position.z = 0;
   }
 
   if (db === 'n2y') {
@@ -2004,7 +2004,7 @@ MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
     volumeObj.position.z = 13670;
   }
 
-  volumeObj.visible = false;
+  volumeObj.visible = true;
   this.maps[cell].volumeObj = volumeObj;
   this.maps[cell].allGrps.add(volumeObj);
 };
