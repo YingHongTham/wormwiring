@@ -103,8 +103,6 @@ foreach($query_results as $v) {
 	$objTable[$v['objNum']] = $v;
 }
 
-print_r($objTable);
-
 //===============================================
 // image
 
