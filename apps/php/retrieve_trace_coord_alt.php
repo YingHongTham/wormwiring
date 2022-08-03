@@ -1,4 +1,5 @@
 <?php
+
 /* redoing retrieve_trace_coord.php
  * main changes are
  * - blazingly fast

@@ -1,4 +1,4 @@
-// requires /apps/include/cellLists.js, floatingdialog-alt.js
+// requires /apps/include/cellLists-alt.js, floatingdialog-alt.js
 if (celllistByDbType === undefined) {
   console.error('expect /apps/include/cellLists-alt.js');
 }
@@ -116,6 +116,7 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
 
     dbDivID[db] = `cellListDiv-${db}`;
   }
+
 
   //======================================
   // button for loading

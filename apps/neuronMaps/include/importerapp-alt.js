@@ -1261,7 +1261,7 @@ ImporterApp.prototype.GetTranslationSliderValue = function() {
 
 
 //=====================================================
-// Volumetric (testing phase)
+// Volumetric
 
 ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
   const self = this;

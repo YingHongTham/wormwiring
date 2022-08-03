@@ -1981,7 +1981,15 @@ MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
   //const boundingBox = obj.geometry.boundingBox;
   //console.log(boundingBox);
 
-  if (db === 'N2U' || db === 'JSH') {
+  if (db === 'N2U') {
+    volumeObj.scale.set(4.5,-4.5,6.5);
+    volumeObj.position.x = -270;
+    volumeObj.position.y = 188;
+    volumeObj.position.z = -5;
+  }
+
+  if (db === 'JSH') {
+    // TODO this was copied from N2U and is wrong
     volumeObj.scale.set(4.5,-4.5,6.5);
     volumeObj.position.x = -270;
     volumeObj.position.y = 188;
@@ -1996,7 +2004,7 @@ MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
     volumeObj.position.z = 13670;
   }
 
-  volumeObj.visible = true;
+  volumeObj.visible = false;
   this.maps[cell].volumeObj = volumeObj;
   this.maps[cell].allGrps.add(volumeObj);
 };
