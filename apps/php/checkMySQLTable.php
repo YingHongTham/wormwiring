@@ -4,6 +4,51 @@ error_reporting(E_ALL);
 ini_set("display_errors", 1);
 ini_set('memory_limit',"10240M");
 
+/*
+ * just writing to clarify what exactly I'm doing..
+ *
+ * what would one expect from these tables?
+ *
+ * object table records both synapse objects
+ * and cell objects
+ * for the synapse objects,
+ * the fromObj and toObj fields tell you which cell objects
+ * that that synapse object is attached to
+ *
+ * expectation:
+ * -all the objects in fromObj and toObj exist,
+ *  that is, there should be a row with OBJ_Name = those obj
+ * -synapse should have nonzero number of sections
+ * -the cells involved in a synapse remain consistent
+ *  through the sections of the synapse
+ *  -in particular, the number of cells involved should stay constant
+ *
+ */
+
+/*
+ * for ease of analysis,
+ * we perform queries and keeps results in dictionaries:
+ * -objTable: keys = objNum, value = array(
+ *    objNum (self),
+ *    contin to which this object belongs to,
+ *    cell name if object is part of cell not synapse,
+ *    type = cell/chemical/electrical,
+ *    fromObj, toObj - the cell objects if is synapse
+ *  )
+ *
+ * -continObjs: key = contin num, value = array of
+ *   object numbers in this contin
+ *   (this table is obtained from object,contin table)
+ *
+ * -synapseCombinedTable: key = contin, value = array(
+ *    pre, post,
+ *    post1, post2, post3, post4,
+ *    preobj, postobj1, postobj2, postobj3, postobj4,
+ *    members,
+ *    continNum as contin
+ *  )
+ */
+
 
 /*
  * synapsecombined has many many errors in the
@@ -45,6 +90,11 @@ ini_set('memory_limit',"10240M");
  * contin -> { pre, post1, post2, post3, post4 }
  * then for each entry corresponding to a synapse,
  *
+ * ok wtf see contin 3278 in object table,
+ * the slice with OBJ_Name = 59556
+ * has fromObj = 35002
+ * but this object is itself not in object table!
+ * (i.e. no row in object table with OBJ_Name = 35002)
  */
 
 $db = "N2U";
@@ -58,15 +108,32 @@ $dbcon->connect($db);
 // table recording bad synapses with error message
 // types of errors
 
+// dictionary with keys = contin of synapse, value = error msg
 $badSynapses = array();
+
+// dictionary with keys = objects that SHOULD exist,
+// value = table and field in which it's found
+$badObjects = array();
 
 $NO_OBJECTS_IN_SYNAPSESCOMBINED = array(
 	"table" => "synapsecombined",
 	"error" => "Members field in synapsecombined is empty"
 );
-$NO_OBJECTS_IN_OBJECT = array(
+$SYNAPSE_NOT_FOUND_IN_OBJECT = array(
 	"table" => "object",
-	"error" => "No objects for synapse found in object table"
+	"error" => "Synapse not found in object table"
+);
+$SYNAPSE_NOT_FOUND_IN_CONTIN = array(
+	"table" => "object",
+	"error" => "Synapse not found in contin table"
+);
+$NUM_SECTIONS_DIFFER = array(
+	"table" => "object/synapsecombined",
+	"error" => "Number of sections in synapsecombined (number of objects in 'members' field) is different from the number of objects in contin table with this CON_Number"
+);
+$SECTIONS_OBJECTS_DIFFER = array(
+	"table" => "object/synapsecombined",
+	"error" => "set of objects with given contin number do not agree"
 );
 $VARYING_NUMBER_OF_POST = array(
 	"table" => "object",
@@ -77,49 +144,45 @@ $VARYING_CELLS = array(
 	"error" => "Objects in a certain position do not belong to the same cell through sections (e.g. presynaptic partner may be RICR in the beginning but becomes AIBR later"
 );
 
+// expect $error to be one of the above
 function recordBadSynapse($contin, $error) {
 	global $badSynapses;
 	$badSynapses[$contin] = $error;
 }
 
+// record that object with object number $obj
+// was found in $table, column $field,
+// but not found in object table (as the OBJ_Name)
+// (note that this could happen multiple times to
+// a single missing object,
+// the table and field just gets rewritten)
+// $row_id is a unique identifier of the row where error found,
+// e.g. 'OBJ_Name = 31331'
+function recordBadObject($obj, $table, $field, $row_id) {
+	global $badObjects;
+	$badObjects[$obj] = array(
+		'table' => $table,
+		'field' => $field,
+		'row' => $row_id,
+	);
+}
 
-//$NO_OBJECTS_IN_SYNAPSESCOMBINED = 0;
-//$NO_OBJECTS_IN_OBJECT = 1;
-//$VARYING_NUMBER_OF_POST = 2;
-//$VARYING_CELLS = 3;
+//================================================
+// table recording bad object numbers..
+// sometimes there are object numbers referenced
+// but do not have a corresponding row,
+// e.g. 35002 is the fromObj of synapse object 59556,
+// but there is no row in object table with OBJ_Name = 35002..
+//
 
-//function recordBadSynapse($contin, $errorType) {
-//	switch($errorType) {
-//		case $NO_OBJECTS_IN_SYNAPSESCOMBINED:
-//			$badSynapses[$contin] = array(
-//				"table" => "synapsecombined",
-//				"error" => "Members field in synapsecombined is empty"
-//			);
-//			return;
-//		case $NO_OBJECTS_IN_OBJECT:
-//			$badSynapses[$contin] = array(
-//				"table" => "object",
-//				"error" => "No objects for synapse found in object table"
-//			);
-//			return;
-//		case $VARYING_NUMBER_OF_POST:
-//			$badSynapses[$contin] = array(
-//				"table" => "object",
-//				"error" => "Number of postsynaptic partners varies through sections in object table"
-//			);
-//			return;
-//		case $VARYING_CELLS:
-//			$badSynapses[$contin] = array(
-//				"table" => "object",
-//				"error" => "Objects in a certain position do not belong to the same cell through sections (e.g. presynaptic partner may be RICR in the beginning but becomes AIBR later"
-//			);
-//			return;
-//	}
-//}
+$badObjects = array();
 
 
-// key = obj num of everything
+// key = obj num (synapses and cells)
 $objTable = array();
+
+// key = contin, value = objects in it
+$continObjs = array();
 
 $sql = "select
 		OBJ_Name as objNum,
@@ -135,6 +198,12 @@ $query_results = $dbcon->_return_query_rows_assoc($sql);
 foreach ($query_results as $v) {
 	$v['postObjList'] = explode(',', $v['toObj']);
 	$objTable[$v['objNum']] = $v;
+
+	// add object to $continObjs
+	if (!array_key_exists($v['contin'], $continObjs)) {
+		$continObjs[$v['contin']] = array();
+	}
+	$continObjs[$v['contin']][] = $v['objNum'];
 }
 
 
@@ -155,6 +224,10 @@ foreach ($query_results as $v) {
 	$synapseCombinedTable[$v['contin']] = $v;
 }
 
+// go through synapses, trying to find error
+// we stop and go to next synapse when we hit an error
+// so after each fix, you should run this check again,
+// as it may bring up errors that were not detected
 foreach ($synapseCombinedTable as $contin => $v) {
 	// get synapse objects in contin
 	$synObjs = explode(',', $v['members']);
@@ -165,6 +238,36 @@ foreach ($synapseCombinedTable as $contin => $v) {
 		recordBadSynapse($contin, $NO_OBJECTS_IN_SYNAPSESCOMBINED);
 		continue;
 	}
+
+	//==================================================
+	// check that synapse is found in object tables
+	if (!array_key_exists($contin, $continObjs)) {
+		recordBadSynapse($contin, $SYNAPSE_NOT_FOUND_IN_OBJECT);
+		continue;
+	}
+
+	//==================================================
+	// check same number of synapses in both tables,
+	// synapsecombined and object
+	if (count($synObjs) != count($continObjs[$contin])) {
+		recordBadSynapse($contin, $NUM_SECTIONS_DIFFER);
+		continue;
+	}
+
+	//==================================================
+	// check that the 'members' objects are indeed
+	// the same in object table
+	// (i.e. objects in object table with contin number
+	// match up with $synObjs as defined above)
+	$synObjs_copy = $synObjs;
+	$continObjs_copy = $continObjs[$contin];
+	sort($synObjs_copy);
+	sort($continObjs_copy);
+	if ($synObjs_copy != $continObjs_copy) {
+		recordBadSynapse($contin, $SECTIONS_OBJECTS_DIFFER);
+		return;
+	}
+
 
 	//==================================================
 	// check consistency of number of post partners
@@ -178,6 +281,27 @@ foreach ($synapseCombinedTable as $contin => $v) {
 			recordBadSynapse($contin, $VARYING_NUMBER_OF_POST);
 			$pass = false;
 			break;
+		}
+	}
+	if (!$pass) {
+		continue;
+	}
+
+	//===================================================
+	// check that every from/toObj actually exists
+	$pass = true;
+	foreach($synObjs as $obj) {
+		$preObj = $objTable[$obj]['fromObj'];
+		$postObjList = $objTable[$obj]['postObjList'];
+		if (!array_key_exists($preObj, $objTable)) {
+			recordBadObject($preObj, 'object', 'fromObj', "OBJ_Name = $obj");
+			$pass = false;
+		}
+		foreach($postObjList as $postObj) {
+			if (!array_key_exists($postObj, $objTable)) {
+				recordBadObject($postObj, 'object', 'toObj', "OBJ_Name = $obj");
+				$pass = false;
+			}
 		}
 	}
 	if (!$pass) {
@@ -204,19 +328,20 @@ foreach ($synapseCombinedTable as $contin => $v) {
 	}
 }
 
-/*
- * ok wtf see contin 3278 in object table,
- * the slice with OBJ_Name = 59556
- * has fromObj = 35002
- * but this object is itself not in object table!
- * (i.e. no row in object table with OBJ_Name = 35002)
- */
-
 echo "Database: ";
 echo $db;
 echo "; Number of bad synapses: ";
 echo count($badSynapses);
 echo "<br/>";
+echo "Bad objects: <br/>";
+foreach ($badObjects as $obj => $error) {
+	echo $obj;
+	echo ": ";
+	print_r($error);
+	echo "<br/>";
+}
+echo "<br/>";
+echo "Bad synapses: <br/>";
 foreach ($badSynapses as $contin => $error) {
 	echo $contin;
 	echo ": ";
