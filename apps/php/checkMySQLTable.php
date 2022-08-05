@@ -391,6 +391,9 @@ echo count($badSynapses);
 echo "; Number of bad objects: ";
 echo count($badObjects);
 echo "<br/>";
+
+echo "(to check other databases, change the ?db=$db value in the url)";
+echo "<br/>";
 echo "<br/>";
 
 echo "Some MySQL queries that can be helpful:";
@@ -479,6 +482,11 @@ echo "<br/>";
 echo "<br/>";
 
 echo "<b>Bad synapses:</b><br/>";
+echo "Here the key (the number before the colon)
+	is the contin number of the synapse in question.
+	The [table] value refers to the table where the error was found
+	(the error may be incompatibility between tables,
+	so it could be multiple tables).";
 echo "<pre>";
 foreach ($badSynapses as $contin => $error) {
 	echo $contin;
