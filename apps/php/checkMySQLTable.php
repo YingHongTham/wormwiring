@@ -1,5 +1,9 @@
 <?php
 
+// uncomment when done testing,
+// avoid unwanted calls to run this file
+//return;
+
 error_reporting(E_ALL);
 ini_set("display_errors", 1);
 ini_set('memory_limit',"10240M");
@@ -97,7 +101,7 @@ ini_set('memory_limit',"10240M");
  * (i.e. no row in object table with OBJ_Name = 35002)
  */
 
-$db = "N2U";
+$db = $_GET["db"];
 
 require_once('./dbconnect.php');
 $dbcon = new DB(); // see dbconnect.php
@@ -117,31 +121,48 @@ $badObjects = array();
 
 $NO_OBJECTS_IN_SYNAPSESCOMBINED = array(
 	"table" => "synapsecombined",
-	"error" => "Members field in synapsecombined is empty"
+	"error" => "01 Members field in synapsecombined is empty"
 );
 $SYNAPSE_NOT_FOUND_IN_OBJECT = array(
 	"table" => "object",
-	"error" => "Synapse not found in object table"
+	"error" => "02 Synapse not found in object table"
 );
 $SYNAPSE_NOT_FOUND_IN_CONTIN = array(
 	"table" => "object",
-	"error" => "Synapse not found in contin table"
+	"error" => "03 Synapse not found in contin table"
 );
 $NUM_SECTIONS_DIFFER = array(
 	"table" => "object/synapsecombined",
-	"error" => "Number of sections in synapsecombined (number of objects in 'members' field) is different from the number of objects in contin table with this CON_Number"
+	"error" => "04 Number of sections in synapsecombined (number of objects in 'members' field) is different from the number of objects in contin table with this CON_Number"
 );
 $SECTIONS_OBJECTS_DIFFER = array(
 	"table" => "object/synapsecombined",
-	"error" => "set of objects with given contin number do not agree"
+	"error" => "05 set of objects with given contin number do not agree"
 );
 $VARYING_NUMBER_OF_POST = array(
 	"table" => "object",
-	"error" => "Number of postsynaptic partners varies through sections in object table"
+	"error" => "06 Number of postsynaptic partners varies through sections in object table"
 );
-$VARYING_CELLS = array(
+$VARYING_PRE = array(
 	"table" => "object",
-	"error" => "Objects in a certain position do not belong to the same cell through sections (e.g. presynaptic partner may be RICR in the beginning but becomes AIBR later"
+	"error" => "07 The pre object ('fromObj' field in object table) does not correspond to the same cell through sections"
+);
+$VARYING_POST = array();
+$VARYING_POST[] = array(
+	"table" => "object",
+	"error" => "08 The 1st post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
+);
+$VARYING_POST[] = array(
+	"table" => "object",
+	"error" => "08 The 2nd post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
+);
+$VARYING_POST[] = array(
+	"table" => "object",
+	"error" => "08 The 3rd post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
+);
+$VARYING_POST[] = array(
+	"table" => "object",
+	"error" => "08 The 4th post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
 );
 
 // expect $error to be one of the above
@@ -228,6 +249,15 @@ foreach ($query_results as $v) {
 // we stop and go to next synapse when we hit an error
 // so after each fix, you should run this check again,
 // as it may bring up errors that were not detected
+//
+// many of the check require the previous ones to pass
+// in order for the checking procedure to work correctly
+// or even run properly
+// for example, the check for
+// consistency of cells involved across sections
+// (failing produces error $VARYING_PRE/POST)
+// requires that the number of post cells is the same
+// in each section (as found in object table)
 foreach ($synapseCombinedTable as $contin => $v) {
 	// get synapse objects in contin
 	$synObjs = explode(',', $v['members']);
@@ -310,6 +340,7 @@ foreach ($synapseCombinedTable as $contin => $v) {
 
 	//===================================================
 	// check consistency of cells involved across sections
+	// first check pre
 
 	$pass = true;
 	$preObj0 = $objTable[$synObjs[0]]['fromObj'];
@@ -318,63 +349,144 @@ foreach ($synapseCombinedTable as $contin => $v) {
 		$preObj = $objTable[$obj]['fromObj'];
 		$preName = $objTable[$preObj]['name'];
 		if ($preName != $preName0) {
-			recordBadSynapse($contin, $VARYING_CELLS);
+			recordBadSynapse($contin, $VARYING_PRE);
 			$pass = false;
 			break;
+		}
+	}
+
+	// now check post, checking each position
+	$postObjList0 = $objTable[$synObjs[0]]['postObjList'];
+	for ($i = 0; $i < count($postObjList0); $i++) {
+		foreach ($synObjs as $obj) {
+			$postObjList = $objTable[$obj]['postObjList'];
+
+			$postObj0 = $postObjList0[$i];
+			$postObj = $postObjList[$i];
+			// their corresponding names
+			$postObjName0 = $objTable[$postObj0]['name'];
+			$postObjName = $objTable[$postObj]['name'];
+			if ($postObjName != $postObjName0) {
+				recordBadSynapse($contin, $VARYING_POST[$i]);
+				$pass = false;
+				break; // move to next position
+			}
 		}
 	}
 	if (!$pass) {
 		continue;
 	}
+
+	//===================================================
+	// check cell names pre/post1/2/3/4 matches
+	// the cell name of the pre/postobj1/2/3/4 as told in
+	// object join contin tables
+	$pass = true;
 }
 
 echo "Database: ";
 echo $db;
 echo "; Number of bad synapses: ";
 echo count($badSynapses);
+echo "; Number of bad objects: ";
+echo count($badObjects);
 echo "<br/>";
-echo "Bad objects: <br/>";
+echo "<br/>";
+
+echo "Some MySQL queries that can be helpful:";
+echo "<br/>";
+echo "<br/>";
+
+echo "Get synapse with given contin number from synapsecombined:";
+echo "<br/>";
+echo "<i>";
+echo "select * from synapsecombined where continNum = &lt;contin&gt;;";
+echo "</i>";
+echo "<br/>";
+
+echo "Get synapse with given contin number from contin table:";
+echo "<br/>";
+echo "<i>";
+echo "select * from contin where CON_Number = &lt;contin&gt;;";
+echo "</i>";
+echo "<br/>";
+
+echo "Get the objects in a synapse with given contin number from object table:";
+echo "<br/>";
+echo "<i>";
+echo "select * from object where CON_Number = &lt;contin&gt;;";
+echo "</i>";
+echo "<br/>";
+
+echo "Get object given object number(s) from object table:";
+echo "<br/>";
+echo "<i>";
+echo "select * from object where OBJ_Name = &lt;objNum&gt;;";
+echo "<br/>";
+echo "select * from object where OBJ_Name in (&lt;objNum1&gt;,&lt;objNum2&gt;,...);";
+echo "</i>";
+echo "<br/>";
+
+echo "Get object with given pre object number from object table:";
+echo "<br/>";
+echo "<i>";
+echo "select * from object where fromObj = &lt;objNum&gt;;";
+echo "</i>";
+echo "<br/>";
+
+echo "Get object with given post object number from object table:";
+echo "<br/>";
+echo "<i>";
+echo "select * from object where toObj like '%&lt;objNum&gt;%';";
+echo "</i>";
+echo "<br/>";
+
+echo "<br/>";
+echo "<br/>";
+
+echo "Synapse Viewer for synapse with given contin number:";
+echo "<br/>";
+echo "https://dev.wormwiring.org/apps/synapseViewer/?db=$db&continNum=&lt;contin&gt;";
+echo "<br/>";
+echo "<br/>";
+
+echo "<b>Bad objects:</b><br/>";
+echo "These are object numbers which show up in some table,
+	but doesn't have it's own entry in object table
+	(that is, there is no row in object table with
+	OBJ_Name equal this object number";
+echo "<br/>";
+echo "Meaning of output below:";
+echo "<br/>";
+echo "<pre>
+bad object number: Array(
+	[table] => MySQL table in which this object appears
+	[field] => the field (column) of the table where this object appears
+	[row] => where clause that identifies the row of the table where this object appears (typically it's OBJ_Name = .., and here this OBJ_Name is not of this object, but the object number of a synapase section
+)</pre>";
+echo "<br/>";
+echo "<br/>";
+
+echo "<pre>";
 foreach ($badObjects as $obj => $error) {
 	echo $obj;
 	echo ": ";
 	print_r($error);
 	echo "<br/>";
 }
+echo "</pre>";
 echo "<br/>";
-echo "Bad synapses: <br/>";
+echo "<br/>";
+
+echo "<b>Bad synapses:</b><br/>";
+echo "<pre>";
 foreach ($badSynapses as $contin => $error) {
 	echo $contin;
 	echo ": ";
 	print_r($error);
 	echo "<br/>";
 }
-
-return;
-
-
-
-
-// do chemical first cos no need to flip and check
-foreach ($objTable as $obj => $v) {
-	if ($v['type'] != 'chemical') {
-		// not synapse
-		continue;
-	}
-	$contin = $v['contin'];
-	$synComb = $synapseCombinedTable[$contin];
-
-	// cell names according to object table
-	$preName = $objTable[$v['fromObj']]['name'];
-
-	if ($synComb['pre'] != $preName) {
-		echo $obj;
-		print_r($objTable[$v['fromObj']]);
-		echo '<br/>';
-		echo 'and';
-		print_r($synComb);
-		echo '<br/>';
-	}
-}
+echo "</pre>";
 
 
 ?>
