@@ -2007,6 +2007,13 @@ MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
   }
 
   volumeObj.visible = true;
+
+  if (cell === 'ALL_CELLS_COMBINED_N2U') {
+    this.scene.add(volumeObj);
+    console.log('BRUH');
+    return;
+  }
+
   this.maps[cell].volumeObj = volumeObj;
   this.maps[cell].allGrps.add(volumeObj);
 };

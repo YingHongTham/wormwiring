@@ -121,48 +121,59 @@ $badObjects = array();
 
 $NO_OBJECTS_IN_SYNAPSESCOMBINED = array(
 	"table" => "synapsecombined",
-	"error" => "01 Members field in synapsecombined is empty"
+	"error" => "01",
+	"message" => "Members field in synapsecombined is empty"
 );
 $SYNAPSE_NOT_FOUND_IN_OBJECT = array(
 	"table" => "object",
-	"error" => "02 Synapse not found in object table"
+	"error" => "02",
+	"message" => "Synapse not found in object table"
 );
 $SYNAPSE_NOT_FOUND_IN_CONTIN = array(
 	"table" => "object",
-	"error" => "03 Synapse not found in contin table"
+	"error" => "03",
+	"message" => "Synapse not found in contin table"
 );
 $NUM_SECTIONS_DIFFER = array(
 	"table" => "object/synapsecombined",
-	"error" => "04 Number of sections in synapsecombined (number of objects in 'members' field) is different from the number of objects in contin table with this CON_Number"
+	"error" => "04",
+	"message" => "Number of sections in synapsecombined (number of objects in 'members' field) is different from the number of objects in contin table with this CON_Number"
 );
 $SECTIONS_OBJECTS_DIFFER = array(
 	"table" => "object/synapsecombined",
-	"error" => "05 set of objects with given contin number do not agree"
+	"error" => "05",
+	"message" => "set of objects with given contin number do not agree"
 );
 $VARYING_NUMBER_OF_POST = array(
 	"table" => "object",
-	"error" => "06 Number of postsynaptic partners varies through sections in object table"
+	"error" => "06",
+	"message" => "Number of postsynaptic partners varies through sections in object table"
 );
 $VARYING_PRE = array(
 	"table" => "object",
-	"error" => "07 The pre object ('fromObj' field in object table) does not correspond to the same cell through sections"
+	"error" => "07",
+	"message" => "The pre object ('fromObj' field in object table) does not correspond to the same cell through sections"
 );
 $VARYING_POST = array();
 $VARYING_POST[] = array(
 	"table" => "object",
-	"error" => "08 The 1st post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
+	"error" => "08",
+	"message" => "The 1st post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
 );
 $VARYING_POST[] = array(
 	"table" => "object",
-	"error" => "08 The 2nd post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
+	"error" => "08",
+	"message" => "The 2nd post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
 );
 $VARYING_POST[] = array(
 	"table" => "object",
-	"error" => "08 The 3rd post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
+	"error" => "08",
+	"message" => "The 3rd post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
 );
 $VARYING_POST[] = array(
 	"table" => "object",
-	"error" => "08 The 4th post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
+	"error" => "08",
+	"message" => "The 4th post object (in 'toObj' field in object table) does not correspond to the same cell through sections"
 );
 
 // expect $error to be one of the above
@@ -384,6 +395,9 @@ foreach ($synapseCombinedTable as $contin => $v) {
 	$pass = true;
 }
 
+//=========================================================
+// print out stuff
+
 echo "Database: ";
 echo $db;
 echo "; Number of bad synapses: ";
@@ -393,6 +407,19 @@ echo count($badObjects);
 echo "<br/>";
 
 echo "(to check other databases, change the ?db=$db value in the url)";
+echo "<br/>";
+echo "<br/>";
+
+echo "Number of bad synapses by error type";
+$numSynByErrorType = array();
+foreach ($badSynapses as $contin => $val) {
+	$errorType = $val['error'];
+	if (!array_key_exists($errorType, $numSynByErrorType)) {
+		$numSynByErrorType[$errorType] = 0;
+	}
+	$numSynByErrorType[$errorType]++;
+}
+print_r($numSynByErrorType);
 echo "<br/>";
 echo "<br/>";
 

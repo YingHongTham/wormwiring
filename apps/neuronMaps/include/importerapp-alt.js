@@ -25,6 +25,9 @@
 if (celllistByDbType === undefined) {
   console.error('expect /apps/include/cellLists-alt.js');
 }
+if (cellsWithVolumeModels === undefined) {
+  console.error('expect /apps/include/cellModelList.js');
+}
 if (cellnameWALinkDict === undefined
     || cellnameToWALink === undefined) {
   console.error('expect /apps/include/wa_link.js');
@@ -92,6 +95,8 @@ ImporterApp.prototype.Init = function ()
 {
   this.InitLinkFunctionalityWithHTML();
   this.InitViewerStuff();
+
+  this.retrieveVolumetric('N2U','ALL_CELLS_COMBINED_N2U');
 };
 
 
@@ -385,7 +390,6 @@ ImporterApp.prototype.LoadDbCell = function(db, cell)
   //this.cellsInSlctdSrs = celllistByDbType[db];
 
   this.LoadMap2(db,cell);
-  //this.LoadMapMenu2(cell); // put into LoadMap2
 };
 
 
@@ -566,7 +570,6 @@ ImporterApp.prototype.CellSelectorDialog = function()
           }
           self.selectedCells.add(cell);
           self.LoadMap2(series,cell);
-          //self.LoadMapMenu2(cell); // putinto LoadMap2
         });
         self.dialog.Close();
       }
@@ -638,8 +641,15 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
 
       let data = JSON.parse(this.responseText);
       self.viewer.loadMap2(data);
-      self.retrieveVolumetric(db, cell); // async
-      self.LoadMapMenu2(cell);
+      if (cellsWithVolumeModels.hasOwnProperty(db) && 
+          cellsWithVolumeModels[db].includes(cell)) {
+        self.LoadMapMenu2(cell,true);
+        self.retrieveVolumetric(db, cell); // async
+      }
+      else {
+        console.log('volume not available');
+        self.LoadMapMenu2(cell,false);
+      }
 
       console.timeEnd(`Load to viewer ${cell}`);
 
@@ -660,6 +670,7 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
  * assumes loadMap2 has been run
  *
  * @param {String} cellname - name of cell
+ * @param {Boolean} volExist - whether volume data exists
  *
  * each cell entry should be of the form:
  *  <div> // div
@@ -673,8 +684,9 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
  *      <button>Show Volume</button>
  *    </div>
  *  </div>
+ *
  */
-ImporterApp.prototype.LoadMapMenu2 = function(cellname)
+ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
 {
   const self = this;
   const mapsContentDiv = this.GetMapsContentDiv();
@@ -824,16 +836,18 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname)
 
   //===============================================
   // show/hide volumetric
-  volumeBtn.innerHTML = 'Show Volume';
-  volumeBtn.onclick = () => {
-    const volumeVis = self.viewer.GetVolumeVis(cellname);
-    if (volumeVis === null || volumeVis === undefined) {
-      volumeBtn.innerHTML = 'Volume Unavailable';
-    } else {
+  if (volExist) {
+    volumeBtn.innerHTML = 'Hide Volume';
+    volumeBtn.onclick = () => {
+      const volumeVis = self.viewer.GetVolumeVis(cellname);
+      //if (volumeVis === null || volumeVis === undefined) {
       volumeBtn.innerHTML = !volumeVis ? 'Hide Volume' : 'Show Volume';
-    }
-    self.viewer.ToggleVolumeByCell(cellname, !volumeVis);
-  };
+      self.viewer.ToggleVolumeByCell(cellname, !volumeVis);
+    };
+  }
+  else {
+    volumeBtn.innerHTML = 'Volume Unavailable';
+  }
 };
 
 /*
@@ -1287,10 +1301,6 @@ ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
     objLoader.load(urlObj, function(object) {
       console.log('obj loaded');
       volumeObj = object; // for testing
-      //const m = new THREE.Matrix4();
-      //m.makeTranslation(-390,+276,0);
-      //object.applyMatrix(m);
-      //self.viewer.scene.add(object);
 
       // scales/translates appropriately
       self.viewer.loadVolumetric(db, cell, object);
