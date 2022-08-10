@@ -96,7 +96,16 @@ ImporterApp.prototype.Init = function ()
   this.InitLinkFunctionalityWithHTML();
   this.InitViewerStuff();
 
-  this.retrieveVolumetric('N2U','ALL_CELLS_COMBINED_N2U');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_00_REDUCED');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_01_REDUCED');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_02_REDUCED');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_03_REDUCED');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_04_REDUCED');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_05_REDUCED');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_06_REDUCED');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_07_REDUCED');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_08_REDUCED');
+  this.retrieveVolumetric('N2U','PARTIAL_CELLS_COMBINED_N2U_09_REDUCED');
 };
 
 

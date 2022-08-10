@@ -2008,7 +2008,9 @@ MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
 
   volumeObj.visible = true;
 
-  if (cell === 'ALL_CELLS_COMBINED_N2U') {
+  console.log(cell);
+  if (cell.includes('PARTIAL_CELLS_COMBINED_N2U_')) {
+    // TODO set opacity
     this.scene.add(volumeObj);
     console.log('BRUH');
     return;
