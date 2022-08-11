@@ -96,7 +96,9 @@ ImporterApp.prototype.Init = function ()
   this.InitLinkFunctionalityWithHTML();
   this.InitViewerStuff();
 
-  this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_FULL');
+  this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
+  this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
+  this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
 };
 
 

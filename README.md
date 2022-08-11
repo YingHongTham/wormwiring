@@ -353,13 +353,8 @@ and this seems to freeze everything,
 TODO volume viewer better feedback on volume availability (perhaps show on the
 cell selector dialog which volumes are available)
 
-TODO get a list of synapses with errors; e.g. contin 445 has inconsistent cells
-as you go through the sections in object
-(the fromObj has 1314, 1315, 1333, 1332, 1312, 1313,
-the first 4 are from AIBR, and the last 2 are from RICR)
 
-another error is the different number of toObj's
-(this is also seen in contin 445)
-
-TODO combine all obj files manually.. loading them all into blender takes too
-long
+BUGS! TODO
+-changing color changes color of all skeletons
+-do synapses floating next to cell
+-make better help
