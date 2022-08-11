@@ -2009,8 +2009,14 @@ MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
   volumeObj.visible = true;
 
   console.log(cell);
-  if (cell.includes('PARTIAL_CELLS_COMBINED_N2U_')) {
+  if (cell.includes('PARTIAL_REDUCED_COMBINED_REDUCED')) {
     // TODO set opacity
+    for (const mtl of volumeObj.children[0].material) {
+      mtl.transparent = true;
+      mtl.opacity = 0.1;
+    }
+    //volumeObj.children[0].material.transparent = true;
+    //volumeObj.children[0].material.opacity = 0.1;
     this.scene.add(volumeObj);
     console.log('BRUH');
     return;

@@ -33,7 +33,14 @@
 ## so make sure to manually copy this to
 ## ALL_CELLS_COMBINED_{DB}.mtl
 
-db = 'JSH'
+db = 'N2U'
+
+## I'd like to use the same technique for combining
+## the reduced combined partials,
+## but it's not working because the .obj file
+## looks weird...
+## probably just use Blender again to combine
+#combine_reduced = True
 
 
 PATH_TO_FOLDER = 'models/{}/'.format(db)
@@ -85,6 +92,18 @@ cells_n2y = ['AILL', 'AS10', 'AS11', 'AVAL', 'AVAR', 'AVBL', 'AVBR', 'AVDL', 'AV
 cells_JSH = ['ADAL', 'ADAR', 'ADEL', 'ADER', 'ADFL', 'ADFR', 'ADLL', 'ADLR', 'AFDL', 'AFDR', 'AIAL', 'AIAR', 'AIBL', 'AIBR', 'AIML', 'AIMR', 'AINL', 'AINR', 'AIYL', 'AIYR', 'AIZL', 'AIZR', 'ALA', 'ALML', 'ALMR', 'ALNL', 'ALNR', 'AQR', 'ASEL', 'ASER', 'ASGL', 'ASGR', 'ASHL', 'ASHR', 'ASIL', 'ASIR', 'ASJL', 'ASJR', 'ASKL', 'ASKR', 'AUAL', 'AUAR', 'AVAL', 'AVAR', 'AVBL', 'AVBR', 'AVDL', 'AVDR', 'AVEL', 'AVER', 'AVFL', 'AVFR', 'AVHL', 'AVHR', 'AVJL', 'AVJR', 'AVKL', 'AVKR', 'AVL', 'AVM', 'AWAL', 'AWAR', 'AWBL', 'AWBR', 'AWCL', 'AWCR', 'BAGL', 'BAGR', 'BDUL', 'BDUR', 'CEPDL', 'CEPDR', 'CEPVL', 'CEPVR', 'DVA', 'DVC', 'FLPL', 'FLPR', 'HSNR', 'IL1DL', 'IL1DR', 'IL1L', 'IL1R', 'IL1VL', 'IL1VR', 'IL2DL', 'IL2DR', 'IL2L', 'IL2R', 'IL2VL', 'IL2VR', 'OLLL', 'OLLR', 'OLQDL', 'OLQDR', 'OLQVL', 'OLQVR', 'PLNL', 'PLNR', 'PVCL', 'PVCR', 'PVNL', 'PVPL', 'PVPR', 'PVQL', 'PVQR', 'PVR', 'PVT', 'RIAL', 'RIAR', 'RIBL', 'RIBR', 'RICL', 'RICR', 'RID', 'RIFL', 'RIFR', 'RIGL', 'RIGR', 'RIH', 'RIML', 'RIMR', 'RIPL', 'RIPR', 'RIR', 'RIS', 'RIVL', 'RIVR', 'RMDDL', 'RMDDR', 'RMDL', 'RMDR', 'RMDVL', 'RMDVR', 'RMED', 'RMEL', 'RMER', 'RMEV', 'RMFL', 'RMFR', 'RMGL', 'RMGR', 'RMHL', 'RMHR', 'SAADL', 'SAADR', 'SAAVL', 'SAAVR', 'SABD', 'SDQL', 'SDQR', 'SIADL', 'SIADR', 'SIAVL', 'SIAVR', 'SIBDL', 'SIBDR', 'SIBVL', 'SIBVR', 'SMBDL', 'SMBDR', 'SMBVL', 'SMBVR', 'SMDDL', 'SMDDR', 'SMDVL', 'SMDVR', 'URADL', 'URADR', 'URAVL', 'URAVR', 'URBL', 'URBR', 'URXL', 'URXR', 'URYDL', 'URYDR', 'URYVL', 'URYVR']
 
 
+reduced_N2U = [
+	'PARTIAL_CELLS_COMBINED_N2U_00_REDUCED',
+	'PARTIAL_CELLS_COMBINED_N2U_01_REDUCED',
+	'PARTIAL_CELLS_COMBINED_N2U_02_REDUCED',
+	'PARTIAL_CELLS_COMBINED_N2U_03_REDUCED',
+	'PARTIAL_CELLS_COMBINED_N2U_04_REDUCED',
+	'PARTIAL_CELLS_COMBINED_N2U_05_REDUCED',
+	'PARTIAL_CELLS_COMBINED_N2U_06_REDUCED',
+	'PARTIAL_CELLS_COMBINED_N2U_07_REDUCED',
+	'PARTIAL_CELLS_COMBINED_N2U_08_REDUCED',
+	'PARTIAL_CELLS_COMBINED_N2U_09_REDUCED'
+]
 
 
 if (db == 'N2U'):
@@ -98,24 +117,15 @@ else:
 
 
 
-for idx, cells in enumerate(cell_sublists):
-	idx_str = str(idx) if idx >= 10 else '0'+str(idx)
-	print(idx_str)
-#
-	output_stem = '{}PARTIAL_CELLS_COMBINED_{}_{}'.format(PATH_TO_FOLDER, db, idx_str)
-	output_obj = output_stem + '.obj'
-	output_mtl = output_stem + '.mtl'
+def combine_files(cells, output_stem, path_to_folder):
+	output_obj = path_to_folder + output_stem + '.obj'
+	output_mtl = path_to_folder + output_stem + '.mtl'
 #
 	vertices = { c : [] for c in cells }
 	faces = { c : [] for c in cells }
 #
-	vertices_ADAL = []
-	faces_ADAL = []
-	vertices_ADAR = []
-	faces_ADAR = []
-#
 	for c in cells:
-		obj_file_name = PATH_TO_FOLDER + c + '.obj'
+		obj_file_name = path_to_folder + c + '.obj'
 		with open(obj_file_name) as f:
 			lines = f.readlines()
 #
@@ -134,7 +144,7 @@ for idx, cells in enumerate(cell_sublists):
 #
 	with open(output_obj,'w') as writer:
 		writer.write('# OBJ File\n')
-		writer.write('mtllib {}.mtl\n'.format(output_mtl))
+		writer.write('mtllib {}\n'.format(output_mtl))
 		writer.write('g {}\n'.format(output_stem))
 #
 		for c in cells:
@@ -150,4 +160,15 @@ for idx, cells in enumerate(cell_sublists):
 			for f in faces[c]:
 				writer.write('f {} {} {}\n'.format(f[0]+vert_counter, f[1]+vert_counter, f[2]+vert_counter))
 			vert_counter += len(vertices[c])
+
+#if combine_reduced:
+#	output_stem = 'ALL_REDUCED_COMBINED_{}'.format(db)
+#	combine_files(reduced_N2U, output_stem, PATH_TO_FOLDER)
+#	exit()
+
+for idx, cells in enumerate(cell_sublists):
+	idx_str = str(idx) if idx >= 10 else '0'+str(idx)
+	print(idx_str)
+	output_stem = 'PARTIAL_CELLS_COMBINED_{}_{}'.format(db, idx_str)
+	combine_files(cells, output_stem, PATH_TO_FOLDER)
 
