@@ -278,7 +278,7 @@ MapViewer.prototype.loadMap2 = function(data)
   this.plotParam.zmin = plotMinMax.zMin;
 
   // linewidth actually no longer supported
-  var skelMaterial = new THREE.LineBasicMaterial({ color: this.skelColor,
+  const skelMaterial = new THREE.LineBasicMaterial({ color: this.skelColor,
     linewidth: this.skelWidth});
 
 
@@ -611,6 +611,9 @@ MapViewer.prototype.applyPlotParamsTransform = function(vec,params=null) {
  * add the cell skeleton to THREE scene
  * uses this.maps[name].skeletonLines
  * as computed by BreakGraphIntoLineSubgraphs
+ * and this.maps[name].skelMaterial for material
+ * (need to make new material object so can change
+ * color of each cell separately)
  * (see loadMap2)
  *
  * takes the place of this.addSkeleton(..) in importerapp.js
@@ -623,7 +626,7 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
   for (const line of this.maps[name].skeletonLines) {
     const points = line.map(obj => this.maps[name].objCoord[obj]);
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = this.skelMaterial;
+    const material = this.maps[name].skelMaterial;
     const l = new THREE.Line(geometry, material);
     this.maps[name].skeletonGrp.add(l);
   }

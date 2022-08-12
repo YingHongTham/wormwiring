@@ -96,9 +96,9 @@ ImporterApp.prototype.Init = function ()
   this.InitLinkFunctionalityWithHTML();
   this.InitViewerStuff();
 
-  this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
-  this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
-  this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
+  //this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
+  //this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
+  //this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
 };
 
 
@@ -678,7 +678,10 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
  *  <div> // div
  *    <div>Cellname</div> // title
  *    <div> // content
- *      <input type='color'>
+ *      <div>
+ *        <span>Color Selector:</span>
+ *        <input type='color'>
+ *      </div>
  *      <button>Show Remarks</button>
  *      <button>WormAtlas</button>
  *      <button>Synapse By Partners</button>
@@ -704,8 +707,8 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
   const image = document.createElement('img');
   title.appendChild(image);
 
-  //const colorBtn = document.createElement('button');
-  //const colorDiv = document.createElement('div');
+  const colorDiv = document.createElement('div');
+  const colorSpan = document.createElement('span');
   const colorInput = document.createElement('Input');
   const centerViewBtn = document.createElement('button');
   const remarksBtn = document.createElement('button');
@@ -714,9 +717,9 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
   const synapseListBtn = document.createElement('button');
   const volumeBtn = document.createElement('button');
 
-  //content.appendChild(colorBtn);
-  //content.appendChild(colorDiv);
-  content.appendChild(colorInput);
+  content.appendChild(colorDiv);
+  colorDiv.appendChild(colorSpan);
+  colorDiv.appendChild(colorInput);
   content.appendChild(centerViewBtn);
   content.appendChild(remarksBtn);
   content.appendChild(walinkBtn);
@@ -767,7 +770,9 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
 
   //===============================================
   // now do each item in content
-  // color input
+
+  // color span/input
+  colorSpan.innerHTML = 'Color Selector:';
   colorInput.type = 'color';
 
   // get color of cell, transform to appropriate format

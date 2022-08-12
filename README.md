@@ -355,6 +355,5 @@ cell selector dialog which volumes are available)
 
 
 BUGS! TODO
--changing color changes color of all skeletons
 -do synapses floating next to cell
 -make better help
