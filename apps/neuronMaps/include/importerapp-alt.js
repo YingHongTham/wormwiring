@@ -871,6 +871,8 @@ ImporterApp.prototype.InitHelpDialog = function(cellname) {
     modal=false
   );
   this.helpDialog = dialog;
+
+  dialog.SetWidthHeight(500,null);
   
   const contentDiv = dialog.GetContentDiv();
   contentDiv.innerHTML = helpDialogText;

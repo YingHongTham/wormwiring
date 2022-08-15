@@ -1,6 +1,14 @@
 // name is used as id for the div containing the item
 
 const helpDialogText = `
+<p>
+'top menu' refers to the row of buttons
+at the top of the page;
+'left menu' refers to the column on the left
+(note it may be longer than the window can fit,
+you may need to scroll down to see everything)
+</p>
+
 <h4>Selecting Cells:</h4>
 <p>
 First select the series in the left menu,
@@ -9,7 +17,7 @@ which opens a dialog window.
 Click on the desired cells, and click load.
 </p>
 <p>
-Viewer should focus on the cell that was loaded last.
+Viewer will focus on the cell that was loaded last.
 </p>
 
 <h4>Cell Options/More Data</h4>
@@ -56,6 +64,54 @@ Here is a brief description of each entry:
 <p>The 'Clear Maps' button in the top menu
 clears all cells from viewer/left menu.
 One may also simply refresh the page.
+</p>
+
+<h4>Synapse Info</h4>
+<p>
+The 'Synapse Info' section shows data about the synapse
+that was last clicked or the mouse is currently hovering over.
+<ul>
+  <li>Details (EM Viewer): opens a seperate tab,
+  showing the electron micrographs of the synapse</li>
+  <li>Center View on Synapse: focuses view on synapse</li>
+</ul>
+</p>
+
+<h4>Synapse Filter</h4>
+<p>
+You can hide synapses with the options described below,
+separated into three sections based on type of condition.
+In all three sections leaving it blank means
+no filtering is performed for that type of condition.
+<ul>
+  <li>Pre/Post/Gap: type of synapse</li>
+  <li>Cells: comma-separated list of cells;
+  filters out synapses whose pre/post partner cells
+  do not intersect the given list of cells</li>
+  <li>Synapse (Contin) Id(s): comma-separated list
+  of contin numbers/id,
+  a number that exactly identifies a synapse</li>
+</ul>
+When the 'Filter' button is clicked,
+synapses that do not pass all three conditions ('AND')
+will be hidden from view.
+The 'Restore' button clears this filtering.
+</p>
+<p>
+Each subsequent filtering only hides more synapses,
+never unhides synapses (until 'Restore' is clicked).
+More precisely,
+the filtering process is subtractive.
+</p>
+<p>
+As an example,
+say we want to show the synapses that involve both HOA and PVV.
+Filtering by 'HOA,PVV' in the 'Cells' filtering section
+will not do, since that shows all synapses that
+involve <i>either</i> HOA or PVV,
+which would include all other synapses of HOA and PVV.
+Instead, we should first filter with 'HOA' in 'Cells',
+and then filter with 'PVV' in 'Cells'.
 </p>
 
 <h4>2D Viewer</h4>
@@ -111,7 +167,7 @@ Other ways to navigate/move around:
 `;
 
 
-helpDialogItems = [
+const helpDialogItems = [
   {
     title : 'Quick start',
     text : 'Cell skeletons are intially displayed in blue. This can be altered in the maps menu. Cell bodies are displayed as thicker red segements (this color cannot be changed).'
