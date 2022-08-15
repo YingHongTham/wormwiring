@@ -4,7 +4,17 @@
 ## so we split the list of cells into 10 sublists,
 ## and combine each list
 ## I then send each combined object into Blender to reduce
-## and then.. maybe combine into one whole in Blender?
+## using the "decimate" function
+## (typically reducing by factor/ratio of around 0.02
+## sometimes more/less depending on original number of faces
+## so that the final number of faces is around 10000-20000
+##
+## NOTE: after reducing, when exported the first time,
+## the resulintg obj/mtl will have these weird lines
+## when loaded into THREE
+## so you should load the obj into Blender again,
+## and export again without doing anything else
+## this somehow gets rid of the weird lines
 ##
 ## for vertices, simply append the list of vertices
 ## but since faces are determined by vertices
@@ -38,8 +48,13 @@ db = 'N2U'
 ## I'd like to use the same technique for combining
 ## the reduced combined partials,
 ## but it's not working because the .obj file
-## looks weird...
-## probably just use Blender again to combine
+## looks weird..., the face data is like
+## f 13//26 9//26 14//26
+## and also it has vertex data like
+## vn -0.2748 0.9034 -0.3293
+## which is for a normal vector?
+## anyways, I just used Blender again to combine
+
 #combine_reduced = True
 
 

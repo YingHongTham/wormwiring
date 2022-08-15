@@ -137,10 +137,12 @@ ImporterApp.prototype.InitViewerStuff = function() {
 ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   const self = this;
 
+  this.InitHelpDialog();
+
   // set up the top menu, Help, cell selector etc.
   const topElem = document.getElementById ('top');
   const topItems = topElem.children;
-  topItems[0].onclick = () => { this.OpenHelpDialog(); };
+  topItems[0].onclick = () => { this.OpenHelpDialog2(); };
   topItems[1].onclick = () => { this.CellSelectorDialog(); };
   topItems[2].onclick = () => { this.Open2DViewer(); };
   topItems[3].onclick = () => { this.ClearMaps(); };
@@ -399,6 +401,10 @@ ImporterApp.prototype.LoadDbCell = function(db, cell)
 //=========================================================
 // functionality for the top menu
 // Help, Select Cells, 2D Viewer, Clear Maps
+
+ImporterApp.prototype.OpenHelpDialog2 = function() {
+  this.helpDialog.OpenWindow();
+};
 
 ImporterApp.prototype.OpenHelpDialog = function()
 {
@@ -855,6 +861,19 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
   else {
     volumeBtn.innerHTML = 'Volume Unavailable';
   }
+};
+
+ImporterApp.prototype.InitHelpDialog = function(cellname) {
+  const dialog = new FloatingDialog2(
+    parent=null,
+    title='Help',
+    isHidden=true,
+    modal=false
+  );
+  this.helpDialog = dialog;
+  
+  const contentDiv = dialog.GetContentDiv();
+  contentDiv.innerHTML = helpDialogText;
 };
 
 /*

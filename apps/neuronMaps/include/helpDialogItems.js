@@ -1,10 +1,121 @@
 // name is used as id for the div containing the item
 
+const helpDialogText = `
+<h4>Selecting Cells:</h4>
+<p>
+First select the series in the left menu,
+then click the 'Select Cells' button in the top menu,
+which opens a dialog window.
+Click on the desired cells, and click load.
+</p>
+<p>
+Viewer should focus on the cell that was loaded last.
+</p>
+
+<h4>Cell Options/More Data</h4>
+<p>
+The list of loaded cells is shown under the 'Maps' section
+in the left menu.
+Each cell entry has a hidden section containing
+more options/data for each cell; click on cell
+(away from the 'eye' icon)
+to expand this section.
+</p>
+<p>
+Here is a brief description of each entry:
+<ul>
+  <li>
+  Color Selector: allows you to change the color of the skeleton of the cell (we are working on allowing change of volume).
+  </li>
+  <li>
+  Center View: Focuses viewer on the cell.
+  </li>
+  <li>
+  Show Remarks: some locations on the cell are marked with
+  'remarks', typically saying why the tracing ends,
+  e.g. 'enter left amphid commissure'
+  </li>
+  <li>
+  WormAtlas: link to wormatlas entry on this cell
+  </li>
+  <li>
+  Synapse List: opens an interactive list of synapses;
+  click on an entry in the table to focus on that synapse
+  </li>
+  <li>
+  Synapse By Partners: opens a dialog showing the list of synapses
+  but grouped by the partner cell(s) (from the List Viewer app)
+  </li>
+  <li>
+  Show/Hide Volume: toggle visibility of volumetric tracing
+  </li>
+</ul>
+</p>
+
+<h4>Clear Maps</h4>
+<p>The 'Clear Maps' button in the top menu
+clears all cells from viewer/left menu.
+One may also simply refresh the page.
+</p>
+
+<h4>2D Viewer</h4>
+<p>
+The 2D Viewer shows a compressed skeleton diagram of
+every loaded cell.
+Each node corresponds to an "interesting" point
+along the cell skeleton:
+<ul>
+  <li>synapse</li>
+  <li>end point</li>
+  <li>branch point</li>
+  <li>point with remark</li>
+</ul>
+</p>
+<p>
+Clicking on a node corresponding to a synapse
+will also make the (3D) viewer focus on that synapse.
+</p>
+<p>
+Navigate 2D viewer:
+<ul>
+  <li>Move/translate everything: mouse left-click and drag background</li>
+  <li>Zoom in/out: mouse scroll</li>
+  <li>Move one node: mouse left-click and drag that node</li>
+</ul>
+</p>
+
+<h4>On Navigating the Viewer</h4>
+<p>
+<ul>
+  <li>Rotate view: mouse left-click and drag</li>
+  <li>Move view target/focus: mouse right-click and drag</li>
+  <li>Zoom in/out: mouse scroll</li>
+</ul>
+We use the THREE.js library to render the 3D viewer and data,
+and for mouse controls, we use OrbitControls.
+</p>
+<p>
+Other ways to navigate/move around:
+<ul>
+  <li>
+  Use 'Center View' in Maps->Cell
+  </li>
+  <li>
+  Use 'Synapse List' in Maps->Cell
+  </li>
+  <li>
+  Click on a synapse, then click on 'Center View on Synapse'
+  in the Synapse Info section
+  </li>
+</ul>
+`;
+
+
 helpDialogItems = [
   {
     title : 'Quick start',
-    text : 'Cell skeletons are intially displayed in blue. This can be altered in the maps menu. Cell bodies are displayed as thicker red segements. '
-      + 'This color cannot be changed. Presynapses are pink, postsynapses are purple and gap junctions are blue spheres. '
+    text : 'Cell skeletons are intially displayed in blue. This can be altered in the maps menu. Cell bodies are displayed as thicker red segements (this color cannot be changed).'
+      + 'Presynapses are pink, postsynapses are purple and gap junctions are blue spheres. '
       + 'For presyanpses, the cell is the presynaptic partner. For the postsynapses, the cell is the postsynaptic partners. '
       + 'The size of the sphere reflects the size of the synapse. Mousing over displays the synapse info in the menu. '
       + 'Clicking on the synapse takes the user to the electron micrographs where the synapse was scored. '
