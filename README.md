@@ -352,6 +352,15 @@ and this seems to freeze everything,
 
 TODO volume viewer better feedback on volume availability (perhaps show on the
 cell selector dialog which volumes are available)
+TODO related: switch cell selector dialog to be like in listViewerAlt,
+better because Series Selector is awkwardly placed in left menu
+
+TODO change scaling, currently it's different between series
+because it depends on min/max's in the series;
+note that after changing this,
+the volume will not line up properly with skeleton,
+as the volume was scaled/translated manually in 
+MapViewer.loadVolumetric().
 
 
 BUGS! TODO

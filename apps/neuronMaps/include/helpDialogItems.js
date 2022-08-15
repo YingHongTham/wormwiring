@@ -20,6 +20,31 @@ Click on the desired cells, and click load.
 Viewer will focus on the cell that was loaded last.
 </p>
 
+<h4>On Navigating the Viewer</h4>
+<p>
+<ul>
+  <li>Rotate view: mouse left-click and drag</li>
+  <li>Move view target/focus: mouse right-click and drag</li>
+  <li>Zoom in/out: mouse scroll</li>
+</ul>
+We use the THREE.js library to render the 3D viewer and data,
+and for mouse controls, we use OrbitControls.
+</p>
+<p>
+Other ways to navigate/move around:
+<ul>
+  <li>
+  Use 'Center View' in Maps->Cell
+  </li>
+  <li>
+  Use 'Synapse List' in Maps->Cell
+  </li>
+  <li>
+  Click on a synapse, then click on 'Center View on Synapse'
+  in the Synapse Info section
+  </li>
+</ul>
+
 <h4>Cell Options/More Data</h4>
 <p>
 The list of loaded cells is shown under the 'Maps' section
@@ -114,6 +139,17 @@ Instead, we should first filter with 'HOA' in 'Cells',
 and then filter with 'PVV' in 'Cells'.
 </p>
 
+<h4>Global Viewer Options</h4>
+<p>
+Options that affect the viewer in general
+or affect all cells/synapses/remarks.
+</p>
+
+<h4>Translate Maps</h4>
+<p>
+Applies translation to all cells.
+</p>
+
 <h4>2D Viewer</h4>
 <p>
 The 2D Viewer shows a compressed skeleton diagram of
@@ -140,33 +176,20 @@ Navigate 2D viewer:
 </ul>
 </p>
 
-<h4>On Navigating the Viewer</h4>
+<h4>Load/Save</h4>
 <p>
-<ul>
-  <li>Rotate view: mouse left-click and drag</li>
-  <li>Move view target/focus: mouse right-click and drag</li>
-  <li>Zoom in/out: mouse scroll</li>
-</ul>
-We use the THREE.js library to render the 3D viewer and data,
-and for mouse controls, we use OrbitControls.
+You may save and load a session.
+Note that only the configurations and options
+(cell names, colors, translation)
+are saved,
+not the full cell skeleton/volume data;
+in particular, an internet connection is still required
+to load the cell.
 </p>
-<p>
-Other ways to navigate/move around:
-<ul>
-  <li>
-  Use 'Center View' in Maps->Cell
-  </li>
-  <li>
-  Use 'Synapse List' in Maps->Cell
-  </li>
-  <li>
-  Click on a synapse, then click on 'Center View on Synapse'
-  in the Synapse Info section
-  </li>
-</ul>
 `;
 
 
+// this should be obsolete
 const helpDialogItems = [
   {
     title : 'Quick start',

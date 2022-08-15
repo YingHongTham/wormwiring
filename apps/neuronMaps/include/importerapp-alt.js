@@ -32,7 +32,7 @@ if (cellnameWALinkDict === undefined
     || cellnameToWALink === undefined) {
   console.error('expect /apps/include/wa_link.js');
 }
-if (helpDialogItems === undefined) {
+if (helpDialogText === undefined) {
   console.error('expect ./helpDialogItems.js');
 }
 if (typeof(FloatingDialog) === undefined) {
