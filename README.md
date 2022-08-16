@@ -342,8 +342,6 @@ wormwiring.m.html
 eventaully dbaux.php too, but that has Unk,
 TODO put Unk class in it's own file..
 
-TODO mtl, obj names for some cells like VB08 are wrong for n2y
-
 TODO some cells, like AIZR from JSH,
 have contin with count = 0
 (select * from contin where type = 'neuron' and count = 0;)
@@ -365,4 +363,3 @@ MapViewer.loadVolumetric().
 
 BUGS! TODO
 -do synapses floating next to cell
--make better help

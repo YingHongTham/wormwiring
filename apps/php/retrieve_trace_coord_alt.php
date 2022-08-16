@@ -120,15 +120,7 @@ foreach ($query_results as $v) {
   }
 
   // add edge to skeleton
-  // no longer separate by series
   $data['skeleton'][] = array($v['objNum1'],$v['objNum2']);
-  //// add edge
-  //if ($s1 == $s2) {
-  //  $data['skeleton'][$s1][] = array($v['objNum1'],$v['objNum2']);
-  //}
-  //else {
-  //  $data['skeleton']['in_between'][] = array($v['objNum1'],$v['objNum2']);
-  //}
 
   $s1 = $v['series1'];
   $s2 = $v['series2'];
@@ -180,49 +172,6 @@ function alphanumericcomma($s) {
 
 
 //===================================================
-// pre synapses (synapses where $cell is the pre)
-// work on this later, need to figure out what to do
-// with some issues with the data:
-// some times post can have the same cell several times,
-// which by itself is not an issue
-// but the problem is that the object numbers
-// of some of them turn out to be the same
-// At first I thought perhaps it's a recording issue,
-// but now I'm thinking, perhaps the same cell object
-// (i.e. a slice of the cell) can be so big
-// that it wraps around another cell
-// Indeed, there are cases where preobj = postobj1
-// options:
-// -stick to old method, for post, pick one object
-// -return one entry for each post object
-// -return the whole query result, have JS figure it out
-// for now, postponing work on this, just have gap junctions,
-// and get working version of the 2D viewer
-// (but of couse have the 3D version work fine too)
-
-$sql = "select
-    pre, post, sections, continNum, mid,
-    preobj as preObj,
-    postobj1 as postObj1,
-    postobj2 as postObj2,
-    postobj3 as postObj3,
-    postobj4 as postObj4
-  from synapsecombined 
-  where pre like '%$cell%' 
-    and type like 'chemical' 
-  order by post asc, sections desc";
-$query_results = $dbcon->_return_query_rows_assoc($sql);
-foreach ($query_results as $v) {
-  // cast to integer
-  foreach (['continNum','preObj','postObj'] as $k) {
-    $v[$k] = intval($v[$k]);
-  }
-
-  //$data[$v['mid']] = $v;
-}
-
-
-//===================================================
 // gap junctions
 // essentially returns query results as is,
 // except
@@ -231,7 +180,8 @@ foreach ($query_results as $v) {
 $sql = "select
     pre, post, sections, continNum, mid,
     preobj as preObj,
-    postobj1 as postObj,
+		postobj1 as postObj,
+		sections,
     sectionNum1, sectionNum2
   from synapsecombined 
     join contin
@@ -277,7 +227,8 @@ foreach ($query_results as $v) {
 
 $sql = "select
     pre, post, sections, continNum, mid,
-    preobj as preObj,
+		preobj as preObj,
+		sections,
     sectionNum1, sectionNum2
   from synapsecombined 
     join contin
@@ -321,15 +272,11 @@ foreach ($query_results as $v) {
 
 $sql = "select
     pre, post, sections, continNum, mid,
-    post1,
-    post2,
-    post3,
-    post4,
+    post1, post2, post3, post4,
     preobj as preObj,
-    postobj1 as postObj1,
-    postobj2 as postObj2,
-    postobj3 as postObj3,
-    postobj4 as postObj4,
+    postobj1 as postObj1, postobj2 as postObj2,
+		postobj3 as postObj3, postobj4 as postObj4,
+		sections,
     sectionNum1, sectionNum2
   from synapsecombined 
     join contin

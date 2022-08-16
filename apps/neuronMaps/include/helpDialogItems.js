@@ -95,6 +95,10 @@ One may also simply refresh the page.
 <p>
 The 'Synapse Info' section shows data about the synapse
 that was last clicked or the mouse is currently hovering over.
+Note that for gap junctions, 'Source/Target' are interchangeable,
+and 'Sections', which shows the range of sections which the
+synapse occupies, is not always accurate,
+as those section numbers may be counted in different series...
 <ul>
   <li>Details (EM Viewer): opens a seperate tab,
   showing the electron micrographs of the synapse</li>

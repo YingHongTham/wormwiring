@@ -366,7 +366,7 @@ MapViewer.prototype.loadMap2 = function(data)
     postGrp: new THREE.Group(),
     gapGrp: new THREE.Group(),
     //gap: [], // used?
-    allSynData: {}, // TODO new
+    allSynData: {}, // TODO new, add comments above
     synLabels : new THREE.Group(),
     remarksGrp : new THREE.Group(),
     remarks: {}, // the data behind remarksGrp
@@ -426,6 +426,8 @@ MapViewer.prototype.loadMap2 = function(data)
     map.cellbodyGrp.add(l);
   }
 
+  //=============================================
+  // Load Synapses
 
   // add gap junctions to allSynData
   // note: if gap is from cell to itself,
@@ -438,6 +440,7 @@ MapViewer.prototype.loadMap2 = function(data)
       post: syn.post,
       type: 'gap',
       contin: syn.continNum,
+      size: syn.sections,
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
@@ -479,6 +482,7 @@ MapViewer.prototype.loadMap2 = function(data)
       post: syn.post,
       type: 'pre',
       contin: syn.continNum,
+      size: syn.sections,
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
@@ -509,6 +513,7 @@ MapViewer.prototype.loadMap2 = function(data)
       post: syn.post,
       type: 'post',
       contin: syn.continNum,
+      size: syn.sections,
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
@@ -668,7 +673,8 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   const name = synData.cellname; // cell on which synapse shows
   const synPos = this.maps[name].objCoord[synData.obj];
   const synType = synData.type;
-  const numSections = synData.zHigh - synData.zLow + 1;
+  const numSections = synData.size;
+  //const numSections = synData.zHigh - synData.zLow + 1;
   const radius = Math.min(this.synMax,numSections*this.synScale);
   const partner = synData.partner;
   const contin = synData.contin;
