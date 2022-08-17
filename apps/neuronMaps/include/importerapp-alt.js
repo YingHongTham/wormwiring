@@ -638,7 +638,7 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
 {
   this.selectedCells.add(cell);
   const self = this;
-  const url = `../php/retrieve_trace_coord_alt.php?db=${db}&cell=${cell}`;
+  const url = `../php/retrieve_trace_coord_alt_2.php?db=${db}&cell=${cell}`;
   console.log('retrieving skeleton map via '+url);
   const xhttp = new XMLHttpRequest();    
   console.time(`Retrieve ${cell}`);

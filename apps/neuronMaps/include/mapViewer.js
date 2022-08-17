@@ -395,11 +395,15 @@ MapViewer.prototype.loadMap2 = function(data)
   // set object coordinates, apply transformation
   for (const obj in data.objCoord) {
     map.objCoord[obj] = 
-      this.applyPlotParamsTransform(new THREE.Vector3(
-        data.objCoord[obj][0],
-        data.objCoord[obj][1],
-        data.objCoord[obj][2]
-      ));
+      //this.applyPlotParamsTransform(
+        new THREE.Vector3(
+          data.objCoord[obj].x,
+          data.objCoord[obj].y,
+          data.objCoord[obj].z);
+      //);
+    console.log(obj);
+    console.log(map.objCoord[obj]);
+    console.log(data.objCoord[obj]);
   }
 
   // process skeleton data
@@ -412,6 +416,9 @@ MapViewer.prototype.loadMap2 = function(data)
   map.skeletonLines = 
       BreakGraphIntoLineSubgraphs(map.skeletonGraph);
   this.loadSkeletonIntoViewer(map.name);
+
+  //===============================================
+  // cellbody
 
   // color cellbody edges
   // that is, edges whose both ends are in cellbody
