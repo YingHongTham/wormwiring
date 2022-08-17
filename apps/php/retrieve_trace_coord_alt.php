@@ -25,7 +25,11 @@
  * which has keys:
  *  'db', 'name',
  *  'skeleton', 'objCoord', 'objSeries', 'pre', 'post', 'gap',
- *  'cellbody', 'remarks'
+ *  'cellbody', 'remarks',
+ * $data['gap'/'pre'/'post'] is object whose keys are
+ * contin number of synapse, and value is assoc array with keys:
+ * 'pre','post','sections','continNum','mid','preObj','postObj',
+ * 'zLow','zHigh','coord'={'x'=> , 'y' =>, 'z' => }
  * see loadMap2 in /apps/neuronMaps/include/mapviewer.js
  * for what the expected JS object should be/meanings
  */
@@ -172,6 +176,12 @@ function alphanumericcomma($s) {
 
 
 //===================================================
+
+// syn contin to middle object assoc array
+// collecting into one array in order to query for coords
+$synMidObj = array();
+
+//===================================================
 // gap junctions
 // essentially returns query results as is,
 // except
@@ -207,7 +217,9 @@ foreach ($query_results as $v) {
     $v[$k] = alphanumeric($v[$k]);
   }
 
-  $data['gap'][$v['continNum']] = $v;
+	$data['gap'][$v['continNum']] = $v;
+
+	$synMidObj[$v['continNum']] = $v['mid'];
 }
 
 
@@ -257,6 +269,8 @@ foreach ($query_results as $v) {
   $v['post'] = alphanumericcomma($v['post']);
 
   $data['pre'][$v['continNum']] = $v;
+
+	$synMidObj[$v['continNum']] = $v['mid'];
 }
 
 
@@ -305,6 +319,65 @@ foreach ($query_results as $v) {
   $v['post4'] = alphanumeric($v['post4']);
 
   $data['post'][$v['continNum']] = $v;
+
+	$synMidObj[$v['continNum']] = $v['mid'];
+}
+
+//=========================================
+// get synapse coordinates directly from display2
+// if not found, then JS handles it by finding
+// the appropriate cell object to attach to
+// (if synpase has one section, display2 will not have it
+// as display2 is like relationship table)
+
+//key = mid obj of syn
+$synObjCoord = array();
+
+$synObjList = array_values($synMidObj);
+$synObjListStr = implode(',',$synObjList);
+
+$sql = "select
+		x1 as x,
+		y1 as y,
+		z1 as z,
+		objName1 as obj
+	from display2
+	where objName1 in ($synObjListStr)";
+$query_results = $dbcon->_return_query_rows_assoc($sql);
+foreach ($query_results as $v) {
+	$synObjCoord[$v['obj']] = array(
+		'x' => $v['x'],
+		'y' => $v['y'],
+		'z' => $v['z']);
+}
+
+// also do objName2
+$sql = "select
+		x2 as x,
+		y2 as y,
+		z2 as z,
+		objName2 as obj
+	from display2
+	where objName2 in ($synObjListStr)";
+$query_results = $dbcon->_return_query_rows_assoc($sql);
+foreach ($query_results as $v) {
+	$synObjCoord[$v['obj']] = array(
+		'x' => $v['x'],
+		'y' => $v['y'],
+		'z' => $v['z']);
+}
+
+// now update the $data['gap','pre','post']
+foreach (['gap','pre','post'] as $type) {
+	foreach ($data[$type] as $contin => $syn) {
+		$mid = $syn['mid'];
+		if (array_key_exists($mid, $synObjCoord)) {
+			$data[$type][$contin]['coord'] = $synObjCoord[$mid];
+		}
+		else {
+			$data[$type][$contin]['coord'] = 'NOT_FOUND';
+		}
+	}
 }
 
 

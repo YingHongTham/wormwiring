@@ -441,11 +441,14 @@ MapViewer.prototype.loadMap2 = function(data)
       type: 'gap',
       contin: syn.continNum,
       size: syn.sections,
+      coord: syn.coord === 'NOT_FOUND' ?
+        null :
+        new THREE.Vector3(syn.coord['x'], syn.coord['y'], syn.coord['z']),
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
       partner: '',
-      obj: null,
+      obj: null, // obj num of cell object.. soon obsolete
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
@@ -483,6 +486,9 @@ MapViewer.prototype.loadMap2 = function(data)
       type: 'pre',
       contin: syn.continNum,
       size: syn.sections,
+      coord: syn.coord === 'NOT_FOUND' ?
+        null :
+        new THREE.Vector3(syn.coord['x'], syn.coord['y'], syn.coord['z']),
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
@@ -514,6 +520,9 @@ MapViewer.prototype.loadMap2 = function(data)
       type: 'post',
       contin: syn.continNum,
       size: syn.sections,
+      coord: syn.coord === 'NOT_FOUND' ?
+        null :
+        new THREE.Vector3(syn.coord['x'], syn.coord['y'], syn.coord['z']),
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
@@ -671,11 +680,21 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
  */
 MapViewer.prototype.addOneSynapse2 = function(synData) {
   const name = synData.cellname; // cell on which synapse shows
-  const synPos = this.maps[name].objCoord[synData.obj];
+
+  let synPos = synData['coord'] !== null ?
+    this.applyPlotParamsTransform(synData.coord) :
+    this.maps[name].objCoord[synData.obj];
+  console.log(synData.contin);
+  console.log(synPos);
+  console.log(synData.coord);
+  console.log(this.maps[name].objCoord[synData.obj]);
+
   const synType = synData.type;
   const numSections = synData.size;
   //const numSections = synData.zHigh - synData.zLow + 1;
   const radius = Math.min(this.synMax,numSections*this.synScale);
+  console.log(synData.type, synData.size, numSections, radius);
+  console.log(synData.coord);
   const partner = synData.partner;
   const contin = synData.contin;
 
@@ -863,12 +882,6 @@ MapViewer.prototype.translateOneMapsBy = function(cellname,x,y,z) {
 };
 
 
-MapViewer.prototype.translateSkeleton = function(skeleton,transMatrix)
-{
-  for (var i=0; i < skeleton.length;i++){
-    skeleton[i].applyMatrix(transMatrix);
-  };    
-};
 
 /*
  * @param {Object} m - THREE.Matrix4 object representing transformation

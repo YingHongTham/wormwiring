@@ -110,3 +110,21 @@ some errors in the SQL tables
   FOR NOW,
   just going to ignore this (that's what has been done)
 
+
+Aug 16, 2022
+Attempting to switch synapse data to using display2
+generally fine,
+but some synapses DO NOT have data in display2
+NONE OF THEIR SECTIONS appear in display2
+one reason is because display2 gives data about relationships,
+so if the synapse is one section long,
+it DOESN'T FUCKING SHOW UP.
+Fine.
+But sometimes synapses with more than one section
+also doesn't show up in display2.
+It doesn't even show up in relationship table,
+e.g. contin = 9902
+So WTF do I do?
+(1) ignore these synapses
+(2) switch displaying skeleton to the raw object table,
+and at the same time scale all series(db) in the same way
