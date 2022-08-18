@@ -332,8 +332,9 @@ MapViewer.prototype.loadMap2 = function(data)
    *      zHigh: syn.zHigh,
    *      cellname: cell on which this synapse is shown
    *        (i.e. this is part of self.maps[cellname])
-   *      partner: other cell(s) on other side of synapse
-   *        (if we have RICL -> AVAL,ADAL
+   *      partners: all cells involved
+   *        (used to be other cell(s) on other side of synapse
+   *        e.g. if we have RICL -> AVAL,ADAL
    *        and cellname = ADAL (so type = post),
    *        then partner is just RICL)
    *      obj: object that synapse is attached to
@@ -395,15 +396,12 @@ MapViewer.prototype.loadMap2 = function(data)
   // set object coordinates, apply transformation
   for (const obj in data.objCoord) {
     map.objCoord[obj] = 
-      //this.applyPlotParamsTransform(
+      this.applyPlotParamsTransform(
         new THREE.Vector3(
           data.objCoord[obj].x,
           data.objCoord[obj].y,
-          data.objCoord[obj].z);
-      //);
-    console.log(obj);
-    console.log(map.objCoord[obj]);
-    console.log(data.objCoord[obj]);
+          data.objCoord[obj].z)
+      );
   }
 
   // process skeleton data
@@ -437,10 +435,7 @@ MapViewer.prototype.loadMap2 = function(data)
   // Load Synapses
 
   // add gap junctions to allSynData
-  // note: if gap is from cell to itself,
-  // creates two sphere objects, one for each skeleton obj
   for (const contin in data.gap) {
-    //if (!data.gap.hasOwnProperty(contin)) continue;
     const syn = data.gap[contin];
     let synData = {
       pre: syn.pre,
@@ -450,36 +445,27 @@ MapViewer.prototype.loadMap2 = function(data)
       size: syn.sections,
       coord: syn.coord === 'NOT_FOUND' ?
         null :
-        new THREE.Vector3(syn.coord['x'], syn.coord['y'], syn.coord['z']),
+        this.applyPlotParamsTransform(
+          new THREE.Vector3(
+            syn.coord['x'],
+            syn.coord['y'],
+            syn.coord['z'])
+        ),
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
-      partner: '',
-      obj: null, // obj num of cell object.. soon obsolete
+      partners: '',
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
+    let synDataP = Object.assign({}, synData);
     if (syn.pre === data.name) {
-      if (!map.objCoord.hasOwnProperty(syn.preObj)) {
-        console.log('Bad synapse object numbers? synapse contin number: ', syn.continNum);
-      }
-      else {
-        let synDataP = Object.assign({}, synData);
-        synDataP.obj = syn.preObj;
-        synDataP.partner = syn.post;
-        map.allSynData[synData.contin] = synDataP;
-      }
+      synDataP.partners = `${data.name}--${syn.post}`;
+      map.allSynData[synData.contin] = synDataP;
     }
     if (syn.post === data.name) {
-      if (!map.objCoord.hasOwnProperty(syn.postObj)) {
-        console.log('Bad synapse object numbers? synapse contin number: ', syn.continNum);
-      }
-      else {
-        let synDataP = Object.assign({}, synData);
-        synDataP.obj = syn.postObj;
-        synDataP.partner = syn.pre;
-        map.allSynData[synData.contin] = synDataP;
-      }
+      synDataP.partners = `${data.name}--${syn.pre}`;
+      map.allSynData[synData.contin] = synDataP;
     }
   }
 
@@ -495,25 +481,22 @@ MapViewer.prototype.loadMap2 = function(data)
       size: syn.sections,
       coord: syn.coord === 'NOT_FOUND' ?
         null :
-        new THREE.Vector3(syn.coord['x'], syn.coord['y'], syn.coord['z']),
+        this.applyPlotParamsTransform(
+          new THREE.Vector3(
+            syn.coord['x'],
+            syn.coord['y'],
+            syn.coord['z'])
+        ),
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
-      partner: '',
-      obj: null,
+      partners: '',
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
-    if (!map.objCoord.hasOwnProperty(syn.preObj)) {
-      console.log('Bad synapse object numbers? synapse contin number: ', syn.continNum,
-        'preObj: ', syn.preObj);
-    }
-    else {
-      let synDataP = Object.assign({}, synData);
-      synDataP.obj = syn.preObj;
-      synDataP.partner = syn.post;
-      map.allSynData[synData.contin] = synDataP;
-    }
+    let synDataP = Object.assign({}, synData);
+    synDataP.partners = `${syn.pre}->${syn.post}`;
+    map.allSynData[synData.contin] = synDataP;
   }
 
 
@@ -529,31 +512,23 @@ MapViewer.prototype.loadMap2 = function(data)
       size: syn.sections,
       coord: syn.coord === 'NOT_FOUND' ?
         null :
-        new THREE.Vector3(syn.coord['x'], syn.coord['y'], syn.coord['z']),
+        this.applyPlotParamsTransform(
+          new THREE.Vector3(
+            syn.coord['x'],
+            syn.coord['y'],
+            syn.coord['z'])
+        ),
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
-      partner: '',
+      partners: '',
       obj: null,
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
-    // go through post(Obj)1/2/3/4
-    for (let i = 1; i <= 4; ++i) {
-      if (syn['post' + i] !== data.name) continue;
-      const postObji = 'postObj' + i;
-      const obj = parseInt(syn[postObji]);
-      if (!map.objCoord.hasOwnProperty(obj)) {
-        console.log('Bad synapse object numbers? synapse contin number: ', syn.continNum,
-          postObji, ': ', obj);
-      }
-      else {
-        let synDataP = Object.assign({}, synData);
-        synDataP.obj = obj;
-        synDataP.partner = syn.pre;
-        map.allSynData[synData.contin] = synDataP;
-      }
-    }
+    let synDataP = Object.assign({}, synData);
+    synDataP.partners = `${syn.pre}->${syn.post}`;
+    map.allSynData[synData.contin] = synDataP;
   }
 
   //==================================================
@@ -567,8 +542,8 @@ MapViewer.prototype.loadMap2 = function(data)
     allSynList.push(map.allSynData[contin]);
   }
   allSynList.sort((obj1, obj2) => {
-    const pos1 = map.objCoord[obj1.obj];
-    const pos2 = map.objCoord[obj2.obj];
+    const pos1 = obj1.coord.z;
+    const pos2 = obj2.coord.z;
     return pos1.z - pos2.z;
   });
   for (const synData of allSynList) {
@@ -688,21 +663,15 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
 MapViewer.prototype.addOneSynapse2 = function(synData) {
   const name = synData.cellname; // cell on which synapse shows
 
-  let synPos = synData['coord'] !== null ?
-    this.applyPlotParamsTransform(synData.coord) :
-    this.maps[name].objCoord[synData.obj];
-  console.log(synData.contin);
-  console.log(synPos);
-  console.log(synData.coord);
-  console.log(this.maps[name].objCoord[synData.obj]);
+  //const synPos = this.maps[name].objCoord[synData.obj];
+  const synPos = synData['coord'];
 
   const synType = synData.type;
   const numSections = synData.size;
   //const numSections = synData.zHigh - synData.zLow + 1;
+
   const radius = Math.min(this.synMax,numSections*this.synScale);
-  console.log(synData.type, synData.size, numSections, radius);
-  console.log(synData.coord);
-  const partner = synData.partner;
+  const partners = synData.partners;
   const contin = synData.contin;
 
   //=============================
@@ -726,6 +695,8 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
 
   // function for determining the offset for synLabel
   // purely for visual purposes
+  // keeps its own internal counter
+  // (the this in this.count is not for MapViewer)
   function offsetx() {
     if (this.count === undefined) {
       this.count = 0;
@@ -742,7 +713,7 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   // add text label to scene via synLabels
   // accessed by this reference in the event listener callback
   // also adds it to synData
-  const synLabelObj = this.addTextWithArrow(partner,{
+  const synLabelObj = this.addTextWithArrow(partners,{
     pos: sphere.position.clone(),
     rotate: { x: -Math.PI/3 },
     scale: { x: 0.2, y: 0.2, z: 0.2 },
@@ -1299,6 +1270,17 @@ MapViewer.prototype.GetTranslateOnMaps = function(cellname) {
   return this.maps[cellname].allGrps.position;
 };
 
+// get syn's coordinates as seen in 3D viewer,
+// i.e. taking into account translations too
+MapViewer.prototype.GetSynCoordInViewer = function(cellname,contin) {
+  const trans = this.GetTranslateOnMaps(cellname);
+  const coord = this.maps[cellname].allSynData[contin].coord;
+  return new THREE.Vector3(
+    trans.x + coord.x,
+    trans.y + coord.y,
+    trans.z + coord.z);
+};
+
 // get obj's coordinates as seen in 3D viewer,
 // i.e. taking into account translations too
 MapViewer.prototype.GetObjCoordInViewer = function(cellname,obj) {
@@ -1397,8 +1379,7 @@ MapViewer.prototype.CenterViewOnCell = function(cellname) {
 
 
 MapViewer.prototype.CenterViewOnSynapse = function(cellname,contin) {
-  const obj = this.SynapseContinToObj(cellname, contin);
-  const pos = this.GetObjCoordInViewer(cellname, obj);
+  const pos = this.GetSynCoordInViewer(cellname, contin);
   this.SetCameraTarget(pos);
   pos.y += 100;
   this.SetCameraPosition(pos);
@@ -1500,7 +1481,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
       self.SynapseOnClick(cell, contins[0]);
       self.CenterViewOnSynapse(cell, contins[0]);
     }
-    else { // clicked not is not a synapse
+    else { // clicked obj is not a synapse
       const pos = self.GetObjCoordInViewer(cell, obj);
       self.SetCameraTarget(pos);
       pos.y += 100;
@@ -1547,7 +1528,6 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
   // that have that a given obj num
   const continByObj = {}; // key=obj, val=array of continNums
   for (const contin in map.allSynData) {
-    //if (!map.allSynData.hasOwnProperty(contin)) continue;
     const objNum = map.allSynData[contin].obj;
     X.add(objNum);
     if (!continByObj.hasOwnProperty(objNum)) {
@@ -1723,12 +1703,12 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
   // is 43615, 43614, 43611, 43610, 43609, 43612, 43613
 
   Xlist.forEach((v,i) => {
-    // label v with the partner(s) of the synapse(s) at v
+    // label v with the partners of the synapse(s) at v
     // empty label if not synapse
     const vLabels = [];
     if (continByObj.hasOwnProperty(v)) {
       for (const contin of continByObj[v]) {
-        vLabels.push(map.allSynData[contin].partner);
+        vLabels.push(map.allSynData[contin].partners);
       }
     }
     if (map.remarks.hasOwnProperty(v)) {

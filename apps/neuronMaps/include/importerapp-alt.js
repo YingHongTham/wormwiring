@@ -915,14 +915,14 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
 
   dialog.GetContentDiv().appendChild(table);
 
-  let allSynList = [];
+  let allSynList = []; // array of values in allSynData
   let map = this.viewer.maps[cellname];
   for (const contin in map.allSynData) {
     allSynList.push(map.allSynData[contin]);
   }
-  allSynList.sort((obj1, obj2) => {
-    const pos1 = map.objCoord[obj1.obj];
-    const pos2 = map.objCoord[obj2.obj];
+  allSynList.sort((synData1, synData2) => {
+    const pos1 = synData1.coord;
+    const pos2 = synData2.coord;
     return pos1.z - pos2.z;
   });
 
@@ -938,13 +938,9 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
     row.appendChild(tdType);
     row.appendChild(tdCells);
 
-    tdZ.innerHTML = map.objCoord[synData.obj].z;
+    tdZ.innerHTML = synData.coord.z;
     tdType.innerHTML = synData.type;
-    if (synData.type === 'gap') {
-      tdCells.innerHTML = cellname + '--' + synData.partner;
-    } else {
-      tdCells.innerHTML = synData.pre + '->' + synData.post;
-    }
+    tdCells.innerHTML = synData.partners;
 
     // add color to type
     if (synData.type == 'gap') {
@@ -1199,7 +1195,8 @@ ImporterApp.prototype.UpdateSynapseInfo2 = function(cellname,contin) {
     return;
   }
   const synData = this.viewer.GetSynData(cellname,contin);
-  const pos = this.viewer.GetObjCoordAbsolute(cellname,synData.obj);
+  const pos = synData.coord;
+    //this.viewer.GetObjCoordAbsolute(cellname,synData.obj);
   document.getElementById('synInfoCellname').innerHTML
     = cellname;
   document.getElementById('synInfoType').innerHTML

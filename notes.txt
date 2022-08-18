@@ -128,3 +128,11 @@ So WTF do I do?
 (1) ignore these synapses
 (2) switch displaying skeleton to the raw object table,
 and at the same time scale all series(db) in the same way
+
+
+Aug 18, 2022
+weird errors in mysql tables:
+some contin numbers are associated to multiple synapses
+e.g.
+select * from synapsecombined where continNum = 5859;
+gives two rows.

@@ -228,9 +228,18 @@ function alphanumericcomma($s) {
 
 //===================================================
 
-// syn contin to middle object assoc array
+// assoc array
+// key = syn contin, value = middle object 
 // collecting into one array in order to query for coords
-$synMidObj = array();
+// and of course this would not work because nothing works
+// for some reason, some contin numbers are associated to
+// multiple synapses, e.g.
+// select * from synapsecombined where continNum = 5859;
+// gives two rows
+// thankfully I just realized this is an unnessary step anyway
+// but it's good to have found this strange error
+
+$synObjList = array();
 
 //===================================================
 // gap junctions
@@ -270,7 +279,7 @@ foreach ($query_results as $v) {
 
 	$data['gap'][$v['continNum']] = $v;
 
-	$synMidObj[$v['continNum']] = $v['mid'];
+	$synObjList[] = $v['mid'];
 }
 
 
@@ -320,7 +329,7 @@ foreach ($query_results as $v) {
 
   $data['pre'][$v['continNum']] = $v;
 
-	$synMidObj[$v['continNum']] = $v['mid'];
+	$synObjList[] = $v['mid'];
 }
 
 
@@ -369,51 +378,32 @@ foreach ($query_results as $v) {
 
   $data['post'][$v['continNum']] = $v;
 
-	$synMidObj[$v['continNum']] = $v['mid'];
+	$synObjList[] = $v['mid'];
 }
 
 //=========================================
-// get synapse coordinates directly from display2
-// if not found, then JS handles it by finding
-// the appropriate cell object to attach to
-// (if synpase has one section, display2 will not have it
-// as display2 is like relationship table)
+// get synapse coordinates directly from object table
 
 //key = mid obj of syn
 $synObjCoord = array();
 
-$synObjList = array_values($synMidObj);
 $synObjListStr = implode(',',$synObjList);
 
 $sql = "select
-		x1 as x,
-		y1 as y,
-		z1 as z,
-		objName1 as obj
-	from display2
-	where objName1 in ($synObjListStr)";
+		object.OBJ_Name as obj,
+		object.OBJ_X as x,
+		object.OBJ_Y as y,
+		image.IMG_SectionNumber as z
+	from object
+		join image
+		on object.IMG_Number = image.IMG_Number
+	where object.OBJ_Name in ($synObjListStr)";
 $query_results = $dbcon->_return_query_rows_assoc($sql);
 foreach ($query_results as $v) {
 	$synObjCoord[$v['obj']] = array(
-		'x' => $v['x'],
-		'y' => $v['y'],
-		'z' => $v['z']);
-}
-
-// also do objName2
-$sql = "select
-		x2 as x,
-		y2 as y,
-		z2 as z,
-		objName2 as obj
-	from display2
-	where objName2 in ($synObjListStr)";
-$query_results = $dbcon->_return_query_rows_assoc($sql);
-foreach ($query_results as $v) {
-	$synObjCoord[$v['obj']] = array(
-		'x' => $v['x'],
-		'y' => $v['y'],
-		'z' => $v['z']);
+		'x' => intval($v['x']),
+		'y' => intval($v['y']),
+		'z' => intval($v['z']));
 }
 
 // now update the $data['gap','pre','post']
