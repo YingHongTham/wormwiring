@@ -363,3 +363,48 @@ MapViewer.loadVolumetric().
 
 BUGS! TODO
 -do synapses floating next to cell
+
+
+
+## Figuring out the scaling for skeleton:
+Fix some image, N2UNR061.
+Find synapse objects with min/max x/y values:
+select * from object where IMG_Number = 'N2UNR061' and type = 'chemical' order by OBJ_X asc limit 1;
+-> obj 58251, coord = (2490,2707), contin = 2651
+select * from object where IMG_Number = 'N2UNR061' and type = 'chemical' order by OBJ_X desc limit 1;
+-> obj 60177, coord = (6957,3805), contin = 3605
+select * from object where IMG_Number = 'N2UNR061' and type = 'chemical' order by OBJ_Y asc limit 1;
+-> obj 59949, coord = (5323,1834), contin = 3492
+select * from object where IMG_Number = 'N2UNR061' and type = 'chemical' order by OBJ_Y desc limit 1;
+-> obj 55304, coord = (5318,5068), contin = 1610
+
+Next, we go to Synapse Viewer, with those contin numbers:
+http://wormwiring.localhost/apps/synapseViewer/?db=N2U&continNum=2651 etc.
+
+Download the low zoom images of N2UNR061 with the red box.
+
+Open GIMP (image processing software),
+open two images corresponding to min/max y.
+Make one opacity=0.5, then finding difference in y
+between the two red boxes in the number of pixels
+is about 272px,
+while the difference in y for the objects is 3234 units.
+Similarly, for objects with min/max in x,
+difference in x between red boxes is 375px,
+while the difference in x for the objects is 4467 units.
+
+The width of the worm in the image is about 686px,
+and height is about 576px,
+average about 631px.
+It's known that the diameter is about 50 microns,
+but that's assuming it's perfectly round.
+So we should have 50 microns = 631px.
+
+From x: 375 px / 4467 units
+From y: 272 px / 3234 units
+both about 0.084px/unit
+
+So 0.084px/unit * 0.05mm/631px = 6.66nm/unit
+
+Now it's known that one section is about 50nm.
+So we scale x and y by 0.13

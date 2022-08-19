@@ -105,9 +105,9 @@ ImporterApp.prototype.Init = function ()
   this.InitLinkFunctionalityWithHTML();
   this.InitViewerStuff();
 
-  //this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
-  //this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
-  //this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
+  this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
+  this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
+  this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
 };
 
 
@@ -860,7 +860,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   if (volExist) {
     volumeBtn.innerHTML = 'Hide Volume';
     volumeBtn.onclick = () => {
-      const volumeVis = self.viewer.GetVolumeVis(cellname);
+      const volumeVis = self.viewer.GetVolumeVis(db,cellname);
       //if (volumeVis === null || volumeVis === undefined) {
       volumeBtn.innerHTML = !volumeVis ? 'Hide Volume' : 'Show Volume';
       self.viewer.ToggleVolumeByCell(cellname, !volumeVis);

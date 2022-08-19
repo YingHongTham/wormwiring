@@ -37,10 +37,9 @@ MapViewer = function(canvas,app)
   this.canvas = canvas;
   this.app = app;
 
-  // Parameters
-  // TODO figure out these scalings.. is it correct?
-  // (refer to actual EM micrographs)
-  this.XYScale = 0.05;
+  // scaling (see README on how to compute)
+  this.XYScale = 0.13; //0.05;
+
   this.synMax = 20; // limit on synapse radius in viewer
   this.synScale = 0.4; // radius = synScale * num sections
 
@@ -230,9 +229,8 @@ MapViewer.prototype.clearMaps = function()
     for (const cell in this.maps){
       this.scene.remove(this.maps[cell].allGrps);
     }
+    this.maps = {};
   }
-  this.dbMaps = {};
-  this.maps = {};
 };
 
 /*
@@ -617,6 +615,16 @@ MapViewer.prototype.loadMap2 = function(data)
 //};
 
 /*
+ * scale appropriately
+ * note that there is a negative factor in the y component
+ * unclear exactly why,
+ * but this matches with the WormAtlas diagrams
+ * (see AVKL/R for clear example
+ * https://www.wormatlas.org/neurons/Individual%20Neurons/AVKframeset.html)
+ * +x = right
+ * +y = ventral
+ * +z = posterior
+ *
  * @param {Object} vec - Vector3, or object with keys x,y,z
  * @param {Object} params - default value is this.plotParam
  */
@@ -700,7 +708,8 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   // this.maps should already be properly set
   // in the use context on addOneSynapse2
   // but reset just in case
-  this.maps = this.dbMaps[synData.db];
+  const db = synData.db;
+  this.maps = this.dbMaps[db];
 
   const name = synData.cellname; // cell on which synapse shows
 
@@ -773,13 +782,16 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   const self = this;
 
   this.domEvents.addEventListener(sphere,'mouseover',function() {
+    console.log('mouseover', db, name, contin);
     self.SynapseOnMouseOver(db,name,contin);
   });
   this.domEvents.addEventListener(sphere,'mouseout',function() {
+    console.log('mouseout', db, name, contin);
     self.SynapseOnMouseOut(db,name,contin);
   });
 
   this.domEvents.addEventListener(sphere,'click',function() {
+    console.log('mouseclick', db, name, contin);
     self.SynapseOnClick(db,name,contin);
   });
 };
@@ -2110,28 +2122,55 @@ MapViewer.prototype.loadVolumetric = function(db,cell,volumeObj) {
   //const boundingBox = obj.geometry.boundingBox;
   //console.log(boundingBox);
 
+  // tuned with AIBR, ADFR
   if (db === 'N2U') {
-    volumeObj.scale.set(4.5,-4.5,6.5);
-    volumeObj.position.x = -270;
-    volumeObj.position.y = 188;
+    volumeObj.scale.set(39,-39,6.5);
+    volumeObj.position.x = -435;
+    volumeObj.position.y = 140;
     volumeObj.position.z = -5;
   }
 
   if (db === 'JSH') {
     // tuned with AINL, refined with AVKL
-    volumeObj.scale.set(15,-15,6);
-    volumeObj.position.x = -110;
-    volumeObj.position.y = 122;
+    volumeObj.scale.set(39,-39,6.1);
+    volumeObj.position.x = 0;
+    volumeObj.position.y = 0;
     volumeObj.position.z = 0;
   }
 
   if (db === 'n2y') {
-    // tuned using PGA; also R9BR, EF2
-    volumeObj.scale.set(0.015,-0.015,0.02);
-    volumeObj.position.x = -186;
-    volumeObj.position.y = -50;
-    volumeObj.position.z = 13670;
+    // tuned using AS10, AVDL
+    volumeObj.scale.set(0.133,-0.133,0.0199);
+    volumeObj.position.x = -526;
+    volumeObj.position.y = 214;
+    volumeObj.position.z = 13675;
   }
+
+
+  // old values, assuming using plotparams
+  // and display2
+  //if (db === 'N2U') {
+  //  volumeObj.scale.set(4.5,-4.5,6.5);
+  //  volumeObj.position.x = -270;
+  //  volumeObj.position.y = 188;
+  //  volumeObj.position.z = -5;
+  //}
+
+  //if (db === 'JSH') {
+  //  // tuned with AINL, refined with AVKL
+  //  volumeObj.scale.set(15,-15,6);
+  //  volumeObj.position.x = -110;
+  //  volumeObj.position.y = 122;
+  //  volumeObj.position.z = 0;
+  //}
+
+  //if (db === 'n2y') {
+  //  // tuned using PGA; also R9BR, EF2
+  //  volumeObj.scale.set(0.015,-0.015,0.02);
+  //  volumeObj.position.x = -186;
+  //  volumeObj.position.y = -50;
+  //  volumeObj.position.z = 13670;
+  //}
 
   volumeObj.visible = true;
 
