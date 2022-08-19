@@ -203,7 +203,7 @@ FloatingDialog2.prototype.ClampY = function(y) {
 
 // use to resize
 FloatingDialog2.prototype.SetWidthHeight = function(width=null, height=null) {
-  console.log('resizing Help Dialog');
+  //console.log('resizing Help Dialog');
 
   // if given width/height are null,
   // just keep current width/height

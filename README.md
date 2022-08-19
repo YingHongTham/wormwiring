@@ -353,16 +353,17 @@ cell selector dialog which volumes are available)
 TODO related: switch cell selector dialog to be like in listViewerAlt,
 better because Series Selector is awkwardly placed in left menu
 
-TODO change scaling, currently it's different between series
-because it depends on min/max's in the series;
-note that after changing this,
-the volume will not line up properly with skeleton,
-as the volume was scaled/translated manually in 
-MapViewer.loadVolumetric().
+TODO scaling changed, but maybe need a bit of translation,
+try to make the aggregate volumes line up between N2U and JSH;
+n2y seems to line up nicely though it's quite far away.
 
-
-BUGS! TODO
--do synapses floating next to cell
+TODO synapse balls and label disappear when aggregate volume present
+also,
+TODO fix the synapse labels popping up when it shouldn't
+TODO apparently there's a way to make text face camera,
+do something like mesh.lookAt(camera.position),
+  though this needs to be called in each render,
+  hopefully it won't slow down too much
 
 
 

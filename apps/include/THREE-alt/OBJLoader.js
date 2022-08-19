@@ -810,7 +810,7 @@ class OBJLoader extends Loader {
 					const sourceMaterial = materials[ mi ];
 					const materialHash = sourceMaterial.name + '_' + sourceMaterial.smooth + '_' + hasVertexColors;
 					let material = state.materials[ materialHash ];
-          console.log(materialHash);
+          //console.log(materialHash);
 
 					if ( this.materials !== null ) {
 
@@ -836,7 +836,7 @@ class OBJLoader extends Loader {
 
 					}
 
-          console.log('before');
+          //console.log('before');
 
 					if ( material === undefined ) {
 
@@ -851,7 +851,7 @@ class OBJLoader extends Loader {
 						} else {
 
 							material = new MeshPhongMaterial();
-              console.log('phong here');
+              //console.log('phong here');
 
 						}
 

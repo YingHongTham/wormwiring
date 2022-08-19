@@ -301,6 +301,15 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     self.viewer.ToggleAllVolume(!on);
   };
 
+  const btnToggleAggregateVolume = document.getElementById('btnToggleAggregateVolume');
+  btnToggleAggregateVolume.onclick = () => {
+    const on = btnToggleAggregateVolume.value === 'on';
+    btnToggleAggregateVolume.value = !on ? 'on' : 'off';
+    btnToggleAggregateVolume.innerHTML = !on ? 'Hide Aggregate Volume' : 'Show Aggregate Volume';
+    console.log('on: ', on);
+    self.viewer.ToggleAllAggregateVolume(!on);
+  };
+
   //=================================================
   // link Load/Save
 
@@ -848,7 +857,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
 
   //===============================================
   // Synapse List
-  this.InitSynapseListWindow(cellname); // creates, hidden
+  this.InitSynapseListWindow(db,cellname); // creates, hidden
 
   synapseListBtn.innerHTML = 'Synapse List';
   synapseListBtn.onclick = () => {
@@ -890,7 +899,9 @@ ImporterApp.prototype.InitHelpDialog = function(cellname) {
  * assumes loadMap2 is done
  * (meant to be used in loadMapMenu2 which is after loadMap2
  */
-ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
+ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
+  this.viewer.maps = this.viewer.dbMaps[db];
+
   const dialog = new FloatingDialog2(
     parent=null,
     title=cellname,
@@ -924,7 +935,7 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
   dialog.GetContentDiv().appendChild(table);
 
   let allSynList = []; // array of values in allSynData
-  let map = this.viewer.maps[cellname];
+  let map = this.viewer.dbMaps[db][cellname];
   for (const contin in map.allSynData) {
     allSynList.push(map.allSynData[contin]);
   }
@@ -966,16 +977,16 @@ ImporterApp.prototype.InitSynapseListWindow = function(cellname) {
     const highlightColor = 'rgba(0,0,0,0.5)';
     const blankColor = '#FFFFFF';
     row.onclick = () => {
-      self.viewer.SynapseOnClick(synData.cellname, synData.contin);
-      self.viewer.CenterViewOnSynapse(synData.cellname, synData.contin);
+      self.viewer.SynapseOnClick(db,synData.cellname, synData.contin);
+      self.viewer.CenterViewOnSynapse(db,synData.cellname, synData.contin);
     };
     row.onmouseover = () => {
       row.style.backgroundColor = highlightColor;
-      self.viewer.SynapseOnMouseOver(synData.cellname, synData.contin);
+      self.viewer.SynapseOnMouseOver(db,synData.cellname, synData.contin);
     };
     row.onmouseout = () => {
       row.style.backgroundColor = blankColor;
-      self.viewer.SynapseOnMouseOut(synData.cellname, synData.contin);
+      self.viewer.SynapseOnMouseOut(db,synData.cellname, synData.contin);
     };
   }
   
@@ -1255,7 +1266,7 @@ ImporterApp.prototype.RestoreSynapseInfo2 = function() {
 
 
 // update both clicked synapse and the synapse info panel
-ImporterApp.prototype.UpdateClickedSynapseInfo2 = function(cellname, contin) {
+ImporterApp.prototype.UpdateClickedSynapseInfo2 = function(db,cellname,contin) {
   this.synapseClicked.db = db;
   this.synapseClicked.cellname = cellname;
   this.synapseClicked.contin = contin;

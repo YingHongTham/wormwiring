@@ -117,6 +117,13 @@ MapViewer = function(canvas,app)
     'n930': {},
   };
   this.maps = {}; // see loadMap2 for expected form
+
+  // volume made of all the volumes in given db
+  this.aggrVol = {
+    'N2U': null,
+    'JSH': null,
+    'n2y': null,
+  };
   
   // but wait! there's more!
   this.initGL();
@@ -1246,8 +1253,34 @@ MapViewer.prototype.GetVolumeVis = function(db,cellname) {
   }
   return volumeObj.visible;
 };
+// return false if at least one volume is hidden
+MapViewer.prototype.GetAllAggregateVolumeVis = function(db) {
+  for (const db in this.aggrVol) {
+    if (!this.GetAggregateVolumeVisByDb(db))
+      return false;
+  }
+  return false;
+};
+MapViewer.prototype.GetAggregateVolumeVisByDb = function(db) {
+  return this.aggrVol[db].visible;
+};
 
 // setter
+MapViewer.prototype.ToggleAllAggregateVolume = function(bool=null) {
+  if (typeof(bool) !== 'boolean') {
+    bool = !this.GetAllAggregateVolumeVis();
+  }
+  console.log(bool);
+  for (const db in this.aggrVol) {
+    this.ToggleAggregateVolumeByDb(db,bool);
+  }
+};
+MapViewer.prototype.ToggleAggregateVolumeByDb = function(db,bool=null) {
+  if (typeof(bool) !== 'boolean') {
+    bool = !this.GetAggregateVolumeVisByDb(db);
+  }
+  this.aggrVol[db].visible = bool;
+};
 MapViewer.prototype.ToggleAllVolume = function(bool=null) {
   if (typeof(bool) !== 'boolean') {
     bool = !this.GetAllVolumeVis();
@@ -2174,17 +2207,14 @@ MapViewer.prototype.loadVolumetric = function(db,cell,volumeObj) {
 
   volumeObj.visible = true;
 
-  console.log(cell);
+  // add aggregate volume object separately
   if (cell.includes('PARTIAL_REDUCED_COMBINED')) {
-    // TODO set opacity
     for (const mtl of volumeObj.children[0].material) {
       mtl.transparent = true;
       mtl.opacity = 0.1;
     }
-    //volumeObj.children[0].material.transparent = true;
-    //volumeObj.children[0].material.opacity = 0.1;
+    this.aggrVol[db] = volumeObj;
     this.scene.add(volumeObj);
-    console.log('BRUH');
     return;
   }
 

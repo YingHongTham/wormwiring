@@ -312,7 +312,7 @@ THREEx.DomEvents.prototype._onEvent	= function(eventName, mouseX, mouseY, origDo
 	// get objects bound to this event
 	var boundObjs	= this._boundObjs[eventName];
 	if( boundObjs === undefined || boundObjs.length === 0 ) {
-    console.log('no object found');
+    //console.log('no object found');
     return;
   }
 	// compute the intersection
