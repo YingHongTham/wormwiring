@@ -2,10 +2,14 @@
 // or also the regions of the worm: VC, NR, DC, VC2, RIG, LEF
 
 // requires:
+// apps/include/cellLists-alt.js');
 // apps/include/plotParams.js
 // apps/include/cytoscape-3.21.1.min.js
 // apps/include/three/threex.windowresize.js
 
+if (celllistByDbType === undefined) {
+  console.error('expect /apps/include/cellLists-alt.js');
+}
 if (plotMinMaxValues === undefined) {
   console.error('require /apps/include/plotParams.js');
 }
@@ -88,13 +92,31 @@ MapViewer = function(canvas,app)
   // skelMaterial a bit redundant
   // as each skeleton will need its own Material
   // (which allows individual color change)
-  // TODO maybe can optimize this by only create material if change color
   this.skelMaterial = new THREE.LineBasicMaterial({ color: this.skelColor, linewidth: this.skelWidth });
   this.cbMaterial = new THREE.LineBasicMaterial({color:this.cellbodyColor,linewidth:this.cellbodyWidth});
   this.preMaterial = new THREE.MeshLambertMaterial({color:this.preColor});
   this.postMaterial = new THREE.MeshLambertMaterial({color:this.postColor});
   this.gapMaterial = new THREE.MeshLambertMaterial({color:this.gapColor});
 
+  // in the past, we basically assumed that
+  // user only selects cells from one db,
+  // and never changes it later
+  // this is obviously bad practice,
+  // but there are too many references to this.maps
+  // so we'll simply change this.maps to which ever db
+  // e.g. this.maps = this.dbMaps['N2U'];
+  // before doing anything
+  // in particular, every method with cell as a variable
+  // should also have db as variable
+  // see e.g. ClearMaps for a simple example
+  this.dbMaps = {
+    'N2U': {},
+    'JSE': {},
+    'N2W': {},
+    'JSH': {},
+    'n2y': {},
+    'n930': {},
+  };
   this.maps = {}; // see loadMap2 for expected form
   
   // but wait! there's more!
@@ -203,9 +225,13 @@ MapViewer.prototype.initGL = function()
 
 MapViewer.prototype.clearMaps = function()
 {
-  for (var name in this.maps){
-    this.scene.remove(this.maps[name].allGrps);
-  };
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const cell in this.maps){
+      this.scene.remove(this.maps[cell].allGrps);
+    }
+  }
+  this.dbMaps = {};
   this.maps = {};
 };
 
@@ -268,7 +294,10 @@ MapViewer.prototype.clearMaps = function()
  */
 MapViewer.prototype.loadMap2 = function(data)
 {
-  // scale/translate obj coords
+  this.maps = this.dbMaps[data.db];
+  let db = data.db;
+
+  // for scale/translate obj coords
   const plotMinMax = plotMinMaxValues[data.db];
   this.plotParam.xmid = 0.5*(plotMinMax.xMin+plotMinMax.xMax);
   this.plotParam.xmin = plotMinMax.xMin;
@@ -438,6 +467,7 @@ MapViewer.prototype.loadMap2 = function(data)
   for (const contin in data.gap) {
     const syn = data.gap[contin];
     let synData = {
+      db: db,
       pre: syn.pre,
       post: syn.post,
       type: 'gap',
@@ -474,6 +504,7 @@ MapViewer.prototype.loadMap2 = function(data)
     //if (!data.pre.hasOwnProperty(contin)) continue;
     const syn = data.pre[contin];
     let synData = {
+      db: db,
       pre: syn.pre,
       post: syn.post,
       type: 'pre',
@@ -505,6 +536,7 @@ MapViewer.prototype.loadMap2 = function(data)
     //if (!data.post.hasOwnProperty(contin)) continue;
     const syn = data.post[contin];
     let synData = {
+      db: db,
       pre: syn.pre,
       post: syn.post,
       type: 'post',
@@ -576,18 +608,15 @@ MapViewer.prototype.loadMap2 = function(data)
 
   // translate cell by the slider values
   // and update view/camera
-  this.translateOneMapsToThisPos(map.name);
-  this.CenterViewOnCell(map.name);
+  this.translateOneMapsToThisPos(db,map.name);
+  this.CenterViewOnCell(db,map.name);
 };
 
-MapViewer.prototype.getLoadedCells = function() {
-  return Object.keys(this.maps);
-};
+//MapViewer.prototype.getLoadedCells = function() {
+//  return Object.keys(this.maps);
+//};
 
 /*
- * TODO this is fucked up, now it's inverted in y too?
- * fuck me
- *
  * @param {Object} vec - Vector3, or object with keys x,y,z
  * @param {Object} params - default value is this.plotParam
  */
@@ -596,10 +625,15 @@ MapViewer.prototype.applyPlotParamsTransform = function(vec,params=null) {
     params = this.plotParam;
   }
   return new THREE.Vector3(
-    (params.xmin - vec.x - params.xmid)*this.XYScale,
-    (params.ymax - vec.y - params.ymid)*this.XYScale,
-    vec.z - params.zmin
+    vec.x * this.XYScale,
+    -vec.y * this.XYScale,
+    vec.z
   );
+  //return new THREE.Vector3(
+  //  (params.xmin - vec.x - params.xmid)*this.XYScale,
+  //  (params.ymax - vec.y - params.ymid)*this.XYScale,
+  //  vec.z - params.zmin
+  //);
 };
 
 
@@ -619,6 +653,8 @@ MapViewer.prototype.applyPlotParamsTransform = function(vec,params=null) {
  * @param {String} name - cell name
  */
 MapViewer.prototype.loadSkeletonIntoViewer = function(name) { 
+  // this is only ever used once,
+  // and in that context, this.maps is properly set
   for (const line of this.maps[name].skeletonLines) {
     const points = line.map(obj => this.maps[name].objCoord[obj]);
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -661,6 +697,11 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(name) {
  * @param {Object} synData - allSynData[contin]
  */
 MapViewer.prototype.addOneSynapse2 = function(synData) {
+  // this.maps should already be properly set
+  // in the use context on addOneSynapse2
+  // but reset just in case
+  this.maps = this.dbMaps[synData.db];
+
   const name = synData.cellname; // cell on which synapse shows
 
   //const synPos = this.maps[name].objCoord[synData.obj];
@@ -732,14 +773,14 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   const self = this;
 
   this.domEvents.addEventListener(sphere,'mouseover',function() {
-    self.SynapseOnMouseOver(name, contin);
+    self.SynapseOnMouseOver(db,name,contin);
   });
   this.domEvents.addEventListener(sphere,'mouseout',function() {
-    self.SynapseOnMouseOut(name, contin);
+    self.SynapseOnMouseOut(db,name,contin);
   });
 
   this.domEvents.addEventListener(sphere,'click',function() {
-    self.SynapseOnClick(name, contin);
+    self.SynapseOnClick(db,name,contin);
   });
 };
 
@@ -747,7 +788,8 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
 /*
  * returns a copy of synapse data with given contin
  */
-MapViewer.prototype.GetSynData = function(cellname,contin) {
+MapViewer.prototype.GetSynData = function(db,cellname,contin) {
+  this.maps = this.dbMaps[db];
   const synData = Object.assign({}, this.maps[cellname].allSynData[contin]);
   return synData;
 };
@@ -755,14 +797,16 @@ MapViewer.prototype.GetSynData = function(cellname,contin) {
 //=====================================================
 // mouse events for the sphere objects in viewer
 
-MapViewer.prototype.SynapseOnMouseOver = function(cellname, contin) {
+MapViewer.prototype.SynapseOnMouseOver = function(db,cellname,contin) {
+  this.maps = this.dbMaps[db];
   const synData = this.maps[cellname].allSynData[contin];
   synData.synLabelObj.visible = true;
-  this.app.UpdateSynapseInfo2(cellname, contin);
+  this.app.UpdateSynapseInfo2(db,cellname,contin);
   this.render();
 };
 
-MapViewer.prototype.SynapseOnMouseOut = function(cellname, contin) {
+MapViewer.prototype.SynapseOnMouseOut = function(db,cellname,contin) {
+  this.maps = this.dbMaps[db];
   const synData = this.maps[cellname].allSynData[contin];
   if (this.app.GetSynapseInfoContin2() !== contin) {
     synData.synLabelObj.visible = false;
@@ -771,17 +815,18 @@ MapViewer.prototype.SynapseOnMouseOut = function(cellname, contin) {
   this.render();
 };
 
-MapViewer.prototype.SynapseOnClick = function(cellname, contin) {
+MapViewer.prototype.SynapseOnClick = function(db,cellname,contin) {
+  this.maps = this.dbMaps[db];
   const synData = this.maps[cellname].allSynData[contin];
   // if click same synapse, 'unclick' it
   if (this.app.GetSynapseInfoContin2() === contin) {
+    this.toggleSynapseLabels(db,cellname, false);
     synData.synLabelObj.visible = false;
     this.app.RestoreSynapseInfoToDefault2();
   }
   else {
-    this.toggleSynapseLabels(cellname, false);
     synData.synLabelObj.visible = true;
-    this.app.UpdateClickedSynapseInfo2(cellname, contin);
+    this.app.UpdateClickedSynapseInfo2(db,cellname,contin);
   }
   this.render();
 };
@@ -812,26 +857,28 @@ MapViewer.prototype.translateMapsTo = function(x,y,z)
   const m = new THREE.Matrix4();
   m.makeTranslation(delta.x,delta.y,delta.z);
   
-  for (const name in this.maps) {
-    this.transformStuffOneCell(m, name);
+  for (const db in this.dbMaps) {
+    for (const name in this.dbMaps[db]) {
+      this.transformStuffOneCell(m,db,name);
+    }
   }
 };
 
 /*
  * same as translateMapsTo, but adds, not absolute
  */
-MapViewer.prototype.translateMapsBy = function(x,y,z) {
-  this.position.x += x;
-  this.position.y += y;
-  this.position.z += z;
-
-  const m = new THREE.Matrix4();
-  m.makeTranslation(x,y,z);
-
-  for (const name in this.maps) {
-    this.transformStuffOneCell(m, name);
-  }
-};
+//MapViewer.prototype.translateMapsBy = function(x,y,z) {
+//  this.position.x += x;
+//  this.position.y += y;
+//  this.position.z += z;
+//
+//  const m = new THREE.Matrix4();
+//  m.makeTranslation(x,y,z);
+//
+//  for (const name in this.maps) {
+//    this.transformStuffOneCell(m, name);
+//  }
+//};
 
 /*
  * translate one cell (usually when newly loaded)
@@ -840,49 +887,49 @@ MapViewer.prototype.translateMapsBy = function(x,y,z) {
  * so that if user is sliding, this will complete
  * before this.position is updated again
  */
-MapViewer.prototype.translateOneMapsToThisPos = function(cellname) {
+MapViewer.prototype.translateOneMapsToThisPos = function(db,cellname) {
+  this.maps = this.dbMaps[db];
+
   const m = new THREE.Matrix4();
   const pos = this.position;
   m.makeTranslation(pos.x,pos.y,pos.z);
 
-  this.transformStuffOneCell(m, cellname);
+  this.transformStuffOneCell(m,db,cellname);
 };
 
 /*
  * translate only one cell
  * add x,y,z to current position
  */
-MapViewer.prototype.translateOneMapsBy = function(cellname,x,y,z) {
-  const m = new THREE.Matrix4()
-  m.makeTranslation(x,y,z);
-
-  this.transformStuffOneCell(m, cellname);
-};
+//MapViewer.prototype.translateOneMapsBy = function(cellname,x,y,z) {
+//  const m = new THREE.Matrix4()
+//  m.makeTranslation(x,y,z);
+//
+//  this.transformStuffOneCell(m, cellname);
+//};
 
 
 
 /*
  * @param {Object} m - THREE.Matrix4 object representing transformation
  * @param {String} name - cell name
+ *
+ * not used?
  */
-MapViewer.prototype.transformSynapses = function(m, name) {
+MapViewer.prototype.transformSynapses = function(m,db,name) {
+  this.maps = this.dbMaps[db];
   this.maps[name].synObjs.applyMatrix(m);
 };
 
 /*
  * @param {Object} m - THREE.Matrix4 object representing transformation
  * @param {String} name - cell name
+ *
+ * not used?
  */
-MapViewer.prototype.transformRemarks = function(m, name) {
+MapViewer.prototype.transformRemarks = function(m,db,name) {
+  this.maps = this.dbMaps[db];
   this.maps[name].remarksGrp.applyMatrix(m);
-};
-
-// old methods
-MapViewer.prototype.translateRemarks = function(remarks,transMatrix)
-{
-  for (var i=0; i < remarks.length; i++){
-    remarks[i].applyMatrix(transMatrix);
-  };
 };
 
 /*
@@ -891,7 +938,8 @@ MapViewer.prototype.translateRemarks = function(remarks,transMatrix)
  * @param {Object} m - THREE.Matrix4 object representing transformation
  * @param {String} name - cell name
  */
-MapViewer.prototype.transformStuffOneCell = function(m, name) {
+MapViewer.prototype.transformStuffOneCell = function(m,db,name) {
+  this.maps = this.dbMaps[db];
   this.maps[name].allGrps.applyMatrix(m);
 };
 
@@ -922,47 +970,69 @@ MapViewer.prototype.FilterSynapses = function(typesSelected, cells, contins) {
   this.FilterSynapsesByCells(cells);
   this.FilterSynapsesByContins(contins);
 };
+
 MapViewer.prototype.FilterSynapsesByType = function(typesSelected) {
   if (typesSelected.length === 0) return;
-  for (const cell in this.maps) {
-    for (const type of ['pre','post','gap']) {
-      if (!typesSelected.includes(type)) {
-        this.maps[cell][type+'Grp'].visible = false;
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const cell in this.maps) {
+      for (const type of ['pre','post','gap']) {
+        if (!typesSelected.includes(type)) {
+          this.maps[cell][type+'Grp'].visible = false;
+        }
       }
     }
   }
 };
 MapViewer.prototype.FilterSynapsesByCells = function(cells) {
-  cells = cells.filter(c =>
-    this.app.cellsInSlctdSrs.neuron.includes(c)
-    || this.app.cellsInSlctdSrs.muscle.includes(c));
-  if (cells.length === 0) return;
-  const cellsSet = new Set(cells);
-  for (const cell in this.maps) {
-    for (const contin in this.maps[cell].allSynData) {
-      const syn = this.maps[cell].allSynData[contin];
-      const synCells = [syn.pre].concat(syn.post.split(','));
+  if (cells.length === 0) {
+    // don't filter by cell if no cells given
+    return;
+  }
+  for (const db in celllistByDbType) {
+    //// restrict cells to cells in db
+    //let cellsInDb = cells.filter(c =>
+    //    celllistByDbType[db].neuron.includes(c)
+    //  || celllistByDbType[db].muscle.includes(c));
+    //if (cellsInDb.length === 0) {
+    //  // 
+    //  continue;
+    //}
+    const cellsSet = new Set(cells);
 
-      let isBad = true;
-      for (const c of synCells) {
-        if (cellsSet.has(c)) {
-          isBad = false;
-          break;
+    this.maps = this.dbMaps[db];
+    for (const cell in this.maps) {
+      for (const contin in this.maps[cell].allSynData) {
+        const syn = this.maps[cell].allSynData[contin];
+        const synCells = [syn.pre].concat(syn.post.split(','));
+
+        let isBad = true;
+        for (const c of synCells) {
+          if (cellsSet.has(c)) {
+            isBad = false;
+            break;
+          }
         }
-      }
-      if (isBad) {
-        syn.sphere.visible = false;
+        if (isBad) {
+          syn.sphere.visible = false;
+        }
       }
     }
   }
 };
 MapViewer.prototype.FilterSynapsesByContins = function(contins) {
-  if (contins.length === 0) return;
-  for (const cell in this.maps) {
-    for (const contin in this.maps[cell].allSynData) {
-      const continNum = parseInt(contin);
-      if (!contins.includes(continNum)) {
-        this.maps[cell].allSynData[contin].sphere.visible = false;
+  if (contins.length === 0) {
+    // don't filter by contin if none given
+    return;
+  }
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const cell in this.maps) {
+      for (const contin in this.maps[cell].allSynData) {
+        const continNum = parseInt(contin);
+        if (!contins.includes(continNum)) {
+          this.maps[cell].allSynData[contin].sphere.visible = false;
+        }
       }
     }
   }
@@ -972,13 +1042,16 @@ MapViewer.prototype.FilterSynapsesByContins = function(contins) {
 // because in FilterSynapses, affect visibility of both
 // the groups (preGrp etc) and individual sphere objects
 MapViewer.prototype.RestoreSynapses = function() {
-  for (const cell in this.maps) {
-    const map = this.maps[cell];
-    map.preGrp.visible = true;
-    map.postGrp.visible = true;
-    map.gapGrp.visible = true;
-    for (const contin in map.allSynData) {
-      map.allSynData[contin].sphere.visible = true;
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const cell in this.maps) {
+      const map = this.maps[cell];
+      map.preGrp.visible = true;
+      map.postGrp.visible = true;
+      map.gapGrp.visible = true;
+      for (const contin in map.allSynData) {
+        map.allSynData[contin].sphere.visible = true;
+      }
     }
   }
 };
@@ -993,14 +1066,16 @@ MapViewer.prototype.RestoreSynapses = function() {
  * (e.g. if toggle remarks to hidden,
  * doing toggleMaps(name, true) will still keep it hidden)
  */
-MapViewer.prototype.toggleMaps = function(name, visible=null) {
+MapViewer.prototype.toggleMaps = function(db,name,visible=null) {
+  this.maps = this.dbMaps[db];
   if (typeof(visible) !== 'boolean') {
     visible = !this.maps[name].allGrps.visible;
   }
   this.maps[name].allGrps.visible = visible;
 }
 
-MapViewer.prototype.mapIsVisible = function(name) {
+MapViewer.prototype.mapIsVisible = function(db,name) {
+  this.maps = this.dbMaps[db];
   return this.maps[name].allGrps.visible;
 };
 
@@ -1008,8 +1083,9 @@ MapViewer.prototype.mapIsVisible = function(name) {
  * only toggle visibility of skeleton of one cell
  * seems like not used for now
  */
-MapViewer.prototype.toggleSkeleton = function(name, visible=null)
+MapViewer.prototype.toggleSkeleton = function(db,name,visible=null)
 {
+  this.maps = this.dbMaps[db];
   if (typeof(visible) !== 'boolean') {
     visible = !this.maps[name].skeletonGrp.visible;
   }
@@ -1023,13 +1099,17 @@ MapViewer.prototype.toggleSkeleton = function(name, visible=null)
 
 MapViewer.prototype.toggleAllSynapses = function(visible=null)
 {
-  for (const name in this.maps){
-    this.toggleSynapsesByCell(name,visible);
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const name in this.maps) {
+      this.toggleSynapsesByCell(name,visible);
+    }
   }
 };
 
-MapViewer.prototype.toggleSynapsesByCell = function(name, visible=null)
+MapViewer.prototype.toggleSynapsesByCell = function(db,name,visible=null)
 {
+  this.maps = this.dbMaps[db];
   if (typeof(visible) !== 'boolean') {
     visible = !this.maps[name].synObjs.visible;
   }
@@ -1038,7 +1118,8 @@ MapViewer.prototype.toggleSynapsesByCell = function(name, visible=null)
 
 
 // synType = 'pre','post','gap'
-MapViewer.prototype.toggleSynapsesByType = function(name,synType,visible=null) {
+MapViewer.prototype.toggleSynapsesByType = function(db,name,synType,visible=null) {
+  this.maps = this.dbMaps[db];
   const grp = synType + 'Grp';
   if (typeof(visible) !== 'boolean') {
     visible = !this.maps[name][grp].visible;
@@ -1052,12 +1133,15 @@ MapViewer.prototype.toggleSynapsesByType = function(name,synType,visible=null) {
 // i.e. functionality for Global Viewer Options
 
 MapViewer.prototype.toggleAllRemarks = function(bool=null) {
-  for (const cell in this.maps) {
-    this.toggleRemarksByCell(cell, bool);
+  for (const db in this.dbMaps) {
+    for (const cell in this.maps) {
+      this.toggleRemarksByCell(db,cell,bool);
+    }
   }
 };
 
-MapViewer.prototype.toggleRemarksByCell = function(cell, bool=null) {
+MapViewer.prototype.toggleRemarksByCell = function(db,cell,bool=null) {
+  this.maps = this.dbMaps[db];
   console.log('in toggleRemarksByCell: ', bool);
   if (typeof(bool) !== 'boolean') {
     bool = !this.maps[cell].remarksGrp.visible;
@@ -1065,7 +1149,8 @@ MapViewer.prototype.toggleRemarksByCell = function(cell, bool=null) {
   this.maps[cell].remarksGrp.visible = bool;
 };
 
-MapViewer.prototype.GetRemarkVis = function(cell) {
+MapViewer.prototype.GetRemarkVis = function(db,cell) {
+  this.maps = this.dbMaps[db];
   return this.maps[cell].remarksGrp.visible;
 };
 
@@ -1088,14 +1173,17 @@ MapViewer.prototype.toggleAllSynapseLabels = function(bool=null) {
   if (typeof(bool) !== 'boolean') {
     bool = !this.GetAllSynapseLabelsVisible();
   }
-  for (const name in this.maps){
-    this.toggleSynapseLabels(name, bool);
-  };
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const name in this.maps){
+      this.toggleSynapseLabels(db,name,bool);
+    }
+  }
 };
 
-MapViewer.prototype.toggleSynapseLabels = function(cellname,bool=null) {
+MapViewer.prototype.toggleSynapseLabels = function(db,cellname,bool=null) {
   if (typeof(bool) !== 'boolean') {
-    bool = !this.GetSynapseLabelsVisible(cellname);
+    bool = !this.GetSynapseLabelsVisible(db,cellname);
   }
   for (const synLabel of this.maps[cellname].synLabels.children) {
     synLabel.visible = bool;
@@ -1107,13 +1195,17 @@ MapViewer.prototype.toggleSynapseLabels = function(cellname,bool=null) {
 };
 
 MapViewer.prototype.GetAllSynapseLabelsVisible = function() {
-  for (const cellname in this.maps) {
-    if (!this.GetSynapseLabelsVisible(cellname))
-      return false;
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const cellname in this.maps) {
+      if (!this.GetSynapseLabelsVisible(db,cellname))
+        return false;
+    }
   }
   return true;
 };
-MapViewer.prototype.GetSynapseLabelsVisible = function(cellname) {
+MapViewer.prototype.GetSynapseLabelsVisible = function(db,cellname) {
+  this.maps = this.dbMaps[db];
   for (const synLabel of this.maps[cellname].synLabels.children) {
     if (!synLabel.visible) return false;
   }
@@ -1125,13 +1217,17 @@ MapViewer.prototype.GetSynapseLabelsVisible = function(cellname) {
 
 // visibility of volume
 MapViewer.prototype.GetAllVolumeVis = function() {
-  for (const cellname in this.maps) {
-    if (!this.GetVolumeVis(cellname))
-      return false;
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const cellname in this.maps) {
+      if (!this.GetVolumeVis(db,cellname))
+        return false;
+    }
   }
   return true;
 };
-MapViewer.prototype.GetVolumeVis = function(cellname) {
+MapViewer.prototype.GetVolumeVis = function(db,cellname) {
+  this.maps = this.dbMaps[db];
   let volumeObj = this.maps[cellname].volumeObj;
   if (volumeObj === null || volumeObj === undefined) {
     return;
@@ -1144,17 +1240,20 @@ MapViewer.prototype.ToggleAllVolume = function(bool=null) {
   if (typeof(bool) !== 'boolean') {
     bool = !this.GetAllVolumeVis();
   }
-  for (const name in this.maps){
-    this.ToggleVolumeByCell(name, bool);
-  };
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const name in this.maps){
+      this.ToggleVolumeByCell(db,name,bool);
+    };
+  }
 };
-MapViewer.prototype.ToggleVolumeByCell = function(cellname, bool=null) {
+MapViewer.prototype.ToggleVolumeByCell = function(db,cellname,bool=null) {
   let volumeObj = this.maps[cellname].volumeObj;
   if (volumeObj === null || volumeObj === undefined) {
     return;
   }
   if (typeof(bool) !== 'boolean') {
-    bool = !this.GetVolumeVis(cellname);
+    bool = !this.GetVolumeVis(db,cellname);
   }
   volumeObj.visible = bool;
 };
@@ -1166,7 +1265,8 @@ MapViewer.prototype.ToggleVolumeByCell = function(cellname, bool=null) {
 // which is called after LoadMap in ImporterApp (?),
 // which is async (waits for xhttp request for data)
 // so when writing items to menu need to check if done loading
-MapViewer.prototype.isCellLoaded = function(cellname) {
+MapViewer.prototype.isCellLoaded = function(db,cellname) {
+  this.maps = this.dbMaps[db];
   return this.maps.hasOwnProperty(cellname);
 };
 
@@ -1181,7 +1281,8 @@ MapViewer.prototype.dumpJSON = function() {
 // (usual RGB color / 255)
 // note: color selector thing is created when user clicks button,
 // so we just need to modify the color directly on the object
-MapViewer.prototype.SetSkeletonColor = function(cell, color) {
+MapViewer.prototype.SetSkeletonColor = function(db,cell,color) {
+  this.maps = this.dbMaps[db];
   for (const obj of this.maps[cell].skeletonGrp.children) {
     obj.material.color.r = color.r;
     obj.material.color.g = color.g;
@@ -1193,7 +1294,8 @@ MapViewer.prototype.SetSkeletonColor = function(cell, color) {
  * get skeleton color
  * note it is out of 1.0, for rgb should *255 and round
  */
-MapViewer.prototype.GetSkeletonColor = function(cell) {
+MapViewer.prototype.GetSkeletonColor = function(db,cell) {
+  this.maps = this.dbMaps[db];
   if (this.maps[cell].skeletonGrp.children.length === 0) {
     return { r: 0, g: 0, b: 0 };
   }
@@ -1208,10 +1310,14 @@ MapViewer.prototype.GetSkeletonColor = function(cell) {
 // return color of maps
 MapViewer.prototype.dumpMapSettingsJSON = function() {
   const mapsSettings = {};
-  for (const cell in this.maps) {
-    mapsSettings[cell] = {
-      color: this.GetSkeletonColor(cell),
-    };
+  for (const db in this.dbMaps) {
+    mapsSettings[db] = {};
+    this.maps = this.dbMaps[db];
+    for (const cell in this.maps) {
+      mapsSettings[db][cell] = {
+        color: this.GetSkeletonColor(db,cell),
+      };
+    }
   }
   return mapsSettings;
 };
@@ -1229,7 +1335,8 @@ MapViewer.prototype.dumpMapSettingsJSON = function() {
 
 // get average position of cell in viewer
 // used for recentering view on LoadMap2
-MapViewer.prototype.GetAveragePosition2 = function(name) {
+MapViewer.prototype.GetAveragePosition2 = function(db,name) {
+  this.maps = this.dbMaps[db];
   // maybe easier to just do objCoord directly,
   // but in the future might add objs that are
   // not part of the skeleton per se
@@ -1247,7 +1354,7 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
   tot.y = tot.y / count;
   tot.z = tot.z / count;
 
-  const trans = this.GetTranslateOnMaps(name);
+  const trans = this.GetTranslateOnMaps(db,name);
   tot.x += trans.x;
   tot.y += trans.y;
   tot.z += trans.z;
@@ -1266,14 +1373,16 @@ MapViewer.prototype.GetAveragePosition2 = function(name) {
 // but in all use cases, there is reference to a cell
 //
 // should be equal to this.position actually..
-MapViewer.prototype.GetTranslateOnMaps = function(cellname) {
-  return this.maps[cellname].allGrps.position;
+MapViewer.prototype.GetTranslateOnMaps = function(db,cell) {
+  this.maps = this.dbMaps[db];
+  return this.maps[cell].allGrps.position;
 };
 
 // get syn's coordinates as seen in 3D viewer,
 // i.e. taking into account translations too
-MapViewer.prototype.GetSynCoordInViewer = function(cellname,contin) {
-  const trans = this.GetTranslateOnMaps(cellname);
+MapViewer.prototype.GetSynCoordInViewer = function(db,cellname,contin) {
+  this.maps = this.dbMaps[db];
+  const trans = this.GetTranslateOnMaps(db,cellname);
   const coord = this.maps[cellname].allSynData[contin].coord;
   return new THREE.Vector3(
     trans.x + coord.x,
@@ -1283,16 +1392,17 @@ MapViewer.prototype.GetSynCoordInViewer = function(cellname,contin) {
 
 // get obj's coordinates as seen in 3D viewer,
 // i.e. taking into account translations too
-MapViewer.prototype.GetObjCoordInViewer = function(cellname,obj) {
-  const trans = this.GetTranslateOnMaps(cellname);
-  const coord = this.GetObjCoordAbsolute(cellname,obj);
+MapViewer.prototype.GetObjCoordInViewer = function(db,cellname,obj) {
+  const trans = this.GetTranslateOnMaps(db,cellname);
+  const coord = this.GetObjCoordAbsolute(db,cellname,obj);
   return new THREE.Vector3(
     trans.x + coord.x,
     trans.y + coord.y,
     trans.z + coord.z);
 };
 
-MapViewer.prototype.GetObjCoordAbsolute = function(cellname, objNum) {
+MapViewer.prototype.GetObjCoordAbsolute = function(db,cellname,objNum) {
+  this.maps = this.dbMaps[db];
   return this.maps[cellname].objCoord[objNum];
 };
 
@@ -1369,8 +1479,8 @@ MapViewer.prototype.SetCameraPosition = function(pos) {
   this.updateCamera();
 };
 
-MapViewer.prototype.CenterViewOnCell = function(cellname) {
-  const pos = this.GetAveragePosition2(cellname);
+MapViewer.prototype.CenterViewOnCell = function(db,cellname) {
+  const pos = this.GetAveragePosition2(db,cellname);
   this.SetCameraTarget(pos);
   pos.y += 1000;
   this.SetCameraPosition(pos);
@@ -1378,8 +1488,8 @@ MapViewer.prototype.CenterViewOnCell = function(cellname) {
 };
 
 
-MapViewer.prototype.CenterViewOnSynapse = function(cellname,contin) {
-  const pos = this.GetSynCoordInViewer(cellname, contin);
+MapViewer.prototype.CenterViewOnSynapse = function(db,cellname,contin) {
+  const pos = this.GetSynCoordInViewer(db,cellname,contin);
   this.SetCameraTarget(pos);
   pos.y += 100;
   this.SetCameraPosition(pos);
@@ -1429,11 +1539,14 @@ MapViewer.prototype.load2DViewer = function(elem) {
   let sepBtCells = 10;
   // maxHoriz is the furthest that the graph goes to the right
   // is updated each time a cell is added
-  for (const cell in this.maps) {
-    //if (!this.maps.hasOwnProperty(cell)) continue;
-    let ee = this.Get2DGraphCY(cell,maxHoriz);
-    cy_elems = cy_elems.concat(ee.cy_elems);
-    maxHoriz += ee.maxHoriz + sepBtCells;
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const cell in this.maps) {
+      //if (!this.maps.hasOwnProperty(cell)) continue;
+      let ee = this.Get2DGraphCY(db,cell,maxHoriz);
+      cy_elems = cy_elems.concat(ee.cy_elems);
+      maxHoriz += ee.maxHoriz + sepBtCells;
+    }
   }
 
   const cy = cytoscape({
@@ -1474,12 +1587,13 @@ MapViewer.prototype.load2DViewer = function(elem) {
   const self = this;
   cy.on('tap', 'node', function(evt){
     const id = evt.target.id();
-    const cell = id.split('-')[0];
-    const obj = parseInt(id.split('-')[1]);
+    const db = id.split('-')[0];
+    const cell = id.split('-')[1];
+    const obj = parseInt(id.split('-')[2]);
     const contins = self.ObjToSynapseContin(cell,obj);
     if (contins.length > 0) {
-      self.SynapseOnClick(cell, contins[0]);
-      self.CenterViewOnSynapse(cell, contins[0]);
+      self.SynapseOnClick(db,cell,contins[0]);
+      self.CenterViewOnSynapse(db,cell,contins[0]);
     }
     else { // clicked obj is not a synapse
       const pos = self.GetObjCoordInViewer(cell, obj);
@@ -1507,13 +1621,14 @@ MapViewer.prototype.load2DViewer = function(elem) {
  *
  * used to be called load2DViewerHelper 
  */
-MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
+MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   // below we store coordinate in pos2D,
   // which will have integer entries
   // this is scale between the integer units to
   // actual coordinates in the cytoscape
   // (see cy_elems.push(...))
   const UNITS_TO_CYTOSCAPE_COORD = 50;
+  this.maps = this.dbMaps[db];
   const map = this.maps[cell];
   const objCoord = map.objCoord;
   const cy_elems = [];
@@ -1717,7 +1832,7 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
     const vlabel = vLabels.join(' / ');
     cy_elems.push({
       data: {
-        id: cell + '-' + v,
+        id: `${db}-${cell}-${v}`,
         label: vlabel,
         width: 10,
         height: 10,
@@ -1731,9 +1846,9 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
       if (v < w) {
         cy_elems.push({
           data: {
-            id: `${cell}--${v}--${w}`,
-            source: cell + '-' + v,
-            target: cell + '-' + w,
+            id: `${db}--${cell}--${v}--${w}`,
+            source: `${db}-${cell}-${v}`,
+            target: `${db}-${cell}-${w}`,
           },
         });
       }
@@ -1767,7 +1882,7 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
   // final node, to label by cell name
   cy_elems.push({
     data: {
-      id: 'graph-' + cell,
+      id: `graph-${db}-${cell}`,
       label: cell,
       width: 10,
       height: 10,
@@ -1787,13 +1902,16 @@ MapViewer.prototype.Get2DGraphCY = function(cell, horizInit) {
 };
 
 
-// get the skeleton obj that a synapse is attached to
-// usually combined with GetObjCoordInViewer
-MapViewer.prototype.SynapseContinToObj = function(cellname, contin) {
-  return this.maps[cellname].allSynData[contin].obj;
-};
+//// get the skeleton obj that a synapse is attached to
+//// usually combined with GetObjCoordInViewer
+//// obsolete now with change in php
+//MapViewer.prototype.SynapseContinToObj = function(db,cellname,contin) {
+//  this.maps = this.dbMaps[db];
+//  return this.maps[cellname].allSynData[contin].obj;
+//};
 
 // get synapses that have the same obj
+// TODO deal with 2D graph
 MapViewer.prototype.ObjToSynapseContin = function(cellname, obj) {
   let ans = [];
   for (const continStr in this.maps[cellname].allSynData) {
@@ -1969,7 +2087,7 @@ MapViewer.prototype.addTextWithArrow = function(text,params) {
 //=========================================================
 // Volumetric
 
-MapViewer.prototype.loadVolumetric = function(db, cell, volumeObj) {
+MapViewer.prototype.loadVolumetric = function(db,cell,volumeObj) {
   if (!['N2U','JSH','n2y'].includes(db)) {
     console.log(`Volumetric data not available for ${db}`);
     return;

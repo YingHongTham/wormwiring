@@ -118,7 +118,7 @@ but some synapses DO NOT have data in display2
 NONE OF THEIR SECTIONS appear in display2
 one reason is because display2 gives data about relationships,
 so if the synapse is one section long,
-it DOESN'T FUCKING SHOW UP.
+it DOESN'T SHOW UP.
 Fine.
 But sometimes synapses with more than one section
 also doesn't show up in display2.

@@ -68,7 +68,11 @@ ImporterApp = function()
     synposition: '---',
   }
   this.synapseInfoClicked = Object.assign({}, this.defaultSynapseInfo);
-  this.synapseClicked = { cellname: null, contin: null };
+  this.synapseClicked = {
+    db: null,
+    cellname: null,
+    contin: null
+  };
 
   // object dealing with the viewer inside canvas
   this.viewer = null; // initialized properly in Init()
@@ -80,6 +84,11 @@ ImporterApp = function()
   // FloatingDialog2 objects for each cell,
   // showing the list of synapses
   this.synapseListWindows = {};
+
+  // db sections (under maps section)
+  // (set to refer to HTML divs in
+  // InitLinkFunctionalityWithHTML())
+  this.dbSection = {};
 
   // more intialization; but no new member variables declared
   this.Init();
@@ -147,26 +156,12 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   topItems[2].onclick = () => { this.Open2DViewer(); };
   topItems[3].onclick = () => { this.ClearMaps(); };
 
-  // no longer needed, found that bootstrap can handle it
-  //// create menu items' accordion behaviour
-  //const menuSections = Array.from(
-  //  document.getElementsByClassName('accordionSection')
-  //);
-  //menuSections.forEach( el => {
-  //  // expect exactly two children - with classes
-  //  // sectionTitle, sectionContent - in that order
-  //  // state of open/close stored in presence/absence
-  //  // of class active/inactive in title
-  //  const title = el.children[0];
-  //  const content = el.children[1];
-  //  title.onclick = () => {
-  //    const active = title.classList.contains('active')
-  //                || !title.classList.contains('inactive');
-  //    content.style.display = active ? 'none' : 'block';
-  //    title.classList.toggle('active', !active);
-  //    title.classList.toggle('inactive', active);
-  //  };
-  //});
+  ////=================================================
+  //// set up reference to each db section
+  //for (const db of ['N2U','JSE','N2W','JSH','n2y','n930']) {
+  //  const dbSectionId = `maps${db}ContentDiv`;
+  //  this.dbSection[db] = document.getElementById(dbSectionId);
+  //}
 
   //=================================================
   // link series-selector to this.db and this.cellsInSlctdSrs
@@ -182,11 +177,11 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   // link buttons in Synapse Info
   const openSynapseEMViewer = document.getElementById('openSynapseEMViewer');
   openSynapseEMViewer.onclick = () => {
+    const db = self.synapseClicked.db;
     const cellname = self.synapseClicked.cellname;
     const contin = self.synapseClicked.contin;
     if (contin === null) return;
-    const db = self.db;
-    const url = `/apps/synapseViewer/?neuron=${cellname}&db=${db}&continNum=${contin}`;
+    const url = `/apps/synapseViewer/?db=${db}&continNum=${contin}`;
     const a = document.createElement('a');
     a.target = '_blank';
     a.href = url;
@@ -194,6 +189,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   };
   const centerViewOnSynapse = document.getElementById('centerViewOnSynapse');
   centerViewOnSynapse.onclick = () => {
+    const db = self.synapseClicked.db;
     const cellname = self.synapseClicked.cellname;
     const contin = self.synapseClicked.contin;
     if (contin === null) return;
@@ -332,20 +328,21 @@ ImporterApp.prototype.LoadFromFile = function() {
     // read data is in this.result
     const data = JSON.parse(this.result);
 
-    self.SetSeriesToHTML(data.db);
-    self.SetSeriesInternal(data.db);
+    for (const db in data.mapsSettings) {
+      self.SetSeriesToHTML(db);
+      self.SetSeriesInternal(db);
 
-    for (const cell in data.mapsSettings) {
-      self.LoadMap2(data.db, cell);
-      let color = data.mapsSettings[cell].color;
-      document.addEventListener('loadMapComplete', () => {
-        self.viewer.SetSkeletonColor(
-          cell,
-          color
-        );
-        // set camera again because LoadMap2 sets camera too
-        self.viewer.SetCameraFromJSON(data.cameraSettings);
-      });
+      for (const cell in data.mapsSettings[db]) {
+        self.LoadMap2(db, cell);
+        let color = data.mapsSettings[db][cell].color;
+        document.addEventListener('loadMapComplete', () => {
+          self.viewer.SetSkeletonColor(
+            db, cell, color
+          );
+          // set camera again because LoadMap2 sets camera too
+          self.viewer.SetCameraFromJSON(data.cameraSettings);
+        });
+      }
     }
 
     setTimeout(() => {
@@ -358,13 +355,10 @@ ImporterApp.prototype.LoadFromFile = function() {
 ImporterApp.prototype.SaveToFile = function() {
   // object to hold data to save
   const data = {
-    db: this.db,
     mapsSettings: this.viewer.dumpMapSettingsJSON(),
     cameraSettings: this.viewer.dumpCameraJSON(),
     mapsTranslation: this.GetMapsTranslate(),
   };
-
-  console.log(data);
 
   const a = document.getElementById('forSaveToFileButton');
   a.href = URL.createObjectURL(new Blob(
@@ -618,10 +612,19 @@ ImporterApp.prototype.Open2DViewer = function()
 };
 
 ImporterApp.prototype.ClearMaps = function() {
-  const mapsContentDiv = this.GetMapsContentDiv();
-  while(mapsContentDiv.lastChild){
-    mapsContentDiv.removeChild(mapsContentDiv.lastChild);
-  };
+  for (const db of ['N2U','JSE','N2W','JSH','n2y','n930']) {
+    const dbTitleDiv = this.GetDbTitleDiv(db);
+    dbTitleDiv.style.display = 'none';
+
+    const dbContentDiv = this.GetDbContentDiv(db);
+    while(dbContentDiv.lastChild) {
+      dbContentDiv.removeChild(dbContentDiv.lastChild);
+    }
+  }
+  //const mapsContentDiv = this.GetMapsContentDiv();
+  //while(mapsContentDiv.lastChild) {
+  //  mapsContentDiv.removeChild(mapsContentDiv.lastChild);
+  //}
   this.viewer.clearMaps();
 };
 
@@ -651,12 +654,12 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
       self.viewer.loadMap2(data);
       if (cellsWithVolumeModels.hasOwnProperty(db) && 
           cellsWithVolumeModels[db].includes(cell)) {
-        self.LoadMapMenu2(cell,true);
+        self.LoadMapMenu2(db,cell,true);
         self.retrieveVolumetric(db, cell); // async
       }
       else {
         console.log('volume not available');
-        self.LoadMapMenu2(cell,false);
+        self.LoadMapMenu2(db,cell,false);
       }
 
       console.timeEnd(`Load to viewer ${cell}`);
@@ -677,6 +680,7 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
  * loads menu entry for cell in 'Maps'
  * assumes loadMap2 has been run
  *
+ * @param {String} db - database/series
  * @param {String} cellname - name of cell
  * @param {Boolean} volExist - whether volume data exists
  *
@@ -696,17 +700,23 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
  *    </div>
  *  </div>
  *
+ * adds to the section for db,
+ * (creates section if first time)
+ *
  */
-ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
+ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
 {
   const self = this;
-  const mapsContentDiv = this.GetMapsContentDiv();
+  const dbTitleDiv = this.GetDbTitleDiv(db);
+  dbTitleDiv.style.display = '';
+
+  const dbContentDiv = this.GetDbContentDiv(db);
 
   const div = document.createElement('div');
   const title = document.createElement('div');
   const content = document.createElement('div');
 
-  mapsContentDiv.appendChild(div);
+  dbContentDiv.appendChild(div);
   div.appendChild(title);
   div.appendChild(content);
 
@@ -769,8 +779,8 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
   // eye image for visibility
   image.onclick = (e) => {
     e.stopPropagation(); // prevent title being clicked
-    const vis = self.viewer.mapIsVisible(cellname);
-    self.viewer.toggleMaps(cellname, !vis);
+    const vis = self.viewer.mapIsVisible(db,cellname);
+    self.viewer.toggleMaps(db,cellname,!vis);
     image.src = vis ? 'images/hidden.png' : 'images/visible.png';
   };
 
@@ -782,7 +792,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
   colorInput.type = 'color';
 
   // get color of cell, transform to appropriate format
-  let {r, g, b} = self.viewer.GetSkeletonColor(cellname);
+  let {r, g, b} = self.viewer.GetSkeletonColor(db,cellname);
   r = Math.round(255*r);
   b = Math.round(255*b);
   g = Math.round(255*g);
@@ -793,8 +803,9 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
   colorInput.addEventListener('change', (ev) => {
     const color = ev.target.value;
     let {r, g, b} = hexToRGB(color);
-    self.viewer.SetSkeletonColor(cellname,
-      {r:r/255., g:g/255., b:b/255.});
+    self.viewer.SetSkeletonColor(
+      db,cellname, {r:r/255., g:g/255., b:b/255.}
+    );
   }, false);
 
 
@@ -809,15 +820,12 @@ ImporterApp.prototype.LoadMapMenu2 = function(cellname,volExist)
 
   //===============================================
   // show/hide remarks
-  //const remarkVis = this.viewer.isCellLoaded(cellname) ?
-  //  this.viewer.GetRemarkVis(cellname) : false;
-  //remarksBtn.innerHTML = !remarkVis ? 'Hide Remarks' : 'Show Remarks';
   remarksBtn.innerHTML = 'Show Remarks';
   remarksBtn.onclick = () => {
-    const remarkVis = self.viewer.isCellLoaded(cellname) ?
-      self.viewer.GetRemarkVis(cellname) : false;
+    const remarkVis = self.viewer.isCellLoaded(db,cellname) ?
+      self.viewer.GetRemarkVis(db,cellname) : false;
     remarksBtn.innerHTML = !remarkVis ? 'Hide Remarks' : 'Show Remarks';
-    self.viewer.toggleRemarksByCell(cellname, !remarkVis);
+    self.viewer.toggleRemarksByCell(db,cellname,!remarkVis);
   };
 
   //===============================================
@@ -1189,14 +1197,14 @@ ImporterApp.prototype.GetMapsTranslate = function() {
  * @param {String} cellname - cell on which synapse sits
  * @param {Number} contin - contin number of synapse
  */
-ImporterApp.prototype.UpdateSynapseInfo2 = function(cellname,contin) {
+ImporterApp.prototype.UpdateSynapseInfo2 = function(db,cellname,contin) {
   if (contin === null) {
     this.RestoreSynapseInfoToDefault2();
     return;
   }
-  const synData = this.viewer.GetSynData(cellname,contin);
+  const synData = this.viewer.GetSynData(db,cellname,contin);
   const pos = synData.coord;
-    //this.viewer.GetObjCoordAbsolute(cellname,synData.obj);
+    //this.viewer.GetObjCoordAbsolute(db,cellname,synData.obj);
   document.getElementById('synInfoCellname').innerHTML
     = cellname;
   document.getElementById('synInfoType').innerHTML
@@ -1220,6 +1228,7 @@ ImporterApp.prototype.UpdateSynapseInfo2 = function(cellname,contin) {
  * also sets synapse clicked to null
  */
 ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
+  this.synapseClicked.db = null;
   this.synapseClicked.cellname = null;
   this.synapseClicked.contin = null;
   document.getElementById('synInfoCellname').innerHTML = '---';
@@ -1238,16 +1247,19 @@ ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
  * does not update synapse clicked
  */
 ImporterApp.prototype.RestoreSynapseInfo2 = function() {
-  //const info = this.synapseInfoClicked;
-  this.UpdateSynapseInfo2(this.synapseClicked.cellname, this.synapseClicked.contin);
+  this.UpdateSynapseInfo2(
+    this.synapseClicked.db,
+    this.synapseClicked.cellname,
+    this.synapseClicked.contin);
 };
 
 
 // update both clicked synapse and the synapse info panel
 ImporterApp.prototype.UpdateClickedSynapseInfo2 = function(cellname, contin) {
+  this.synapseClicked.db = db;
   this.synapseClicked.cellname = cellname;
   this.synapseClicked.contin = contin;
-  this.UpdateSynapseInfo2(cellname,contin);
+  this.UpdateSynapseInfo2(db,cellname,contin);
 };
 
 ImporterApp.prototype.GetSynapseInfoContin2 = function() {
@@ -1286,6 +1298,14 @@ ImporterApp.prototype.SetSeriesInternal = function(db) {
 // content of maps section
 ImporterApp.prototype.GetMapsContentDiv = function() {
   return document.getElementById('mapsContentDiv');
+};
+// content of db section
+ImporterApp.prototype.GetDbContentDiv = function(db) {
+  return document.getElementById(`maps${db}ContentDiv`);
+};
+// title of db section
+ImporterApp.prototype.GetDbTitleDiv = function(db) {
+  return document.getElementById(`maps${db}TitleDiv`);
 };
 
 ImporterApp.prototype.GetTranslationSliderValue = function() {

@@ -120,7 +120,90 @@
       </div>
       <div class='sectionContent collapse in show'
            id='mapsContentDiv'>
-        <!-- where all the cells go -->
+        <!-- db section for N2U -->
+        <div id='mapsN2UTitleDiv'
+             class='sectionTitle'
+             data-toggle='collapse'
+             data-target='#mapsN2UContentDiv'
+             role='button'
+             aria-expanded='true'
+             style='display:none'>
+          N2U
+        </div>
+        <div id='mapsN2UContentDiv'
+             class='sectionContent collapse in show'>
+          <!-- cells in N2U -->
+        </div>
+        <!-- db section for JSE -->
+        <div id='mapsJSETitleDiv'
+             class='sectionTitle'
+             data-toggle='collapse'
+             data-target='#mapsJSEContentDiv'
+             role='button'
+             aria-expanded='true'
+             style='display:none'>
+          JSE
+        </div>
+        <div id='mapsJSEContentDiv'
+             class='sectionContent collapse in show'>
+          <!-- cells in JSE -->
+        </div>
+        <!-- db section for N2W -->
+        <div id='mapsN2WTitleDiv'
+             class='sectionTitle'
+             data-toggle='collapse'
+             data-target='#mapsN2WContentDiv'
+             role='button'
+             aria-expanded='true'
+             style='display:none'>
+          N2W
+        </div>
+        <div id='mapsN2WContentDiv'
+             class='sectionContent collapse in show'>
+          <!-- cells in N2W -->
+        </div>
+        <!-- db section for JSH -->
+        <div id='mapsJSHTitleDiv'
+             class='sectionTitle'
+             data-toggle='collapse'
+             data-target='#mapsJSHContentDiv'
+             role='button'
+             aria-expanded='true'
+             style='display:none'>
+          JSH
+        </div>
+        <div id='mapsJSHContentDiv'
+             class='sectionContent collapse in show'>
+          <!-- cells in JSH -->
+        </div>
+        <!-- db section for n2y -->
+        <div id='mapsn2yTitleDiv'
+             class='sectionTitle'
+             data-toggle='collapse'
+             data-target='#mapsn2yContentDiv'
+             role='button'
+             aria-expanded='true'
+             style='display:none'>
+          n2y
+        </div>
+        <div id='mapsn2yContentDiv'
+             class='sectionContent collapse in show'>
+          <!-- cells in n2y -->
+        </div>
+        <!-- db section for n930 -->
+        <div id='mapsn930TitleDiv'
+             class='sectionTitle'
+             data-toggle='collapse'
+             data-target='#mapsn930ContentDiv'
+             role='button'
+             aria-expanded='true'
+             style='display:none'>
+          n930
+        </div>
+        <div id='mapsn930ContentDiv'
+             class='sectionContent collapse in show'>
+          <!-- cells in n930 -->
+        </div>
       </div>
     </div>
     <div class='accordionSection'>
@@ -282,9 +365,11 @@
       </div>
       <div class='sectionContent collapse in show'
            id='loadSaveContentDiv'>
+        <div style='width:198px;overflow:scroll'>
         <input id='LoadFromFileInput'
-                type='file'
-                accept='.json'></input>
+               type='file'
+               accept='.json'></input>
+        </div>
         <button id='SaveToFileButton'>Save</button>
         <a id='forSaveToFileButton'></a>
       </div>
