@@ -44,15 +44,28 @@ if (typeof(FloatingDialog2) === undefined) {
 
 ImporterApp = function()
 {
-  this.db = this.GetSeriesFromHTML();
+  //this.db = this.GetSeriesFromHTML();
 
   // cellsInSlctdSrs are cells in selected db/series
   // appear in the cell selector dialog
   // { neuron: [...], muscle: [...] }
+  // I think these are only needed for the old way
+  // of dealing with cell selected dialog
   this.cellsInSlctdSrs = celllistByDbType[this.db];
 
   // actually user selected cells, unlike before
   this.selectedCells = new Set();
+
+  // should agree with this.viewer.maps
+  this.loadedCells = {};
+  for (const db in celllistByDbType) {
+    this.loadedCells[db] = [];
+  }
+
+  // these are set in InitCellSelectorDialog
+  this.cellSelectorDialog = null;
+  this.dbDivForm = null;
+  this.dbDivFormNames = null;
 
   // starting value of the Synapse Info section
   // will be updated when a synapse is clicked
@@ -84,6 +97,9 @@ ImporterApp = function()
   // FloatingDialog2 objects for each cell,
   // showing the list of synapses
   this.synapseListWindows = {};
+  for (const db in celllistByDbType) {
+    this.synapseListWindows[db] = {};
+  }
 
   // db sections (under maps section)
   // (set to refer to HTML divs in
@@ -147,12 +163,16 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   const self = this;
 
   this.InitHelpDialog();
+  this.InitCellSelectorDialog();
 
   // set up the top menu, Help, cell selector etc.
   const topElem = document.getElementById ('top');
   const topItems = topElem.children;
   topItems[0].onclick = () => { this.OpenHelpDialog2(); };
-  topItems[1].onclick = () => { this.CellSelectorDialog(); };
+  topItems[1].onclick = () => { 
+    self.updateFormsInCellSelectorDialog();
+    self.cellSelectorDialog.OpenWindow();
+  };
   topItems[2].onclick = () => { this.Open2DViewer(); };
   topItems[3].onclick = () => { this.ClearMaps(); };
 
@@ -163,15 +183,15 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   //  this.dbSection[db] = document.getElementById(dbSectionId);
   //}
 
-  //=================================================
-  // link series-selector to this.db and this.cellsInSlctdSrs
-  // make the HTML the source/"ground truth" for db value
-  const seriesSelector = this.GetSeriesElem();
-  this.SetSeriesInternal(seriesSelector.value);
-  seriesSelector.onchange = () => {
-    const newDb = self.GetSeriesFromHTML();
-    self.SetSeriesInternal(newDb);
-  };
+  ////=================================================
+  //// link series-selector to this.db and this.cellsInSlctdSrs
+  //// make the HTML the source/"ground truth" for db value
+  //const seriesSelector = this.GetSeriesElem();
+  //this.SetSeriesInternal(seriesSelector.value);
+  //seriesSelector.onchange = () => {
+  //  const newDb = self.GetSeriesFromHTML();
+  //  self.SetSeriesInternal(newDb);
+  //};
 
   //=================================================
   // link buttons in Synapse Info
@@ -409,6 +429,7 @@ ImporterApp.prototype.OpenHelpDialog2 = function() {
   this.helpDialog.OpenWindow();
 };
 
+// old help dialog
 ImporterApp.prototype.OpenHelpDialog = function()
 {
   this.dialog.Open({
@@ -542,6 +563,185 @@ ImporterApp.prototype.OpenInfoDialog = function(url,title)
   contentDiv.appendChild(iframe);
 }
 
+/*
+ *  <div> -- contentDiv from FloatingDialog2
+ *    <label> Choose a database/series: </label>
+ *    <select> -- dbSelector
+ *      <option> N2U etc </option>
+ *    </select>
+ *    <button> Load </button>
+ *    <div id='cellListDiv-N2U'> -- dbDiv['N2U']
+ *      <form name='cellListDiv-N2U-form'> -- dbDivForm['N2U']
+ *        <span> neuron </span>
+ *        <div> -- typeDiv
+ *          <label>
+ *            <input name='cellListDiv-N2U-form' value='ADAL' ..>
+ *            <span> ADAL </span>
+ *          </label>
+ *          ...
+ *        </div>
+ *        <span> muscle </span>
+ *        <div> -- typeDiv
+ *          ...
+ *        </div>
+ *      </form>
+ *    </div>
+ *  </div>
+ */
+ImporterApp.prototype.InitCellSelectorDialog = function() {
+  this.cellSelectorDialog = new FloatingDialog2(
+    parent=null,
+    title='Add Cells',
+    isHidden=true,
+    modal=true
+  );
+
+  this.cellSelectorDialog.SetWidthHeight(400, null);
+
+  const contentDiv = this.cellSelectorDialog.GetContentDiv();
+
+  const dbDiv = {}; // ref to each div
+  const dbDivID = {}; // id of div containing cells in a db
+  const dbDivForm = {}; // form for db
+  const dbDivFormNames = {}; // names of form for db
+  this.dbDivForm = dbDivForm;
+  this.dbDivFormNames = dbDivFormNames;
+
+  //======================================
+  // selector for db
+
+  const dbSelectorLabel = document.createElement('label');
+  contentDiv.appendChild(dbSelectorLabel);
+  dbSelectorLabel.innerHTML = 'Choose a database/series:';
+
+  const dbSelector = document.createElement('select');
+  contentDiv.appendChild(dbSelector);
+
+  dbSelector.id = 'dbSelector';
+
+  for (const db in celllistByDbType) {
+    const option = document.createElement('option');
+    option.innerHTML = db;
+    option.value = db;
+    dbSelector.appendChild(option);
+
+    dbDivID[db] = `cellListDiv-${db}`;
+  }
+
+
+  //======================================
+  // button for loading
+  const loadButton = document.createElement('button');
+  contentDiv.appendChild(loadButton);
+
+  loadButton.innerHTML = 'Load';
+  loadButton.style.float = 'right';
+  const self = this;
+  loadButton.onclick = () => {
+    for (const db in self.dbDivFormNames) {
+      const formName = self.dbDivFormNames[db];
+      const checkedBoxes = document.querySelectorAll(
+          `input[name=${formName}]:checked`);
+      for (const node of checkedBoxes) {
+        self.LoadMap2(db, node.value);
+      }
+    }
+    self.cellSelectorDialog.CloseWindow();
+  };
+
+  //======================
+  // divs for each db
+  for (const db in celllistByDbType) {
+    dbDiv[db] = document.createElement('div');
+    dbDivID[db] = `cellListDiv-${db}`;
+    dbDiv[db].id = dbDivID[db];
+    contentDiv.appendChild(dbDiv[db]);
+  }
+
+  //======================
+  // create form for each db,
+  // and then one subdiv for each type (neuron/muscle)
+  // and then populate form with cells
+  for (const db in celllistByDbType) {
+    const div = dbDiv[db];
+
+    const form = document.createElement('form');
+    div.appendChild(form);
+
+    dbDivForm[db] = form;
+    dbDivFormNames[db] = dbDivID[db] + '-form';
+    form.name = dbDivFormNames[db];
+
+    // type = 'neuron' or 'muscle'
+    for (const type in celllistByDbType[db]) {
+      const span = document.createElement('span');
+      form.appendChild(span);
+
+      span.innerHTML = type;
+      span.style.display = 'inline-block';
+      span.style.fontWeight = 'bold';
+      //span.style.float = 'left';
+
+      const typeDiv = document.createElement('div');
+      form.appendChild(typeDiv);
+
+      const celllist = celllistByDbType[db][type];
+
+      for (const cell of celllist) {
+        const input = document.createElement('input');
+        const cellSpan = document.createElement('span');
+        const label = document.createElement('label');
+
+        typeDiv.appendChild(label);
+        label.appendChild(input);
+        label.appendChild(cellSpan);
+
+        // input given css in ../css/listViewer-alt.css
+        // makes cellSpan turn bold when clicked
+        input.type = 'checkbox';
+        input.name = dbDivFormNames[db];
+        input.value = cell;
+        cellSpan.innerHTML = cell;
+
+        label.style.width = '100px';
+        label.style.display = 'inline-block';
+        //label.style.float = 'left';
+      }
+    }
+  }
+
+  dbSelector.onchange = () => {
+    // hide all forms except the one selected
+    for (const db in dbDivID) {
+      const div = document.getElementById(dbDivID[db]);
+      div.style.display = 'none';
+    }
+    const div = document.getElementById(dbDivID[dbSelector.value]);
+    div.style.display = '';
+  };
+  
+
+  // the divs above were added as visible,
+  // call 'onchange' manually
+  setTimeout(() => {
+    dbSelector.onchange();
+  }, 0);
+};
+
+// called before cell selector dialog opens,
+// make sure the form matches the loaded cells
+ImporterApp.prototype.updateFormsInCellSelectorDialog =
+  function() {
+  for (const db in this.dbDivFormNames) {
+    const formName = this.dbDivFormNames[db];
+    const checkedBoxes = document.querySelectorAll(
+        `input[name=${formName}]`);
+    for (const node of checkedBoxes) {
+      node.checked = this.loadedCells[db].includes(node.value);
+    }
+  }
+};
+
 
 /*
  * loads, creates neuron selector dialog when click 'Select neuron'
@@ -648,7 +848,13 @@ ImporterApp.prototype.ClearMaps = function() {
  */
 ImporterApp.prototype.LoadMap2 = function(db,cell)
 {
+  // already loaded?
+  if (this.loadedCells[db].includes(cell)) {
+    return;
+  }
   this.selectedCells.add(cell);
+  this.loadedCells[db].push(cell);
+
   const self = this;
   const url = `../php/retrieve_trace_coord_alt_2.php?db=${db}&cell=${cell}`;
   console.log('retrieving skeleton map via '+url);
@@ -849,9 +1055,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   // Synapse By Partners
   synPartnerListBtn.innerHTML = 'Synapse By Partners';
   synPartnerListBtn.onclick = () => {
-    const series = self.GetSeriesFromHTML();
-    //const url = `../synapseList/?db=${series}&cell=${cellname}`;
-    const url = `../listViewerAlt/?db=${series}&cell=${cellname}&listtype=partner`;
+    const url = `../listViewerAlt/?db=${db}&cell=${cellname}&listtype=partner`;
     self.OpenInfoDialog(url,'Synaptic Partners');
   };
 
@@ -861,7 +1065,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
 
   synapseListBtn.innerHTML = 'Synapse List';
   synapseListBtn.onclick = () => {
-    self.synapseListWindows[cellname].OpenWindow();
+    self.synapseListWindows[db][cellname].OpenWindow();
   };
 
   //===============================================
@@ -908,7 +1112,7 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
     isHidden=true,
     modal=false
   );
-  this.synapseListWindows[cellname] = dialog;
+  this.synapseListWindows[db][cellname] = dialog;
 
   // form table of synapses
 
@@ -1289,8 +1493,10 @@ ImporterApp.prototype.GetCanvasElem = function() {
 
 
 // series/sex get/set from/to HTML
+// modified to match floatingdialog2 version
 ImporterApp.prototype.GetSeriesElem = function() {
-  return document.getElementById('series-selector');
+  return document.getElementById('dbSelector');
+  //return document.getElementById('series-selector');
 };
 ImporterApp.prototype.GetSeriesFromHTML = function() {
   const dbEl = this.GetSeriesElem();
@@ -1299,6 +1505,7 @@ ImporterApp.prototype.GetSeriesFromHTML = function() {
 ImporterApp.prototype.SetSeriesToHTML = function(db) {
   const dbEl = this.GetSeriesElem();
   dbEl.value = db;
+  dbEl.onchange();
 };
 // set series for the class
 ImporterApp.prototype.SetSeriesInternal = function(db) {

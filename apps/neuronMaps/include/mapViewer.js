@@ -194,17 +194,36 @@ MapViewer.prototype.initGL = function()
   this.scene.add(ambientLight);
   
   //=====================================
-  // the 2D grid in the x-z plane
-  this.gridHelper = new THREE.GridHelper(10000,100,0xFF4444,0x404040);
-  this.scene.add(this.gridHelper);
+  // the 2D square grid in the x-z plane
+  // put two square grids because
+  // n2y is very far away from (0,0,0)
+  this.gridGrp = new THREE.Group();
+  this.scene.add(this.gridGrp);
+
+  const gridWidth = 15000;
+  const gridNumSquaresAcross = 150;
+  let grid = new THREE.GridHelper(
+    gridWidth,
+    gridNumSquaresAcross,
+    0xFF4444,0x404040);
+  this.gridGrp.add(grid);
+
+  this.gridHelper2 = new THREE.GridHelper(
+    gridWidth,
+    gridNumSquaresAcross,
+    0xFF4444,0x404040);
+  this.gridHelper2.position.z += gridWidth;
+  this.gridGrp.add(this.gridHelper2);
 
 
   //========================================
   // axes arrows and text labeling axes
+  // one set at origin, other at (0,0,15000)
+  // for the n2y
   this.axesText = new THREE.Group();
   this.scene.add(this.axesText);
 
-  const origin = new THREE.Vector3(0,0,0);
+  let origin = new THREE.Vector3(0,0,0);
   const arrowColor = 0x5500ff;
   const length = 300;
   this.axesText.add( new THREE.ArrowHelper(
@@ -224,6 +243,37 @@ MapViewer.prototype.initGL = function()
   }));
   this.axesText.add( this.addText('Ventral (-y)', {
     pos: new THREE.Vector3(0,-axesTextDist,0),
+    rotate: { x: -Math.PI/2 },
+  }));
+
+
+  // repeat but at (0,0,gridWidth=15000)
+  origin = new THREE.Vector3(0,0,gridWidth);
+  this.axesText.add( new THREE.ArrowHelper(
+      new THREE.Vector3(0,0,-1), origin, length, arrowColor));
+  this.axesText.add( new THREE.ArrowHelper(
+      new THREE.Vector3(1,0,0), origin, length, arrowColor));
+  this.axesText.add( new THREE.ArrowHelper(
+      new THREE.Vector3(0,-1,0), origin, length, arrowColor));
+
+  this.axesText.add( this.addText('Anterior (-z)', {
+    pos: new THREE.Vector3(
+      origin.x,
+      origin.y,
+      origin.z - axesTextDist),
+  }));
+  this.axesText.add( this.addText('Right (+x)', {
+    pos: new THREE.Vector3(
+      origin.x + axesTextDist,
+      origin.y,
+      origin.z),
+    rotate: { y: -Math.PI/2 },
+  }));
+  this.axesText.add( this.addText('Ventral (-y)', {
+    pos: new THREE.Vector3(
+      origin.x,
+      origin.y - axesTextDist,
+      origin.z),
     rotate: { x: -Math.PI/2 },
   }));
 };
@@ -881,6 +931,10 @@ MapViewer.prototype.translateMapsTo = function(x,y,z)
       this.transformStuffOneCell(m,db,name);
     }
   }
+
+  for (const db in this.aggrVol) {
+    this.aggrVol[db].applyMatrix(m);
+  }
 };
 
 /*
@@ -1176,9 +1230,9 @@ MapViewer.prototype.GetRemarkVis = function(db,cell) {
 
 MapViewer.prototype.toggleGrid = function(bool=null) {
   if (typeof(bool) !== 'boolean') {
-    bool = !this.gridHelper.visible;
+    bool = !this.gridGrp.visible;
   }
-  this.gridHelper.visible = bool;
+  this.gridGrp.visible = bool;
 };
 
 MapViewer.prototype.toggleAxes = function(bool=null) {

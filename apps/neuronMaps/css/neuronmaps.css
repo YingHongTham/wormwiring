@@ -68,6 +68,16 @@ div.infoFrame
     width: 950px;
 }
 
+/* for cell selector dialog */
+input + span {
+  font-weight: normal;
+}
+
+input:checked + span {
+  font-weight: bold;
+  background-color: rgba(0,255,0,0.2);
+}
+
 /*
 div.cell-selector
 {

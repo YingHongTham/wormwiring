@@ -409,3 +409,4 @@ So 0.084px/unit * 0.05mm/631px = 6.66nm/unit
 
 Now it's known that one section is about 50nm.
 So we scale x and y by 0.13
+(as set by this.XYScale in MapViewer)

@@ -1,6 +1,9 @@
 /*
  * for mapViewer to make plotParams
  *
+ * may be completely obsolete since I got rid of dependence
+ * on plot params
+ *
  * the queries were made manually for each database, with:
  *  select max(x1), min(x1), min(y1), max(y1), min(z1), max(z1) from {DB}.display2;
  * where DB is N2U, N2W, JSE, JSH, n2y, n930

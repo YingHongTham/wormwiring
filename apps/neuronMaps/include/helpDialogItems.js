@@ -44,6 +44,13 @@ Other ways to navigate/move around:
   in the Synapse Info section
   </li>
 </ul>
+<p>
+The spacing between grid lines is 100.
+We put two sets of axes,
+one near the nerve ring
+and one near the PAG.
+(by default, the camera is looking at the former).
+</p>
 
 <h4>Cell Options/More Data</h4>
 <p>
