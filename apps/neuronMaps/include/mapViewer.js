@@ -568,16 +568,19 @@ MapViewer.prototype.loadMap2 = function(data)
       zHigh: syn.zHigh,
       cellname: map.name,
       partners: '',
+      cellObj: null,
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
     let synDataP = Object.assign({}, synData);
     if (syn.pre === data.name) {
       synDataP.partners = `${data.name}--${syn.post}`;
+      synDataP.cellObj = parseInt(syn.preObj);
       map.allSynData[synData.contin] = synDataP;
     }
     if (syn.post === data.name) {
       synDataP.partners = `${data.name}--${syn.pre}`;
+      synDataP.cellObj = parseInt(syn.postObj);
       map.allSynData[synData.contin] = synDataP;
     }
   }
@@ -605,6 +608,7 @@ MapViewer.prototype.loadMap2 = function(data)
       zHigh: syn.zHigh,
       cellname: map.name,
       partners: '',
+      cellObj: parseInt(syn.preObj),
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
@@ -637,12 +641,18 @@ MapViewer.prototype.loadMap2 = function(data)
       zHigh: syn.zHigh,
       cellname: map.name,
       partners: '',
-      obj: null,
+      cellObj: null,
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
     let synDataP = Object.assign({}, synData);
     synDataP.partners = `${syn.pre}->${syn.post}`;
+    for (let i = 1; i <= 4; i++) {
+      if (syn['post'+i] === data.name) {
+        synDataP.cellObj = syn['postObj'+i];
+        break;
+      }
+    }
     map.allSynData[synData.contin] = synDataP;
   }
 
@@ -1351,11 +1361,12 @@ MapViewer.prototype.toggleAllSynapseLabels = function(bool=null) {
     //bool = !this.GetAllSynapseLabelsVisible();
     bool = !this.allSynLabelVisible;
   }
+  this.allSynLabelVisible = bool;
   // if bool, set all to viisble,
   // else, set all to hidden except those in clickedSynapses
   for (const db in this.dbMaps) {
     for (const cell in this.dbMaps[db]) {
-      for (const contin of this.dbMaps[db][cell].allSynData) {
+      for (const contin in this.dbMaps[db][cell].allSynData) {
         let synLabel = this.dbMaps[db][cell].allSynData[contin].synLabelObj;
         synLabel.visible = bool;
         if (this.IndexOfClickedSynapse(db,cell,contin) !== -1) {
@@ -1800,7 +1811,7 @@ MapViewer.prototype.load2DViewer = function(elem) {
     layout: {
       name: 'preset',
     },
-    wheelSensitivity: 0.5, // zoom speed
+    wheelSensitivity: 0.2, // zoom speed
   });
 
   // event listeneres
@@ -1810,13 +1821,13 @@ MapViewer.prototype.load2DViewer = function(elem) {
     const db = id.split('-')[0];
     const cell = id.split('-')[1];
     const obj = parseInt(id.split('-')[2]);
-    const contins = self.ObjToSynapseContin(cell,obj);
+    const contins = self.ObjToSynapseContin(db,cell,obj);
     if (contins.length > 0) {
       self.SynapseOnClick(db,cell,contins[0]);
       self.CenterViewOnSynapse(db,cell,contins[0]);
     }
     else { // clicked obj is not a synapse
-      const pos = self.GetObjCoordInViewer(cell, obj);
+      const pos = self.GetObjCoordInViewer(db,cell,obj);
       self.SetCameraTarget(pos);
       pos.y += 100;
       self.SetCameraPosition(pos);
@@ -1848,9 +1859,9 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   // actual coordinates in the cytoscape
   // (see cy_elems.push(...))
   const UNITS_TO_CYTOSCAPE_COORD = 50;
-  this.maps = this.dbMaps[db];
-  const map = this.maps[cell];
-  const objCoord = map.objCoord;
+  const map = this.dbMaps[db][cell];
+  const objCoord = Object.assign({},map.objCoord);
+  const synCoord = {};
   const cy_elems = [];
 
   // get the set of vertices
@@ -1863,16 +1874,20 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   // that have that a given obj num
   const continByObj = {}; // key=obj, val=array of continNums
   for (const contin in map.allSynData) {
-    const objNum = map.allSynData[contin].obj;
-    X.add(objNum);
-    if (!continByObj.hasOwnProperty(objNum)) {
-      continByObj[objNum] = [];
+    const cellObj = map.allSynData[contin].cellObj;
+    if (!objCoord.hasOwnProperty(cellObj)) {
+      continue;
     }
-    continByObj[objNum].push(contin);
+    X.add(cellObj);
+    if (!continByObj.hasOwnProperty(cellObj)) {
+      continByObj[cellObj] = [];
+    }
+    continByObj[cellObj].push(contin);
+
+    synCoord[contin] = map.allSynData[contin].coord;
   }
-  for (const objStr in map.remarks) {
-    const obj = parseInt(objStr);
-    X.add(obj);
+  for (const obj in map.remarks) {
+    X.add(parseInt(obj));
   }
   // vertices of deg != 2
   for (const v in map.skeletonGraph) {
@@ -1903,7 +1918,7 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   // so we look for long lines,
   // a little bit like BreakGraphIntoLineSubgraphs,
   // but here we need the lines to be
-  // -monotone in z coord (TODO!)
+  // -monotone in z coord
   // -have disjoint vertices
 
   // longestLine will keep such partition of graph
@@ -1916,7 +1931,6 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   //    (in GetLongestLine, it is computed in reverse
   //    because pushing array from the right is easier,
   //    but later reversed back so it's node to leaf)
-  //    TODO also impose line is monotone in z coord
   const longestLine = {};
 
   // GetLongestLine(cur) is a recursive function,
@@ -2132,12 +2146,12 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
 
 // get synapses that have the same obj
 // TODO deal with 2D graph
-MapViewer.prototype.ObjToSynapseContin = function(cellname, obj) {
+MapViewer.prototype.ObjToSynapseContin = function(db,cellname,obj) {
   let ans = [];
-  for (const continStr in this.maps[cellname].allSynData) {
-    let contin = parseInt(continStr);
-    if (obj === this.maps[cellname].allSynData[contin].obj) {
-      ans.push(contin);
+  const allSynData = this.dbMaps[db][cellname].allSynData;
+  for (const contin in allSynData) {
+    if (obj === allSynData[contin].cellObj) {
+      ans.push(parseInt(contin));
     }
   }
   return ans;
@@ -2421,8 +2435,8 @@ MapViewer.prototype.loadVolumetric = function(db,cell,volumeObj) {
     return;
   }
 
-  this.maps[cell].volumeObj = volumeObj;
-  this.maps[cell].allGrps.add(volumeObj);
+  this.dbMaps[db][cell].volumeObj = volumeObj;
+  this.dbMaps[db][cell].allGrps.add(volumeObj);
 };
 
 

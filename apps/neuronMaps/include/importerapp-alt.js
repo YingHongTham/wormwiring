@@ -68,6 +68,9 @@ ImporterApp = function()
   this.dbDivForm = null;
   this.dbDivFormNames = null;
 
+  // set in Open2DViewer
+  this.dialog2DViewer = null;
+
   // starting value of the Synapse Info section
   // see AddSynapseInfo for more
   this.defaultSynapseInfo = {
@@ -894,22 +897,39 @@ ImporterApp.prototype.CellSelectorDialog = function()
 /*
  * loads, creates 2D viewer in floating dialog
  */
-ImporterApp.prototype.Open2DViewer = function()
-{
-  const self = this;
-  this.dialog.Open({
-    //className: '',
-    title : '2DViewer',
-    buttons : [{
-      text : 'close',
-      callback : function(dialog) {
-        self.dialog.Close();
-      }
-    }],
-  });
+ImporterApp.prototype.Open2DViewer = function() {
+  console.log('open 2dview');
+  if (this.dialog2DViewer === null) {
+    this.dialog2DViewer = new FloatingDialog2(
+      parent=null,
+      title='2D Viewer',
+      isHidden=true,
+      modal=false
+    );
+  }
+  const dialog = this.dialog2DViewer;
 
-  const contentDiv = this.dialog.GetContentDiv();
+  dialog.SetWidthHeight(500,null);
+  
+  const contentDiv = dialog.GetContentDiv();
+  contentDiv.innerHTML = 'strange, 2d graph loads but very slow and only partially?';
   this.viewer.load2DViewer(contentDiv);
+  dialog.OpenWindow();
+
+  //const self = this;
+  //this.dialog.Open({
+  //  //className: '',
+  //  title : '2DViewer',
+  //  buttons : [{
+  //    text : 'close',
+  //    callback : function(dialog) {
+  //      self.dialog.Close();
+  //    }
+  //  }],
+  //});
+  //
+  //const contentDiv = this.dialog.GetContentDiv();
+  //this.viewer.load2DViewer(contentDiv);
 };
 
 ImporterApp.prototype.ClearMaps = function() {
