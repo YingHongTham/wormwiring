@@ -290,6 +290,11 @@
       </div>
       <div class='sectionContent collapse in show'
            id='synapseFilterContentDiv'>
+        <div id='currentFilters'
+             style='display:none'>
+          Current filters:
+          <ul id='currentFiltersUL' style='padding-left:20px'></ul>
+        </div>
         <form name='synFilterType'>
           <label>
             <input name='synFilterType' type='checkbox'
@@ -304,6 +309,15 @@
                    value='gap'>Gap
           </label>
         </form>
+        <div>
+          <input id='synFilterSizeMin' type='text'
+                 style='width:30px'>
+          &le;
+          num. sections
+          &le;
+          <input id='synFilterSizeMax' type='text'
+                 style='width:30px'>
+        </div>
         <div>
           Cells:
           <input id='synFilterCells' type='text'>

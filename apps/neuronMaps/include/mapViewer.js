@@ -127,6 +127,18 @@ MapViewer = function(canvas,app)
   
   // but wait! there's more!
   this.initGL();
+
+  const self = this;
+  document.onmouseup = () => {
+    for (const db in this.dbMaps) {
+      for (const cell in this.dbMaps[db]) {
+        for (const contin in this.dbMaps[db][cell].allSynData) {
+          this.RotateTextFaceCamera(
+            this.dbMaps[db][cell].allSynData[contin].synLabelObj);
+        }
+      }
+    }
+  };
 };
 
 /*
@@ -774,10 +786,11 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   const synPos = synData['coord'];
 
   const synType = synData.type;
-  const numSections = synData.size;
-  //const numSections = synData.zHigh - synData.zLow + 1;
+  const numSect = synData.size;
+  //const numSect = synData.zHigh - synData.zLow + 1;
 
-  const radius = Math.min(this.synMax,numSections*this.synScale);
+  //const radius = Math.min(this.synMax,numSect*this.synScale);
+  const radius = 10 - 5 * Math.pow(2, 1 - numSect / 2);
   const partners = synData.partners;
   const contin = synData.contin;
 
@@ -810,10 +823,10 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
     }
     ++this.count;
     switch(this.count % 4) {
-      case 0: return -50;// + 10*this.count;
-      case 1: return 25;// + 10*this.count;
-      case 2: return -25;// + 10*this.count;
-      case 3: return 50;// + 10*this.count;
+      case 0: return -400;// + 10*this.count;
+      case 1: return 200;// + 10*this.count;
+      case 2: return -200;// + 10*this.count;
+      case 3: return 400;// + 10*this.count;
     }
   };
     
@@ -823,7 +836,7 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   const synLabelObj = this.addTextWithArrow(partners,{
     pos: sphere.position.clone(),
     rotate: { x: -Math.PI/3 },
-    scale: { x: 0.2, y: 0.2, z: 0.2 },
+    //scale: { x: 0.2, y: 0.2, z: 0.2 },
     offset: new THREE.Vector3(offsetx(),0,0),
     font: '20px Arial',
     arrowhead: false,
@@ -1038,14 +1051,17 @@ MapViewer.prototype.transformStuffOneCell = function(m,db,name) {
  * in each of the variables, if the array given is empty,
  * then we do not filter based on that
  */
-MapViewer.prototype.FilterSynapses = function(typesSelected, cells, contins) {
+MapViewer.prototype.FilterSynapses = function(typesSelected, sizeRange, cells, contins) {
   this.FilterSynapsesByType(typesSelected);
+  this.FilterSynapsesBySize(sizeRange);
   this.FilterSynapsesByCells(cells);
   this.FilterSynapsesByContins(contins);
 };
 
 MapViewer.prototype.FilterSynapsesByType = function(typesSelected) {
+  if (typesSelected === null) return;
   if (typesSelected.length === 0) return;
+
   for (const db in this.dbMaps) {
     this.maps = this.dbMaps[db];
     for (const cell in this.maps) {
@@ -1057,20 +1073,35 @@ MapViewer.prototype.FilterSynapsesByType = function(typesSelected) {
     }
   }
 };
+// expect sizeRange = { min: , max: }
+MapViewer.prototype.FilterSynapsesBySize = function(sizeRange) {
+  if (sizeRange === null) return;
+
+  for (const db in this.dbMaps) {
+    this.maps = this.dbMaps[db];
+    for (const cell in this.maps) {
+      for (const contin in this.maps[cell].allSynData) {
+        const synData = this.maps[cell].allSynData[contin];
+        if ((sizeRange.min === null
+              || synData.size < sizeRange.min)
+          || (sizeRange.max === null
+              || synData.size > sizeRange.max)) {
+          synData.sphere.visible = false;
+        }
+        // no else, don't set true if pass
+        // because we are doing subtractive filtering
+      }
+    }
+  }
+};
 MapViewer.prototype.FilterSynapsesByCells = function(cells) {
+  if (cells === null) return;
   if (cells.length === 0) {
     // don't filter by cell if no cells given
     return;
   }
+
   for (const db in celllistByDbType) {
-    //// restrict cells to cells in db
-    //let cellsInDb = cells.filter(c =>
-    //    celllistByDbType[db].neuron.includes(c)
-    //  || celllistByDbType[db].muscle.includes(c));
-    //if (cellsInDb.length === 0) {
-    //  // 
-    //  continue;
-    //}
     const cellsSet = new Set(cells);
 
     this.maps = this.dbMaps[db];
@@ -1094,6 +1125,7 @@ MapViewer.prototype.FilterSynapsesByCells = function(cells) {
   }
 };
 MapViewer.prototype.FilterSynapsesByContins = function(contins) {
+  if (contins === null) return;
   if (contins.length === 0) {
     // don't filter by contin if none given
     return;
@@ -1347,6 +1379,7 @@ MapViewer.prototype.ToggleAllVolume = function(bool=null) {
   }
 };
 MapViewer.prototype.ToggleVolumeByCell = function(db,cellname,bool=null) {
+  this.maps = this.dbMaps[db];
   let volumeObj = this.maps[cellname].volumeObj;
   if (volumeObj === null || volumeObj === undefined) {
     return;
@@ -2030,6 +2063,10 @@ MapViewer.prototype.ObjToSynapseContin = function(cellname, obj) {
 /*
  * usage: labels for obj with remarks, coordinate label (anterior etc)
  *
+ * returns a THREE mesh object with given text
+ * (it has name property = 'text' which helps
+ * in this.RotateTextFaceCamera to identify the text child)
+ *
  * by default (no rotations), text appears in
  * x-y plane,
  * perpendicular to Anterior-Posterior axis
@@ -2089,6 +2126,7 @@ MapViewer.prototype.addText = function(text,params) {
     new THREE.PlaneGeometry(textCanvas.width, textCanvas.height),
     material
   );
+  mesh.name = 'text';
 
   // text mesh object created, now do some transformation
 
@@ -2130,7 +2168,7 @@ MapViewer.prototype.addText = function(text,params) {
  * and an arrow points from text to position params.pos
  *
  * @param {Object} params - almost same as addText
- *  but with additional keys
+ *  but with the following additional keys:
  * @param {Vector3} params.offset - THREE.Vector3 (required)
  * @param {Boolean} params.arrowhead: boolean, if false, use line segment (optional)
  * @param {Number} params.arrowColor: (optional) default is 0x5500ff
@@ -2180,6 +2218,23 @@ MapViewer.prototype.addTextWithArrow = function(text,params) {
   }
 
   return group;
+};
+
+// expect textGrp to be created from addTextWithArrow
+MapViewer.prototype.RotateTextFaceCamera = function(textGrp) {
+  let mesh = null;
+  for (const m of textGrp.children) {
+    if (m.name === 'text') {
+      mesh = m;
+      break;
+    }
+  }
+  if (mesh === null) {
+    console.log("textGrp expected to have child node with name = 'text'");
+    return;
+  }
+  console.log('here');
+  mesh.lookAt(this.camera.position);
 };
 
 

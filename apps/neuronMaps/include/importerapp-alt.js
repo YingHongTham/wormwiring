@@ -220,15 +220,35 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   // link synapse filter, add button functionality
   const synFilterBtnFilter = document.getElementById('synFilterBtnFilter');
   synFilterBtnFilter.onclick = () => {
+    // get the values from HTML
+    // set to null if not used
+
+    // get types
     const synFilterTypeNodes = document.querySelectorAll(`input[name='synFilterType']:checked`);
     let typesSelected = [];
     synFilterTypeNodes.forEach( nn => {
       typesSelected.push(nn.value);
     });
+    if (typesSelected.length === 0) {
+      typesSelected = null;
+    }
 
+    // get size range
+    const synFilterSizeMin = document.getElementById('synFilterSizeMin');
+    const synFilterSizeMax = document.getElementById('synFilterSizeMax');
+
+    let sizeRange = {};
+    let minValue = parseInt(synFilterSizeMin.value);
+    sizeRange.min = isNaN(minValue) ? null : minValue;
+    let maxValue = parseInt(synFilterSizeMax.value);
+    sizeRange.max = isNaN(maxValue) ? null : maxValue;
+
+    // get cells
     const synFilterCells = document.getElementById('synFilterCells');
-    let cells = synFilterCells.value.replace(' ','').split(',');
+    let cells = synFilterCells.value === '' ?
+      null : synFilterCells.value.replace(' ','').split(',');
 
+    // get contins
     const synFilterContins = document.getElementById('synFilterContins');
     let continsStr = synFilterContins.value.split(',');
     let contins = [];
@@ -237,8 +257,36 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
       if (!isNaN(c))
         contins.push(c);
     }
+    if (contins.length === 0) contins = null;
 
-    self.viewer.FilterSynapses(typesSelected, cells, contins);
+    self.viewer.FilterSynapses(typesSelected, sizeRange, cells, contins);
+
+    // add entry in the 'current filters'
+    const currentFilters = document.getElementById('currentFilters');
+    currentFilters.style.display = '';
+    const currentFiltersUL = document.getElementById('currentFiltersUL');
+    const liItem = document.createElement('li');
+    currentFiltersUL.appendChild(liItem);
+
+    let text = '';
+    if (typesSelected !== null) {
+      text += typesSelected.join(',');
+      text += ';';
+    }
+    if (sizeRange.min !== null || sizeRange.max !== null) {
+      let mn = sizeRange.min === null ? '*' : sizeRange.min;
+      let mx = sizeRange.max === null ? '*' : sizeRange.max;
+      text += `(${mn},${mx});`;
+    }
+    if (cells !== null) {
+      text += cells.join(',');
+      text += ';';
+    }
+    if (contins !== null) {
+      text += contins.join(',');
+      text += ';';
+    }
+    liItem.innerHTML = text;
   };
 
   // Restore
@@ -256,6 +304,14 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     synFilterContins.value = '';
 
     self.viewer.RestoreSynapses();
+
+    // clear 'current filters'
+    const currentFilters = document.getElementById('currentFilters');
+    currentFilters.style.display = 'none';
+    const currentFiltersUL = document.getElementById('currentFiltersUL');
+    while (currentFiltersUL.lastChild) {
+      currentFiltersUL.removeChild(currentFiltersUL.lastChild);
+    }
   };
 
 
@@ -1076,7 +1132,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
       const volumeVis = self.viewer.GetVolumeVis(db,cellname);
       //if (volumeVis === null || volumeVis === undefined) {
       volumeBtn.innerHTML = !volumeVis ? 'Hide Volume' : 'Show Volume';
-      self.viewer.ToggleVolumeByCell(cellname, !volumeVis);
+      self.viewer.ToggleVolumeByCell(db,cellname,!volumeVis);
     };
   }
   else {
@@ -1356,6 +1412,7 @@ ImporterApp.prototype.Resize = function () {
 };
 
 
+
 // translation = {x: .., y: .., z: ..}
 ImporterApp.prototype.SetMapsTranslate = function(translation) {
   const xEl = document.getElementById('x-slider');
@@ -1429,7 +1486,7 @@ ImporterApp.prototype.UpdateSynapseInfo2 = function(db,cellname,contin) {
   document.getElementById('synInfoTarget').innerHTML
     = synData.post;
   document.getElementById('synInfoWeight').innerHTML
-    = synData.zHigh - synData.zLow + 1;
+    = synData.size;
   document.getElementById('synInfoSections').innerHTML
     = `(${synData.zLow},${synData.zHigh})`;
   document.getElementById('synInfoContin').innerHTML

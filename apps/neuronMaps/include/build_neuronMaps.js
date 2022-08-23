@@ -67,7 +67,10 @@ window.onload = function(){
 	const importerApp = new ImporterApp();
   if (params.hasOwnProperty('db')
     && params.hasOwnProperty('cell')) {
-    importerApp.LoadDbCell(params.db, params.cell);
+    // need to wait for everything to initialize properly
+    setTimeout(() => {
+      importerApp.LoadDbCell(params.db, params.cell);
+    },0);
   }
 
   // access importerApp in the console
