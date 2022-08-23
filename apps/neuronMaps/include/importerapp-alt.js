@@ -68,7 +68,6 @@ ImporterApp = function()
   this.dbDivFormNames = null;
 
   // starting value of the Synapse Info section
-  // will be updated when a synapse is clicked
   // see AddSynapseInfo for more
   this.defaultSynapseInfo = {
     cellname: '---',
@@ -80,12 +79,16 @@ ImporterApp = function()
     syncontin: '---',
     synposition: '---',
   }
+  // will be updated when a synapse is clicked
   this.synapseInfoClicked = Object.assign({}, this.defaultSynapseInfo);
   this.synapseClicked = {
     db: null,
     cellname: null,
     contin: null
   };
+  // switching to being able to hold a list of clicked syn
+  this.synapseClickedArr = [];
+  this.synapseClickedIndex = 0; // currently shown in info
 
   // object dealing with the viewer inside canvas
   this.viewer = null; // initialized properly in Init()
@@ -195,11 +198,25 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
 
   //=================================================
   // link buttons in Synapse Info
+
+  // left/right buttons for cycling through clicked synapses
+  const clickedSynapsesLeft = document.getElementById('clickedSynapsesLeft');
+  const clickedSynapsesRight = document.getElementById('clickedSynapsesRight');
+  clickedSynapsesLeft.onclick = () => {
+    self.viewer.CycleClickedSynapseLeft();
+    self.RestoreSynapseInfoLastClicked();
+  };
+  clickedSynapsesRight.onclick = () => {
+    self.viewer.CycleClickedSynapseRight();
+    self.RestoreSynapseInfoLastClicked();
+  };
+
   const openSynapseEMViewer = document.getElementById('openSynapseEMViewer');
   openSynapseEMViewer.onclick = () => {
-    const db = self.synapseClicked.db;
-    const cellname = self.synapseClicked.cellname;
-    const contin = self.synapseClicked.contin;
+    if (self.synapseClickedArr.length === 0) return;
+    const syn = self.synapseClickedArr[self.synapseClickedIndex];
+    const db = syn.db;
+    const contin = syn.contin;
     if (contin === null) return;
     const url = `/apps/synapseViewer/?db=${db}&continNum=${contin}`;
     const a = document.createElement('a');
@@ -209,11 +226,13 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   };
   const centerViewOnSynapse = document.getElementById('centerViewOnSynapse');
   centerViewOnSynapse.onclick = () => {
-    const db = self.synapseClicked.db;
-    const cellname = self.synapseClicked.cellname;
-    const contin = self.synapseClicked.contin;
-    if (contin === null) return;
-    self.viewer.CenterViewOnSynapse(cellname,contin);
+    const syn = this.viewer.LastClickedSynapse();
+    if (syn === null) return;
+
+    const db = syn.db;
+    const cell = syn.cell;
+    const contin = syn.contin;
+    self.viewer.CenterViewOnSynapse(db,cell,contin);
   };
 
   //=================================================
@@ -1466,10 +1485,11 @@ ImporterApp.prototype.GetMapsTranslate = function() {
  * but doesn't update the synapse clicked
  * so that synapse info will return to previous clicked synapse
  *
+ * @param {String} db - database/series
  * @param {String} cellname - cell on which synapse sits
  * @param {Number} contin - contin number of synapse
  */
-ImporterApp.prototype.UpdateSynapseInfo2 = function(db,cellname,contin) {
+ImporterApp.prototype.UpdateSynapseInfo = function(db,cellname,contin) {
   if (contin === null) {
     this.RestoreSynapseInfoToDefault2();
     return;
@@ -1500,9 +1520,9 @@ ImporterApp.prototype.UpdateSynapseInfo2 = function(db,cellname,contin) {
  * also sets synapse clicked to null
  */
 ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
-  this.synapseClicked.db = null;
-  this.synapseClicked.cellname = null;
-  this.synapseClicked.contin = null;
+  //this.synapseClicked.db = null;
+  //this.synapseClicked.cellname = null;
+  //this.synapseClicked.contin = null;
   document.getElementById('synInfoCellname').innerHTML = '---';
   document.getElementById('synInfoType').innerHTML = '---';
   document.getElementById('synInfoSource').innerHTML = '---';
@@ -1514,30 +1534,21 @@ ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
 };
 
 
-/*
- * returns Synapse Info to last clicked synapse
- * does not update synapse clicked
- */
-ImporterApp.prototype.RestoreSynapseInfo2 = function() {
-  this.UpdateSynapseInfo2(
-    this.synapseClicked.db,
-    this.synapseClicked.cellname,
-    this.synapseClicked.contin);
+// set synapse info section to before hover
+// (usually it's the last clicked synapse,
+// but user may have cycled through synapses in info seciton,
+// so this would restore info section to that)
+ImporterApp.prototype.RestoreSynapseInfoLastClicked = function() {
+  const syn = this.viewer.LastClickedSynapse();
+  if (syn === null) {
+    this.RestoreSynapseInfoToDefault2();
+    return;
+  }
+  let db = syn.db;
+  let cell = syn.cell;
+  let contin = syn.contin;
+  this.UpdateSynapseInfo(db,cell,contin);
 };
-
-
-// update both clicked synapse and the synapse info panel
-ImporterApp.prototype.UpdateClickedSynapseInfo2 = function(db,cellname,contin) {
-  this.synapseClicked.db = db;
-  this.synapseClicked.cellname = cellname;
-  this.synapseClicked.contin = contin;
-  this.UpdateSynapseInfo2(db,cellname,contin);
-};
-
-ImporterApp.prototype.GetSynapseInfoContin2 = function() {
-  return this.synapseClicked.contin;
-};
-
 
 
 /*=====================================================

@@ -358,13 +358,8 @@ try to make the aggregate volumes line up between N2U and JSH;
 n2y seems to line up nicely though it's quite far away.
 
 TODO synapse balls and label disappear when aggregate volume present
-also,
-TODO fix the synapse labels popping up when it shouldn't
-TODO apparently there's a way to make text face camera,
-do something like mesh.lookAt(camera.position),
-  though this needs to be called in each render,
-  hopefully it won't slow down too much
 
+TODO allow user adjust synapse sizes
 
 
 ## Figuring out the scaling for skeleton:

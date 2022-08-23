@@ -118,6 +118,18 @@ MapViewer = function(canvas,app)
   };
   this.maps = {}; // see loadMap2 for expected form
 
+  // for the global option of showing synapse labels
+  // if it's true, then all synapse labels should be shown
+  // if not, they will show when synapse is clicked/hover
+  // value should agree with HTML
+  // (see document.getElementById('btnToggleAllSynLabels')
+  // in ImporterApp)
+  // updated in toggleAllSynapseLabels 
+  this.allSynLabelVisible = false;
+
+  this.clickedSynapses = [];
+  this.clickedSynapsesInd = -1; // ind of last clicked
+
   // volume made of all the volumes in given db
   this.aggrVol = {
     'N2U': null,
@@ -390,7 +402,7 @@ MapViewer.prototype.loadMap2 = function(data)
    * because want visibility to respond to mouse events
    * (want it to appear when mouse over the synapses)
    * synLabel can be distinguished by the contin id
-   * (synLabel.name; see toggleSynapseLabels)
+   * (TODO check this: synLabel.name; see toggleSynapseLabels)
    * (note also that allSynData also has reference to the
    * synLabel object attached to that synapse,
    * i.e. allSynData[contin].synLabelObj
@@ -854,15 +866,21 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   this.domEvents.addEventListener(sphere,'mouseover',function() {
     console.log('mouseover', db, name, contin);
     self.SynapseOnMouseOver(db,name,contin);
+    console.log(self.clickedSynapses);
+    console.log(self.clickedSynapsesInd);
   });
   this.domEvents.addEventListener(sphere,'mouseout',function() {
     console.log('mouseout', db, name, contin);
     self.SynapseOnMouseOut(db,name,contin);
+    console.log(self.clickedSynapses);
+    console.log(self.clickedSynapsesInd);
   });
 
   this.domEvents.addEventListener(sphere,'click',function() {
     console.log('mouseclick', db, name, contin);
     self.SynapseOnClick(db,name,contin);
+    console.log(self.clickedSynapses);
+    console.log(self.clickedSynapsesInd);
   });
 };
 
@@ -879,37 +897,46 @@ MapViewer.prototype.GetSynData = function(db,cellname,contin) {
 //=====================================================
 // mouse events for the sphere objects in viewer
 
-MapViewer.prototype.SynapseOnMouseOver = function(db,cellname,contin) {
+MapViewer.prototype.SynapseOnMouseOver = function(db,cell,contin) {
+  console.log('over', contin);
   this.maps = this.dbMaps[db];
-  const synData = this.maps[cellname].allSynData[contin];
+  const synData = this.maps[cell].allSynData[contin];
   synData.synLabelObj.visible = true;
-  this.app.UpdateSynapseInfo2(db,cellname,contin);
+  this.app.UpdateSynapseInfo(db,cell,contin);
   this.render();
 };
 
-MapViewer.prototype.SynapseOnMouseOut = function(db,cellname,contin) {
+MapViewer.prototype.SynapseOnMouseOut = function(db,cell,contin) {
+  console.log('out', contin);
   this.maps = this.dbMaps[db];
-  const synData = this.maps[cellname].allSynData[contin];
-  if (this.app.GetSynapseInfoContin2() !== contin) {
-    synData.synLabelObj.visible = false;
+  const synData = this.maps[cell].allSynData[contin];
+  if (this.IndexOfClickedSynapse(db,cell,contin) === -1) {
+    if (!this.allSynLabelVisible) {
+      synData.synLabelObj.visible = false;
+    }
   }
-  this.app.RestoreSynapseInfo2();
+  this.app.RestoreSynapseInfoLastClicked();
   this.render();
 };
 
-MapViewer.prototype.SynapseOnClick = function(db,cellname,contin) {
+MapViewer.prototype.SynapseOnClick = function(db,cell,contin) {
+  console.log('click', contin);
   this.maps = this.dbMaps[db];
-  const synData = this.maps[cellname].allSynData[contin];
+  const synData = this.maps[cell].allSynData[contin];
   // if click same synapse, 'unclick' it
-  if (this.app.GetSynapseInfoContin2() === contin) {
-    this.toggleSynapseLabels(db,cellname, false);
-    synData.synLabelObj.visible = false;
-    this.app.RestoreSynapseInfoToDefault2();
+  let ind = this.IndexOfClickedSynapse(db,cell,contin);
+  if (ind !== -1) {
+    // only hide if allSynLabelVisible is not true
+    if (!this.allSynLabelVisible) {
+      synData.synLabelObj.visible = false;
+    }
+    this.RemoveFromClickedSynapseInd(ind);
   }
   else {
     synData.synLabelObj.visible = true;
-    this.app.UpdateClickedSynapseInfo2(db,cellname,contin);
+    this.AddClickedSynapse(db,cell,contin);
   }
+  this.app.RestoreSynapseInfoLastClicked();
   this.render();
 };
 
@@ -1276,39 +1303,104 @@ MapViewer.prototype.toggleAxes = function(bool=null) {
 
 MapViewer.prototype.toggleAllSynapseLabels = function(bool=null) {
   if (typeof(bool) !== 'boolean') {
-    bool = !this.GetAllSynapseLabelsVisible();
+    //bool = !this.GetAllSynapseLabelsVisible();
+    bool = !this.allSynLabelVisible;
   }
+  // if bool, set all to viisble,
+  // else, set all to hidden except those in clickedSynapses
   for (const db in this.dbMaps) {
-    this.maps = this.dbMaps[db];
-    for (const name in this.maps){
-      this.toggleSynapseLabels(db,name,bool);
+    for (const cell in this.dbMaps[db]) {
+      for (const contin of this.dbMaps[db][cell].allSynData) {
+        let synLabel = this.dbMaps[db][cell].allSynData[contin].synLabelObj;
+        synLabel.visible = bool;
+        if (this.IndexOfClickedSynapse(db,cell,contin) !== -1) {
+          // keep label visible if that synapse was clicked
+          synLabel.visible = true;
+        }
+      }
     }
   }
 };
 
-MapViewer.prototype.toggleSynapseLabels = function(db,cellname,bool=null) {
-  if (typeof(bool) !== 'boolean') {
-    bool = !this.GetSynapseLabelsVisible(db,cellname);
-  }
-  for (const synLabel of this.maps[cellname].synLabels.children) {
-    synLabel.visible = bool;
-    if (this.app.GetSynapseInfoContin2() === synLabel.name) {
-      // keep label visible if that synapse was clicked
-      synLabel.visible = true;
+//// by cell?
+//MapViewer.prototype.toggleSynapseLabels = function(db,cellname,bool=null) {
+//  if (typeof(bool) !== 'boolean') {
+//    bool = !this.GetSynapseLabelsVisible(db,cellname);
+//    //bool = !(this.IndexOfClickedSynapse(db,cellname
+//  }
+//  this.allSynLabelVisible = bool;
+//  for (const synLabel of this.maps[cellname].synLabels.children) {
+//    synLabel.visible = bool;
+//    if (this.app.GetSynapseInfoContin2() === synLabel.name) {
+//      // keep label visible if that synapse was clicked
+//      synLabel.visible = true;
+//    }
+//  }
+//};
+
+MapViewer.prototype.IndexOfClickedSynapse = function(db,cell,contin) {
+  for (let i = 0; i < this.clickedSynapses.length; ++i) {
+    let syn = this.clickedSynapses[i];
+    if (syn.contin === contin
+      && syn.cell === cell
+      && syn.db === db) {
+      return i;
     }
+  }
+  return -1;
+};
+MapViewer.prototype.RemoveFromClickedSynapseInd = function(ind) {
+  if (ind < 0 || ind >= this.clickedSynapses.length) {
+    return;
+  }
+  this.clickedSynapses.splice(ind,1);
+  if (this.clickedSynapsesInd > ind) {
+    this.clickedSynapsesInd -= 1;
+  }
+  // should update HTML but in current use case that's
+  // already done outside
+};
+MapViewer.prototype.AddClickedSynapse = function(db,cell,contin) {
+  this.clickedSynapses.push({
+    db: db,
+    cell: cell,
+    contin: contin,
+  });
+  this.clickedSynapsesInd = this.clickedSynapses.length - 1;
+};
+// returns null if none or clickedSynapsesInd is bad
+MapViewer.prototype.LastClickedSynapse = function() {
+  if (this.clickedSynapsesInd < 0 ||
+      this.clickedSynapsesInd >= this.clickedSynapses.length) {
+    return null;
+  }
+  console.log('last:', this.clickedSynapsesInd);
+  return this.clickedSynapses[this.clickedSynapsesInd];
+};
+MapViewer.prototype.CycleClickedSynapseLeft = function() {
+  this.clickedSynapsesInd -= 1;
+  if (this.clickedSynapsesInd < 0) {
+    this.clickedSynapsesInd = this.clickedSynapses.length - 1;
+  }
+};
+MapViewer.prototype.CycleClickedSynapseRight = function() {
+  this.clickedSynapsesInd += 1;
+  if (this.clickedSynapsesInd >= this.clickedSynapses.length) {
+    this.clickedSynapsesInd = 0;
   }
 };
 
-MapViewer.prototype.GetAllSynapseLabelsVisible = function() {
-  for (const db in this.dbMaps) {
-    this.maps = this.dbMaps[db];
-    for (const cellname in this.maps) {
-      if (!this.GetSynapseLabelsVisible(db,cellname))
-        return false;
-    }
-  }
-  return true;
-};
+// switch to saving a variable allSynLabelVisible
+//MapViewer.prototype.GetAllSynapseLabelsVisible = function() {
+//  for (const db in this.dbMaps) {
+//    this.maps = this.dbMaps[db];
+//    for (const cellname in this.maps) {
+//      if (!this.GetSynapseLabelsVisible(db,cellname))
+//        return false;
+//    }
+//  }
+//  return true;
+//};
 MapViewer.prototype.GetSynapseLabelsVisible = function(db,cellname) {
   this.maps = this.dbMaps[db];
   for (const synLabel of this.maps[cellname].synLabels.children) {
@@ -1364,6 +1456,12 @@ MapViewer.prototype.ToggleAllAggregateVolume = function(bool=null) {
 MapViewer.prototype.ToggleAggregateVolumeByDb = function(db,bool=null) {
   if (typeof(bool) !== 'boolean') {
     bool = !this.GetAggregateVolumeVisByDb(db);
+  }
+  // if 'hide vol' clicked before properly loaded
+  if (!this.aggrVol.hasOwnProperty(db) ||
+      this.aggrVol[db] === null ||
+      this.aggrVol[db] === undefined) {
+    return;
   }
   this.aggrVol[db].visible = bool;
 };
@@ -2221,6 +2319,8 @@ MapViewer.prototype.addTextWithArrow = function(text,params) {
 };
 
 // expect textGrp to be created from addTextWithArrow
+// (in particular, the text to be rotated should be a
+// child of textGrp, and have property name = 'text'
 MapViewer.prototype.RotateTextFaceCamera = function(textGrp) {
   let mesh = null;
   for (const m of textGrp.children) {
@@ -2233,8 +2333,12 @@ MapViewer.prototype.RotateTextFaceCamera = function(textGrp) {
     console.log("textGrp expected to have child node with name = 'text'");
     return;
   }
-  console.log('here');
-  mesh.lookAt(this.camera.position);
+  let direction = new THREE.Vector3();
+  // = mesh + (camera - target)
+  direction.copy(this.camera.position);
+  direction.sub(this.controls.target);
+  direction.add(mesh.position);
+  mesh.lookAt(direction);
 };
 
 
