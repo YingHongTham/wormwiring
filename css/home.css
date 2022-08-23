@@ -212,9 +212,21 @@ table, th, td {
   background-color: #555555;
 }
 
-/*
 
+/* overcomes: input type stuff cannot change styling by default
+  doesn't seem to work though */
+input[type="button"] {
+ -moz-appearance: none;
+ -webkit-appearance: none;
+ appearance: none;
+}
+
+/*
+for debugging
 * {
   border-style: solid;
 }
 */
+
+
+

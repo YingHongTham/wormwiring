@@ -87,9 +87,6 @@ ImporterApp = function()
     cellname: null,
     contin: null
   };
-  // switching to being able to hold a list of clicked syn
-  this.synapseClickedArr = [];
-  this.synapseClickedIndex = 0; // currently shown in info
 
   // object dealing with the viewer inside canvas
   this.viewer = null; // initialized properly in Init()
@@ -214,8 +211,11 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
 
   const openSynapseEMViewer = document.getElementById('openSynapseEMViewer');
   openSynapseEMViewer.onclick = () => {
-    if (self.synapseClickedArr.length === 0) return;
-    const syn = self.synapseClickedArr[self.synapseClickedIndex];
+    const syn = this.viewer.LastClickedSynapse();
+    if (syn === null) {
+      this.RestoreSynapseInfoToDefault2();
+      return;
+    }
     const db = syn.db;
     const contin = syn.contin;
     if (contin === null) return;
@@ -1035,10 +1035,11 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
 
   const colorDiv = document.createElement('div');
   const colorSpan = document.createElement('span');
-  const colorInput = document.createElement('Input');
+  const colorInput = document.createElement('input');
+  const synapseListBtn = document.createElement('button');
+  const cellBtn = document.createElement('button');
   const centerViewBtn = document.createElement('button');
   const remarksBtn = document.createElement('button');
-  const synapseListBtn = document.createElement('button');
   const volumeBtn = document.createElement('button');
   const walinkA = document.createElement('a');
   const synPartnerListA = document.createElement('a');
@@ -1049,9 +1050,10 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
 
   const listItems = [
     colorDiv,
+    synapseListBtn,
+    cellBtn,
     centerViewBtn,
     remarksBtn,
-    synapseListBtn,
     volumeBtn,
     walinkA,
     synPartnerListA
@@ -1062,12 +1064,6 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
     ul.appendChild(li);
     li.appendChild(elem);
   }
-
-  // structure done,
-  // now we customize the stuff/buttons
-  title.append(cellname);
-
-	image.src = 'images/visible.png';
 
   //===============================================
   // add accordion functionality
@@ -1095,13 +1091,33 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   //  title.classList.toggle('inactive', active);
   //};
 
+  //====================================================
+  // structure done,
+  // now we customize the text/buttons
+
+  title.append(cellname);
+
   //===============================================
   // eye image for visibility
-  image.onclick = (e) => {
+  // also have entry because may not be obvious
+	image.src = 'images/visible.png';
+  cellBtn.innerHTML = 'Hide Cell';
+
+  image.onclick = cellBtn.onclick = (e) => {
     e.stopPropagation(); // prevent title being clicked
-    const vis = self.viewer.mapIsVisible(db,cellname);
-    self.viewer.toggleMaps(db,cellname,!vis);
-    image.src = vis ? 'images/hidden.png' : 'images/visible.png';
+    const vis = !self.viewer.mapIsVisible(db,cellname);
+    self.viewer.toggleMaps(db,cellname,vis);
+    image.src = vis ? 'images/visible.png' : 'images/hidden.png';
+    cellBtn.innerHTML = vis ? 'Hide Cell' : 'Show Cell';
+  };
+
+  //===============================================
+  // Synapse List
+  this.InitSynapseListWindow(db,cellname); // creates, hidden
+
+  synapseListBtn.innerHTML = 'Synapse List';
+  synapseListBtn.onclick = () => {
+    self.synapseListWindows[db][cellname].OpenWindow();
   };
 
   //===============================================
@@ -1110,7 +1126,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   // color span/input
   colorSpan.innerHTML = 'Color Selector:';
   colorInput.type = 'color';
-  colorInput.style.height = '10px';
+  colorInput.style.height = '5px';
 
   // get color of cell, transform to appropriate format
   let {r, g, b} = self.viewer.GetSkeletonColor(db,cellname);
@@ -1141,21 +1157,11 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   //===============================================
   // show/hide remarks
   remarksBtn.innerHTML = 'Show Remarks';
-  remarksBtn.style.padding = '1px';
   remarksBtn.onclick = () => {
     const remarkVis = self.viewer.isCellLoaded(db,cellname) ?
       self.viewer.GetRemarkVis(db,cellname) : false;
     remarksBtn.innerHTML = !remarkVis ? 'Hide Remarks' : 'Show Remarks';
     self.viewer.toggleRemarksByCell(db,cellname,!remarkVis);
-  };
-
-  //===============================================
-  // Synapse List
-  this.InitSynapseListWindow(db,cellname); // creates, hidden
-
-  synapseListBtn.innerHTML = 'Synapse List';
-  synapseListBtn.onclick = () => {
-    self.synapseListWindows[db][cellname].OpenWindow();
   };
 
   //===============================================
@@ -1238,7 +1244,7 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
   table.appendChild(thead);
   table.appendChild(tbody);
   thead.appendChild(tr);
-  for (const col of ['z','type','cells']) {
+  for (const col of ['z','type','id','cells']) {
     let th = document.createElement('th');
     th.innerHTML = col;
     tr.appendChild(th);
@@ -1269,15 +1275,18 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
     const row = document.createElement('tr');
     const tdZ = document.createElement('td');
     const tdType = document.createElement('td');
+    const tdContin = document.createElement('td');
     const tdCells = document.createElement('td');
 
     tbody.appendChild(row);
     row.appendChild(tdZ);
     row.appendChild(tdType);
+    row.appendChild(tdContin);
     row.appendChild(tdCells);
 
     tdZ.innerHTML = synData.coord.z;
     tdType.innerHTML = synData.type;
+    tdContin.innerHTML = synData.contin;
     tdCells.innerHTML = synData.partners;
 
     // add color to type
