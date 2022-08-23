@@ -51,6 +51,7 @@ ImporterApp = function()
   // { neuron: [...], muscle: [...] }
   // I think these are only needed for the old way
   // of dealing with cell selected dialog
+  // TODO I think this is obsolete
   this.cellsInSlctdSrs = celllistByDbType[this.db];
 
   // actually user selected cells, unlike before
@@ -124,9 +125,9 @@ ImporterApp.prototype.Init = function ()
   this.InitLinkFunctionalityWithHTML();
   this.InitViewerStuff();
 
-  this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
-  this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
-  this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
+  //this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
+  //this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
+  //this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
 };
 
 
@@ -403,6 +404,22 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     btnToggleAggregateVolume.innerHTML = !on ? 'Hide Aggregate Volume' : 'Show Aggregate Volume';
     console.log('on: ', on);
     self.viewer.ToggleAllAggregateVolume(!on);
+  };
+
+  const sliderSynScale = document.getElementById('slider-scale-synapses');
+  const sliderSynScaleShowVal = document.getElementById('slider-scale-synapses-show-value');
+  sliderSynScale.onchange = () => {
+    let scale = parseFloat(sliderSynScale.value) / 4;
+    if (scale >= 0) {
+      scale += 1;
+      self.viewer.ScaleSynapses(scale);
+      sliderSynScaleShowVal.innerHTML = `x${scale}`;
+    }
+    else {
+      scale = Math.abs(scale) + 1;
+      self.viewer.ScaleSynapses(1.0 / scale);
+      sliderSynScaleShowVal.innerHTML = `&#247;${scale}`;
+    }
   };
 
   //=================================================
@@ -1013,25 +1030,38 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   const image = document.createElement('img');
   title.appendChild(image);
 
+  const ul = document.createElement('ul');
+  ul.style.paddingLeft = '20px';
+
   const colorDiv = document.createElement('div');
   const colorSpan = document.createElement('span');
   const colorInput = document.createElement('Input');
   const centerViewBtn = document.createElement('button');
   const remarksBtn = document.createElement('button');
-  const walinkBtn = document.createElement('button');
-  const synPartnerListBtn = document.createElement('button');
   const synapseListBtn = document.createElement('button');
   const volumeBtn = document.createElement('button');
+  const walinkA = document.createElement('a');
+  const synPartnerListA = document.createElement('a');
 
-  content.appendChild(colorDiv);
+  content.appendChild(ul);
   colorDiv.appendChild(colorSpan);
   colorDiv.appendChild(colorInput);
-  content.appendChild(centerViewBtn);
-  content.appendChild(remarksBtn);
-  content.appendChild(walinkBtn);
-  content.appendChild(synPartnerListBtn);
-  content.appendChild(synapseListBtn);
-  content.appendChild(volumeBtn);
+
+  const listItems = [
+    colorDiv,
+    centerViewBtn,
+    remarksBtn,
+    synapseListBtn,
+    volumeBtn,
+    walinkA,
+    synPartnerListA
+  ];
+
+  for (const elem of listItems) {
+    const li = document.createElement('li');
+    ul.appendChild(li);
+    li.appendChild(elem);
+  }
 
   // structure done,
   // now we customize the stuff/buttons
@@ -1080,6 +1110,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   // color span/input
   colorSpan.innerHTML = 'Color Selector:';
   colorInput.type = 'color';
+  colorInput.style.height = '10px';
 
   // get color of cell, transform to appropriate format
   let {r, g, b} = self.viewer.GetSkeletonColor(db,cellname);
@@ -1107,31 +1138,15 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
     self.viewer.CenterViewOnCell(cellname);
   };
   
-
   //===============================================
   // show/hide remarks
   remarksBtn.innerHTML = 'Show Remarks';
+  remarksBtn.style.padding = '1px';
   remarksBtn.onclick = () => {
     const remarkVis = self.viewer.isCellLoaded(db,cellname) ?
       self.viewer.GetRemarkVis(db,cellname) : false;
     remarksBtn.innerHTML = !remarkVis ? 'Hide Remarks' : 'Show Remarks';
     self.viewer.toggleRemarksByCell(db,cellname,!remarkVis);
-  };
-
-  //===============================================
-  // WormAtlas link
-  walinkBtn.innerHTML = 'WormAtlas';
-  walinkBtn.onclick = () => {
-    const url = cellnameToWALink(cellname);
-    self.OpenInfoDialog(url, 'WormAtlas');
-  };
-
-  //===============================================
-  // Synapse By Partners
-  synPartnerListBtn.innerHTML = 'Synapse By Partners';
-  synPartnerListBtn.onclick = () => {
-    const url = `../listViewerAlt/?db=${db}&cell=${cellname}&listtype=partner`;
-    self.OpenInfoDialog(url,'Synaptic Partners');
   };
 
   //===============================================
@@ -1157,6 +1172,31 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   else {
     volumeBtn.innerHTML = 'Volume Unavailable';
   }
+
+  //===============================================
+  // WormAtlas link
+  walinkA.innerHTML = 'WormAtlas';
+  walinkA.target = '_blank';
+  const walinkUrl = cellnameToWALink(cellname);
+  walinkA.href = walinkUrl;
+  //walinkBtn.innerHTML = 'WormAtlas';
+  //walinkBtn.onclick = () => {
+  //  const url = cellnameToWALink(cellname);
+  //  self.OpenInfoDialog(url, 'WormAtlas');
+  //};
+
+  //===============================================
+  // Synapse By Partners
+  synPartnerListA.innerHTML = 'Synapse By Partners';
+  synPartnerListA.target = '_blank';
+  const synParterListUrl = `../listViewerAlt/?db=${db}&cell=${cellname}&listtype=partner`;
+  synPartnerListA.href = synParterListUrl;
+  //synPartnerListBtn.innerHTML = 'Synapse By Partners';
+  //synPartnerListBtn.onclick = () => {
+  //  const url = `../listViewerAlt/?db=${db}&cell=${cellname}&listtype=partner`;
+  //  self.OpenInfoDialog(url,'Synaptic Partners');
+  //};
+
 };
 
 ImporterApp.prototype.InitHelpDialog = function(cellname) {

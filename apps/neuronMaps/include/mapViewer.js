@@ -40,8 +40,8 @@ MapViewer = function(canvas,app)
   // scaling (see README on how to compute)
   this.XYScale = 0.13; //0.05;
 
-  this.synMax = 20; // limit on synapse radius in viewer
-  this.synScale = 0.4; // radius = synScale * num sections
+  // set with ScaleSynapses
+  this.synMax = 10; // limit on synapse radius in viewer
 
   this.skelColor = 0x4683b2;
   this.preColor = 0xfa5882;
@@ -127,8 +127,12 @@ MapViewer = function(canvas,app)
   // updated in toggleAllSynapseLabels 
   this.allSynLabelVisible = false;
 
+  // synapses clicked by user,
+  // they are used by ImporterApp to display synapse info
   this.clickedSynapses = [];
-  this.clickedSynapsesInd = -1; // ind of last clicked
+  // index of synapse that should be displayed in synapse info
+  // typically is the last clicked one
+  this.clickedSynapsesInd = -1;
 
   // volume made of all the volumes in given db
   this.aggrVol = {
@@ -145,8 +149,8 @@ MapViewer = function(canvas,app)
     for (const db in this.dbMaps) {
       for (const cell in this.dbMaps[db]) {
         for (const contin in this.dbMaps[db][cell].allSynData) {
-          this.RotateTextFaceCamera(
-            this.dbMaps[db][cell].allSynData[contin].synLabelObj);
+          self.RotateTextFaceCamera(
+            self.dbMaps[db][cell].allSynData[contin].synLabelObj);
         }
       }
     }
@@ -402,7 +406,7 @@ MapViewer.prototype.loadMap2 = function(data)
    * because want visibility to respond to mouse events
    * (want it to appear when mouse over the synapses)
    * synLabel can be distinguished by the contin id
-   * (TODO check this: synLabel.name; see toggleSynapseLabels)
+   * (TODO check this: synLabel.name; see toggleAllSynapseLabels)
    * (note also that allSynData also has reference to the
    * synLabel object attached to that synapse,
    * i.e. allSynData[contin].synLabelObj
@@ -801,8 +805,7 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   const numSect = synData.size;
   //const numSect = synData.zHigh - synData.zLow + 1;
 
-  //const radius = Math.min(this.synMax,numSect*this.synScale);
-  const radius = 10 - 5 * Math.pow(2, 1 - numSect / 2);
+  const radius = this.SynapseRadiusFromSections(numSect);
   const partners = synData.partners;
   const contin = synData.contin;
 
@@ -863,24 +866,14 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
   // updates the synapse info section
   const self = this;
 
-  this.domEvents.addEventListener(sphere,'mouseover',function() {
-    console.log('mouseover', db, name, contin);
+  this.domEvents.addEventListener(sphere,'mouseover',() => {
     self.SynapseOnMouseOver(db,name,contin);
-    console.log(self.clickedSynapses);
-    console.log(self.clickedSynapsesInd);
   });
-  this.domEvents.addEventListener(sphere,'mouseout',function() {
-    console.log('mouseout', db, name, contin);
+  this.domEvents.addEventListener(sphere,'mouseout',() => {
     self.SynapseOnMouseOut(db,name,contin);
-    console.log(self.clickedSynapses);
-    console.log(self.clickedSynapsesInd);
   });
-
-  this.domEvents.addEventListener(sphere,'click',function() {
-    console.log('mouseclick', db, name, contin);
+  this.domEvents.addEventListener(sphere,'click',() => {
     self.SynapseOnClick(db,name,contin);
-    console.log(self.clickedSynapses);
-    console.log(self.clickedSynapsesInd);
   });
 };
 
@@ -895,6 +888,7 @@ MapViewer.prototype.GetSynData = function(db,cellname,contin) {
 };
 
 //=====================================================
+// stuff for Synapse Info
 // mouse events for the sphere objects in viewer
 
 MapViewer.prototype.SynapseOnMouseOver = function(db,cell,contin) {
@@ -940,6 +934,57 @@ MapViewer.prototype.SynapseOnClick = function(db,cell,contin) {
   this.render();
 };
 
+MapViewer.prototype.IndexOfClickedSynapse = function(db,cell,contin) {
+  for (let i = 0; i < this.clickedSynapses.length; ++i) {
+    let syn = this.clickedSynapses[i];
+    if (syn.contin === contin
+      && syn.cell === cell
+      && syn.db === db) {
+      return i;
+    }
+  }
+  return -1;
+};
+MapViewer.prototype.RemoveFromClickedSynapseInd = function(ind) {
+  if (ind < 0 || ind >= this.clickedSynapses.length) {
+    return;
+  }
+  this.clickedSynapses.splice(ind,1);
+  if (this.clickedSynapsesInd > ind) {
+    this.clickedSynapsesInd -= 1;
+  }
+  // should update HTML but in current use case that's
+  // already done outside
+};
+MapViewer.prototype.AddClickedSynapse = function(db,cell,contin) {
+  this.clickedSynapses.push({
+    db: db,
+    cell: cell,
+    contin: contin,
+  });
+  this.clickedSynapsesInd = this.clickedSynapses.length - 1;
+};
+// returns null if none or clickedSynapsesInd is bad
+MapViewer.prototype.LastClickedSynapse = function() {
+  if (this.clickedSynapsesInd < 0 ||
+      this.clickedSynapsesInd >= this.clickedSynapses.length) {
+    return null;
+  }
+  console.log('last:', this.clickedSynapsesInd);
+  return this.clickedSynapses[this.clickedSynapsesInd];
+};
+MapViewer.prototype.CycleClickedSynapseLeft = function() {
+  this.clickedSynapsesInd -= 1;
+  if (this.clickedSynapsesInd < 0) {
+    this.clickedSynapsesInd = this.clickedSynapses.length - 1;
+  }
+};
+MapViewer.prototype.CycleClickedSynapseRight = function() {
+  this.clickedSynapsesInd += 1;
+  if (this.clickedSynapsesInd >= this.clickedSynapses.length) {
+    this.clickedSynapsesInd = 0;
+  }
+};
 
 //======================================================
 // stuff related to translations/position of cell/skeleton
@@ -1027,7 +1072,7 @@ MapViewer.prototype.translateOneMapsToThisPos = function(db,cellname) {
  * @param {Object} m - THREE.Matrix4 object representing transformation
  * @param {String} name - cell name
  *
- * not used?
+ * not used? I think everything done in transformStuffOneCell
  */
 MapViewer.prototype.transformSynapses = function(m,db,name) {
   this.maps = this.dbMaps[db];
@@ -1038,7 +1083,7 @@ MapViewer.prototype.transformSynapses = function(m,db,name) {
  * @param {Object} m - THREE.Matrix4 object representing transformation
  * @param {String} name - cell name
  *
- * not used?
+ * not used? I think everything done in transformStuffOneCell
  */
 MapViewer.prototype.transformRemarks = function(m,db,name) {
   this.maps = this.dbMaps[db];
@@ -1322,85 +1367,8 @@ MapViewer.prototype.toggleAllSynapseLabels = function(bool=null) {
   }
 };
 
-//// by cell?
-//MapViewer.prototype.toggleSynapseLabels = function(db,cellname,bool=null) {
-//  if (typeof(bool) !== 'boolean') {
-//    bool = !this.GetSynapseLabelsVisible(db,cellname);
-//    //bool = !(this.IndexOfClickedSynapse(db,cellname
-//  }
-//  this.allSynLabelVisible = bool;
-//  for (const synLabel of this.maps[cellname].synLabels.children) {
-//    synLabel.visible = bool;
-//    if (this.app.GetSynapseInfoContin2() === synLabel.name) {
-//      // keep label visible if that synapse was clicked
-//      synLabel.visible = true;
-//    }
-//  }
-//};
 
-MapViewer.prototype.IndexOfClickedSynapse = function(db,cell,contin) {
-  for (let i = 0; i < this.clickedSynapses.length; ++i) {
-    let syn = this.clickedSynapses[i];
-    if (syn.contin === contin
-      && syn.cell === cell
-      && syn.db === db) {
-      return i;
-    }
-  }
-  return -1;
-};
-MapViewer.prototype.RemoveFromClickedSynapseInd = function(ind) {
-  if (ind < 0 || ind >= this.clickedSynapses.length) {
-    return;
-  }
-  this.clickedSynapses.splice(ind,1);
-  if (this.clickedSynapsesInd > ind) {
-    this.clickedSynapsesInd -= 1;
-  }
-  // should update HTML but in current use case that's
-  // already done outside
-};
-MapViewer.prototype.AddClickedSynapse = function(db,cell,contin) {
-  this.clickedSynapses.push({
-    db: db,
-    cell: cell,
-    contin: contin,
-  });
-  this.clickedSynapsesInd = this.clickedSynapses.length - 1;
-};
-// returns null if none or clickedSynapsesInd is bad
-MapViewer.prototype.LastClickedSynapse = function() {
-  if (this.clickedSynapsesInd < 0 ||
-      this.clickedSynapsesInd >= this.clickedSynapses.length) {
-    return null;
-  }
-  console.log('last:', this.clickedSynapsesInd);
-  return this.clickedSynapses[this.clickedSynapsesInd];
-};
-MapViewer.prototype.CycleClickedSynapseLeft = function() {
-  this.clickedSynapsesInd -= 1;
-  if (this.clickedSynapsesInd < 0) {
-    this.clickedSynapsesInd = this.clickedSynapses.length - 1;
-  }
-};
-MapViewer.prototype.CycleClickedSynapseRight = function() {
-  this.clickedSynapsesInd += 1;
-  if (this.clickedSynapsesInd >= this.clickedSynapses.length) {
-    this.clickedSynapsesInd = 0;
-  }
-};
-
-// switch to saving a variable allSynLabelVisible
-//MapViewer.prototype.GetAllSynapseLabelsVisible = function() {
-//  for (const db in this.dbMaps) {
-//    this.maps = this.dbMaps[db];
-//    for (const cellname in this.maps) {
-//      if (!this.GetSynapseLabelsVisible(db,cellname))
-//        return false;
-//    }
-//  }
-//  return true;
-//};
+// not used?
 MapViewer.prototype.GetSynapseLabelsVisible = function(db,cellname) {
   this.maps = this.dbMaps[db];
   for (const synLabel of this.maps[cellname].synLabels.children) {
@@ -1409,7 +1377,29 @@ MapViewer.prototype.GetSynapseLabelsVisible = function(db,cellname) {
   return true;
 };
 
-//==================
+// compute radius of sphere for synapse
+// from number of sections
+// depends on this.synMax
+// which can be set with ScaleSynapses
+// min synapse radius will be this.synMax/2
+// Hmm may not be necessary to factor this function out
+// as ScaleSynapses directly scales the spheres
+// (the spheres have its radius that can't be changed)
+MapViewer.prototype.SynapseRadiusFromSections = function(numSect) {
+  return this.synMax/2 * (2 - Math.pow(2, 1 - numSect / 2));
+}
+
+MapViewer.prototype.ScaleSynapses = function(scale) {
+  for (const db in this.dbMaps) {
+    for (const cell in this.dbMaps[db]) {
+      for (const contin in this.dbMaps[db][cell].allSynData) {
+        this.dbMaps[db][cell].allSynData[contin].sphere.scale.setScalar(scale);
+      }
+    }
+  }
+}
+
+//====================================
 // Volume
 
 // visibility of volume

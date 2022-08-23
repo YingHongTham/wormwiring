@@ -336,12 +336,29 @@
     <div class='accordionSection'>
       <div class='sectionTitle'
            data-toggle='collapse'
+           data-target='#scaleSynapsesContentDiv'
+           role='button'
+           aria-expanded='false'>
+        Scale Synapses
+      </div>
+      <div class='sectionContent collapse'
+           id='scaleSynapsesContentDiv'>
+        <div>
+        <span id='slider-scale-synapses-show-value'>x1</span>
+        <input id='slider-scale-synapses' class='map-translate'
+          type='range' min='-16' max='16' value='0'>
+        </div>
+      </div>
+    </div>
+    <div class='accordionSection'>
+      <div class='sectionTitle'
+           data-toggle='collapse'
            data-target='#translateMapsContentDiv'
            role='button'
-           aria-expanded='true'>
+           aria-expanded='false'>
         Translate Maps
       </div>
-      <div class='sectionContent collapse in show'
+      <div class='sectionContent collapse'
            id='translateMapsContentDiv'>
         &lt; -x Left/Right +x &gt; :
         <span id='x-slider-show-value'>0</span>
@@ -362,10 +379,10 @@
            data-toggle='collapse'
            data-target='#globalViewerOptionsContentDiv'
            role='button'
-           aria-expanded='true'>
+           aria-expanded='false'>
         Global Viewer Options
       </div>
-      <div class='sectionContent collapse in show'
+      <div class='sectionContent collapse'
            id='globalViewerOptionsContentDiv'>
         <button id='btnToggleGrid' value='on'>Hide Grid</button>
         <button id='btnToggleAxes' value='on'>Hide Axes</button>
@@ -380,10 +397,10 @@
            data-toggle='collapse'
            data-target='#loadSaveContentDiv'
            role='button'
-           aria-expanded='true'>
+           aria-expanded='false'>
         Load/Save
       </div>
-      <div class='sectionContent collapse in show'
+      <div class='sectionContent collapse'
            id='loadSaveContentDiv'>
         <div style='width:198px;overflow:scroll'>
         <input id='LoadFromFileInput'
