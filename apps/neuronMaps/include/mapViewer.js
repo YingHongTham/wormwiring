@@ -45,7 +45,8 @@ MapViewer = function(canvas,app)
 
   this.skelColor = 0x4683b2;
   this.preColor = 0xfa5882;
-  this.postColor = 0xbf00ff;
+  this.postColor = 0xfa5882;
+  //this.postColor = 0xbf00ff;
   this.gapColor = 0x00ffff;
   this.cellbodyColor = 0xff0000;
 
@@ -975,6 +976,13 @@ MapViewer.prototype.AddClickedSynapse = function(db,cell,contin) {
   this.clickedSynapsesInd = this.clickedSynapses.length - 1;
 };
 // returns null if none or clickedSynapsesInd is bad
+// a bit of a misnomer as the returned synapse
+// may not be the last clicked synapse
+// it really is the synapse that was last displayed in
+// Synapse Info section
+// but usually, if the user doesn't use the arrow keys
+// to select another synapse,
+// this should be the last clicked synapse
 MapViewer.prototype.LastClickedSynapse = function() {
   if (this.clickedSynapsesInd < 0 ||
       this.clickedSynapsesInd >= this.clickedSynapses.length) {

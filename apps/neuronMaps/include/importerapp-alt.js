@@ -73,12 +73,14 @@ ImporterApp = function()
   // showing the list of synapses
   this.synapseListWindows = {};
   for (const db in celllistByDbType) {
+    // key = cell, value = FloatingDialog2 object
     this.synapseListWindows[db] = {};
+    // created when cell is loaded
   }
 
   // db sections (under maps section)
   // (set to refer to HTML divs in
-  // InitLinkFunctionalityWithHTML())
+  //  InitLinkFunctionalityWithHTML())
   this.dbSection = {};
 
   // more intialization; but no new member variables declared
@@ -145,7 +147,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   topItems[2].onclick = () => { this.Open2DViewer(); };
   topItems[3].onclick = () => { this.ClearMaps(); };
 
-  //=================================================
+  //================================
   // link buttons in Synapse Info
 
   // left/right buttons for cycling through clicked synapses
@@ -190,7 +192,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     self.viewer.CenterViewOnSynapse(db,cell,contin);
   };
 
-  //=================================================
+  //===============================
   // link synapse filter, add button functionality
   const synFilterBtnFilter = document.getElementById('synFilterBtnFilter');
   synFilterBtnFilter.onclick = () => {
@@ -291,8 +293,26 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     }
   };
 
+  //===============================
+  // link Scale Synapses section
 
-  //=================================================
+  const sliderSynScale = document.getElementById('slider-scale-synapses');
+  const sliderSynScaleShowVal = document.getElementById('slider-scale-synapses-show-value');
+  sliderSynScale.onchange = sliderSynScale.onmousemove = () => {
+    let scale = parseFloat(sliderSynScale.value) / 4;
+    if (scale >= 0) {
+      scale += 1;
+      self.viewer.ScaleSynapses(scale);
+      sliderSynScaleShowVal.innerHTML = `x${scale}`;
+    }
+    else {
+      scale = Math.abs(scale) + 1;
+      self.viewer.ScaleSynapses(1.0 / scale);
+      sliderSynScaleShowVal.innerHTML = `&#247;${scale}`;
+    }
+  };
+
+  //===============================
   // link Translate Maps sliders
 
   // give all three sliders same response to change:
@@ -308,11 +328,11 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   }
   for (const i of ['x','y','z']) {
     const slider = document.getElementById(i+'-slider');
-    slider.onchange = MapsTranslateSliderOnChange;
-    slider.oninput = slider.onchange;
+    slider.onchange = slider.oninput = slider.onmousemove =
+      MapsTranslateSliderOnChange;
   };
 
-  //=================================================
+  //================================
   // link Global Viewer Options
   const btnToggleGrid = document.getElementById('btnToggleGrid');
   btnToggleGrid.onclick = () => {
@@ -363,23 +383,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     self.viewer.ToggleAllAggregateVolume(!on);
   };
 
-  const sliderSynScale = document.getElementById('slider-scale-synapses');
-  const sliderSynScaleShowVal = document.getElementById('slider-scale-synapses-show-value');
-  sliderSynScale.onchange = () => {
-    let scale = parseFloat(sliderSynScale.value) / 4;
-    if (scale >= 0) {
-      scale += 1;
-      self.viewer.ScaleSynapses(scale);
-      sliderSynScaleShowVal.innerHTML = `x${scale}`;
-    }
-    else {
-      scale = Math.abs(scale) + 1;
-      self.viewer.ScaleSynapses(1.0 / scale);
-      sliderSynScaleShowVal.innerHTML = `&#247;${scale}`;
-    }
-  };
-
-  //=================================================
+  //================================
   // link Load/Save
 
   const inputLoad = document.getElementById('LoadFromFileInput');
@@ -463,6 +467,23 @@ ImporterApp.prototype.LoadDbCell = function(db, cell)
 //=========================================================
 // functionality for the top menu
 // Help, Select Cells, 2D Viewer, Clear Maps
+
+
+ImporterApp.prototype.InitHelpDialog = function(cellname) {
+  const dialog = new FloatingDialog2(
+    parent=null,
+    title='Help',
+    isHidden=true,
+    modal=false
+  );
+  this.helpDialog = dialog;
+
+  dialog.SetWidthHeight(500,null);
+  
+  const contentDiv = dialog.GetContentDiv();
+  contentDiv.innerHTML = helpDialogText;
+};
+
 
 /*
  * expected HTML:
@@ -632,6 +653,9 @@ ImporterApp.prototype.InitCellSelectorDialog = function() {
 
 // called before cell selector dialog opens,
 // make sure the form matches the loaded cells
+// (form and loaded cells out of sync when:
+// -preload cell from url
+// -user clicks some cells in dialog, but doesn't load them)
 ImporterApp.prototype.updateFormsInCellSelectorDialog =
   function() {
   for (const db in this.dbDivFormNames) {
@@ -705,6 +729,9 @@ ImporterApp.prototype.ClearMaps = function() {
   this.viewer.clearMaps();
 };
 
+
+//=======================================================
+// Stuff when cell is loaded
 
 /*
  * better version of LoadMap
@@ -853,18 +880,6 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
   title.setAttribute('role','button');
   title.setAttribute('aria-expanded','false');
 
-  // again, now using bootstrap
-  //title.classList.add('inactive'); // default content hidden
-  //content.style.display = 'none'; // default content hidden
-
-  //title.onclick = () => {
-  //  const active = title.classList.contains('active')
-  //              || !title.classList.contains('inactive');
-  //  content.style.display = active ? 'none' : 'block';
-  //  title.classList.toggle('active', !active);
-  //  title.classList.toggle('inactive', active);
-  //};
-
   //====================================================
   // structure done,
   // now we customize the text/buttons
@@ -968,21 +983,6 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
   synPartnerListA.href = synParterListUrl;
 };
 
-ImporterApp.prototype.InitHelpDialog = function(cellname) {
-  const dialog = new FloatingDialog2(
-    parent=null,
-    title='Help',
-    isHidden=true,
-    modal=false
-  );
-  this.helpDialog = dialog;
-
-  dialog.SetWidthHeight(500,null);
-  
-  const contentDiv = dialog.GetContentDiv();
-  contentDiv.innerHTML = helpDialogText;
-};
-
 /*
  * assumes loadMap2 is done
  * (meant to be used in loadMapMenu2 which is after loadMap2
@@ -1004,13 +1004,21 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
   let thead = document.createElement('thead');
   let tbody = document.createElement('tbody');
   let tr = document.createElement('tr');
+
+  dialog.GetContentDiv().appendChild(table);
   table.appendChild(thead);
   table.appendChild(tbody);
   thead.appendChild(tr);
+
+  table.style.color = '#000000';
+
+  // add entry for each column head in head row
   for (const col of ['z','type','id','cells']) {
     let th = document.createElement('th');
     th.innerHTML = col;
     tr.appendChild(th);
+    
+    // later add onclick, which sorts rows by that column
     th.onmouseover = () => {
       th.style.backgroundColor = 'rgba(0,0,0,0.5)';
     };
@@ -1018,11 +1026,11 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
       th.style.backgroundColor = '#FFFFFF';
     };
   }
-  table.style.color = '#000000';
 
-  dialog.GetContentDiv().appendChild(table);
+  //==============================
+  // prepare list of synapses
 
-  let allSynList = []; // array of values in allSynData
+  let allSynList = []; // allSynData values, but need to sort
   let map = this.viewer.dbMaps[db][cellname];
   for (const contin in map.allSynData) {
     allSynList.push(map.allSynData[contin]);
@@ -1033,6 +1041,7 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
     return pos1.z - pos2.z;
   });
 
+  //===============================
   // add rows
   for (const synData of allSynList) {
     const row = document.createElement('tr');
@@ -1081,6 +1090,7 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
     };
   }
   
+  //==================================================
   // add sorting functionality for each column
   let theadrow = thead.childNodes[0];
 
@@ -1092,8 +1102,9 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
   // each child repn one column
   theadrow.childNodes.forEach( (n, i) => {
     n.onclick = () => {
-      // inc or dec?
       let col = n.innerHTML;
+
+      // determine inc or dec
       if (order.hasOwnProperty(col)) {
         order[col] = -order[col];
       } else {
@@ -1102,6 +1113,7 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
 
       let rows = [...tbody.children];
       rows.sort((tr1, tr2) => {
+        // first sort by inc in col, later reverse if dec
         let v1 = tr1.children[i].innerHTML;
         let v2 = tr2.children[i].innerHTML;
 
@@ -1134,11 +1146,35 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
 
   setTimeout(() => {
     dialog.FitWidthToContent();
-    console.log('Dialog:', dialog.width, dialog.height);
   }, 0);
 };
 
 
+ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
+  const self = this;
+  const urlBase =
+    `/apps/neuronVolume/models/${db}/`;
+  const urlMtl = urlBase + cell + '.mtl';
+  const urlObj = urlBase + cell + '.obj';
+
+  // see https://stackoverflow.com/questions/35380403/how-to-use-objloader-and-mtlloader-in-three-js-r74-and-later
+  const mtlLoader = new THREE.MTLLoader();
+  
+  mtlLoader.load(urlMtl, function(materials) {
+    materials.preload();
+    const objLoader = new THREE.OBJLoader();
+    objLoader.setMaterials(materials);
+    objLoader.load(urlObj, function(object) {
+      // sends object to viewer
+      self.viewer.loadVolumetric(db, cell, object);
+    });
+  });
+};
+
+
+
+//=====================================================
+// Resize business
 
 ImporterApp.prototype.ResizeOnlyCanvasLeft = function () {
   function SetWidth (elem, value) {
@@ -1175,58 +1211,34 @@ ImporterApp.prototype.Resize = function () {
 
 
 
-// translation = {x: .., y: .., z: ..}
-ImporterApp.prototype.SetMapsTranslate = function(translation) {
-  const xEl = document.getElementById('x-slider');
-  const yEl = document.getElementById('y-slider');
-  const zEl = document.getElementById('z-slider');
+//===============================================
+// Synapse Info section
+// shows info about synapse that mouse is hovering over,
+// but if mouse not hovering over any synapse,
+// returns it to info on synapse that was last shown here
+// (or --- if synapses are unclicked)
+// user can select multiple synapses,
+// and go through them in the info section with arrows
 
-  xEl.value = translation.x;
-  yEl.value = translation.y;
-  zEl.value = translation.z;
 
-  // trigger the usual function to update the viewer
-  xEl.onchange();
-  //yEl.onchange(); // all have same onchange()
-  //zEl.onchange();
+// set synapse info section to before hover
+ImporterApp.prototype.RestoreSynapseInfoLastClicked = function() {
+  const syn = this.viewer.LastClickedSynapse();
+  if (syn === null) {
+    this.RestoreSynapseInfoToDefault2();
+    return;
+  }
+  let db = syn.db;
+  let cell = syn.cell;
+  let contin = syn.contin;
+  this.UpdateSynapseInfo(db,cell,contin);
 };
-
-
-ImporterApp.prototype.GetMapsTranslate = function() {
-  const xEl = document.getElementById('x-slider');
-  const yEl = document.getElementById('y-slider');
-  const zEl = document.getElementById('z-slider');
-
-  return {
-    x: parseInt(xEl.value),
-    y: parseInt(yEl.value),
-    z: parseInt(zEl.value),
-  };
-};
-
-
-/*============================================
- * YH new and improved way of updating synapse info
- * we don't pass around the info object,
- * just need to give cellname and contin num of synapse
- * blazingly fast
- *
- * the synapse info section always shows the
- * synapse that mouse is hovering over,
- * but if mouse not hovering over any synapse,
- * returns it to the previously clicked synapse
- *
- * the methods below switch between four states:
- * -mouse hover synapse X, synapse Y clicked (possibly X=Y)
- * -mouse hover synapse X, no synapse clicked
- * -mouse not hovering over any synapse, synapse X clicked
- * -mouse not hovering over any synapse, no synapse clicked
- */
 
 /*
  * update the synapse info section of menu
- * but doesn't update the synapse clicked
- * so that synapse info will return to previous clicked synapse
+ * used directly when user hovers
+ *
+ * gets data from viewer
  *
  * @param {String} db - database/series
  * @param {String} cellname - cell on which synapse sits
@@ -1234,6 +1246,7 @@ ImporterApp.prototype.GetMapsTranslate = function() {
  */
 ImporterApp.prototype.UpdateSynapseInfo = function(db,cellname,contin) {
   if (contin === null) {
+    // in our use cases this shouldn't happen
     this.RestoreSynapseInfoToDefault2();
     return;
   }
@@ -1270,37 +1283,51 @@ ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
 };
 
 
-// set synapse info section to before hover
-// (usually it's the last clicked synapse,
-// but user may have cycled through synapses in info seciton,
-// so this would restore info section to that)
-ImporterApp.prototype.RestoreSynapseInfoLastClicked = function() {
-  const syn = this.viewer.LastClickedSynapse();
-  if (syn === null) {
-    this.RestoreSynapseInfoToDefault2();
-    return;
-  }
-  let db = syn.db;
-  let cell = syn.cell;
-  let contin = syn.contin;
-  this.UpdateSynapseInfo(db,cell,contin);
+//=======================================================
+// Translate Maps section
+
+// translation = {x: , y: , z: }
+ImporterApp.prototype.SetMapsTranslate = function(translation) {
+  const xEl = document.getElementById('x-slider');
+  const yEl = document.getElementById('y-slider');
+  const zEl = document.getElementById('z-slider');
+
+  xEl.value = translation.x;
+  yEl.value = translation.y;
+  zEl.value = translation.z;
+
+  // trigger the usual function to update the viewer
+  xEl.onchange();
+  //yEl.onchange(); // all have same onchange()
+  //zEl.onchange();
 };
 
 
-/*=====================================================
- * getters/setters
- */
+ImporterApp.prototype.GetMapsTranslate = function() {
+  const xEl = document.getElementById('x-slider');
+  const yEl = document.getElementById('y-slider');
+  const zEl = document.getElementById('z-slider');
+
+  return {
+    x: parseInt(xEl.value),
+    y: parseInt(yEl.value),
+    z: parseInt(zEl.value),
+  };
+};
+
+
+//=====================================================
+// getters/setters from/to HTML stuff
 
 ImporterApp.prototype.GetCanvasElem = function() {
   return document.getElementById('meshviewer');
 };
 
 
-// series/sex get/set from/to HTML
+// database get/set from/to HTML
 // modified to match floatingdialog2 version
 ImporterApp.prototype.GetSeriesElem = function() {
   return document.getElementById('dbSelector');
-  //return document.getElementById('series-selector');
 };
 ImporterApp.prototype.GetSeriesFromHTML = function() {
   const dbEl = this.GetSeriesElem();
@@ -1309,11 +1336,7 @@ ImporterApp.prototype.GetSeriesFromHTML = function() {
 ImporterApp.prototype.SetSeriesToHTML = function(db) {
   const dbEl = this.GetSeriesElem();
   dbEl.value = db;
-  dbEl.onchange();
-};
-// set series for the class
-ImporterApp.prototype.SetSeriesInternal = function(db) {
-  this.db = db;
+  dbEl.onchange(); // shows/hides appropriate list of cells
 };
 
 // content of maps section
@@ -1329,6 +1352,7 @@ ImporterApp.prototype.GetDbTitleDiv = function(db) {
   return document.getElementById(`maps${db}TitleDiv`);
 };
 
+// returns { x: , y: , z: } (not THREE.Vector3)
 ImporterApp.prototype.GetTranslationSliderValue = function() {
   const pos = { x: 0, y: 0, z: 0 };
   for (const i of ['x','y','z']) {
@@ -1338,44 +1362,6 @@ ImporterApp.prototype.GetTranslationSliderValue = function() {
   }
   return pos;
 };
-
-
-//=====================================================
-// Volumetric
-
-ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
-  const self = this;
-  const urlBase =
-    `/apps/neuronVolume/models/${db}/`;
-  const urlMtl = urlBase + cell + '.mtl';
-  const urlObj = urlBase + cell + '.obj';
-
-  // https://stackoverflow.com/questions/35380403/how-to-use-objloader-and-mtlloader-in-three-js-r74-and-later
-  const mtlLoader = new THREE.MTLLoader();
-  //mtlLoader.setPath(urlMtl);
-  //mtlLoader.setResourcePath(urlBase); // MTLLoader.js says needs this
-  
-  console.log(`attempt to load mtl from ${urlMtl}`);
-  mtlLoader.load(urlMtl, function(materials) {
-    console.log('mtl loaded');
-    materials.preload();
-    const objLoader = new THREE.OBJLoader();
-    //objLoader.setPath(urlObj);
-    objLoader.setMaterials(materials);
-
-    console.log(`attempt to load obj from ${urlObj}`);
-    objLoader.load(urlObj, function(object) {
-      console.log('obj loaded');
-      volumeObj = object; // for testing
-
-      // scales/translates appropriately
-      self.viewer.loadVolumetric(db, cell, object);
-    });
-  });
-};
-
-// for testing
-let volumeObj = null;
 
 
 /*=======================================================
