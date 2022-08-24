@@ -568,7 +568,7 @@ MapViewer.prototype.loadMap2 = function(data)
       zHigh: syn.zHigh,
       cellname: map.name,
       partners: '',
-      cellObj: null,
+      cellObj: null, // may be bad
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
@@ -608,7 +608,7 @@ MapViewer.prototype.loadMap2 = function(data)
       zHigh: syn.zHigh,
       cellname: map.name,
       partners: '',
-      cellObj: parseInt(syn.preObj),
+      cellObj: parseInt(syn.preObj), // may be bad
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
@@ -641,7 +641,7 @@ MapViewer.prototype.loadMap2 = function(data)
       zHigh: syn.zHigh,
       cellname: map.name,
       partners: '',
-      cellObj: null,
+      cellObj: null, // may be bad
       sphere: null, // set later in addOneSynapse2
       synLabelObj: null, // set later in addOneSynapse2
     };
@@ -1771,9 +1771,8 @@ MapViewer.prototype.load2DViewer = function(elem) {
   // maxHoriz is the furthest that the graph goes to the right
   // is updated each time a cell is added
   for (const db in this.dbMaps) {
-    this.maps = this.dbMaps[db];
-    for (const cell in this.maps) {
-      //if (!this.maps.hasOwnProperty(cell)) continue;
+    for (const cell in this.dbMaps[db]) {
+      console.log(maxHoriz);
       let ee = this.Get2DGraphCY(db,cell,maxHoriz);
       cy_elems = cy_elems.concat(ee.cy_elems);
       maxHoriz += ee.maxHoriz + sepBtCells;
@@ -1874,10 +1873,26 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   // that have that a given obj num
   const continByObj = {}; // key=obj, val=array of continNums
   for (const contin in map.allSynData) {
-    const cellObj = map.allSynData[contin].cellObj;
-    if (!objCoord.hasOwnProperty(cellObj)) {
-      continue;
+    // find the cell object that the synapse is attached to
+    // by finding the closest cell object
+    let s = map.allSynData[contin].coord;
+    let minDist = 10e9;
+    let cellObj = 0;
+    for (const obj in objCoord) {
+      let c = objCoord[obj];
+      let dist = (c.x - s.x)*(c.x - s.x)
+        + (c.y - s.y)*(c.y - s.y)
+        + (c.z - s.z)*(c.z - s.z);
+      if (dist < minDist) {
+        cellObj = parseInt(obj);
+        minDist = dist;
+      }
     }
+    //const cellObj = parseInt(map.allSynData[contin].cellObj);
+    //if (!objCoord.hasOwnProperty(cellObj)) {
+    //  // may not be good object number
+    //  continue;
+    //}
     X.add(cellObj);
     if (!continByObj.hasOwnProperty(cellObj)) {
       continByObj[cellObj] = [];
@@ -1891,7 +1906,6 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   }
   // vertices of deg != 2
   for (const v in map.skeletonGraph) {
-    //if (!map.skeletonGraph.hasOwnProperty(v)) continue;
     const vNum = parseInt(v);
     if (map.skeletonGraph[v].length !== 2) {
       X.add(vNum);
@@ -1910,15 +1924,15 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   //    Xlist.push(parseInt(v));
   //  }
   //}
-  Xlist.sort((v,w) => map.objCoord[v].z - map.objCoord[w].z);
+  Xlist.sort((v,w) => objCoord[v].z - objCoord[w].z);
 
   // next we need to give the 2D coordinates
   // for the graph embedding in the 2D view
   // we want embedding to be as "vertical" as possible
   // so we look for long lines,
   // a little bit like BreakGraphIntoLineSubgraphs,
-  // but here we need the lines to be
-  // -monotone in z coord
+  // but here we want the lines to be
+  // -monotone in z coord (generally?)
   // -have disjoint vertices
 
   // longestLine will keep such partition of graph
@@ -1927,7 +1941,7 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   // value: array of nodes in longest line graph
   //    from this node to a leaf,
   //    in a direction away from the root
-  //    (which should have lowest z in that connected comp)
+  //    (should have lowest/highest z in that connected comp)
   //    (in GetLongestLine, it is computed in reverse
   //    because pushing array from the right is easier,
   //    but later reversed back so it's node to leaf)
@@ -1995,6 +2009,7 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
     longestLine[cur] = longestLine[v];
     delete longestLine[v];
   }
+
   // start from all possible positions because Gred not conn
   for (const v of Xlist) {
     if (parentNode.hasOwnProperty(v)) {
@@ -2002,6 +2017,8 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
     }
     GetLongestLine(v, null);
   }
+
+  console.log(longestLine);
 
   // want to sort lines by orderOfVisit
   // linesList: lines, but represented by the
@@ -2108,7 +2125,6 @@ MapViewer.prototype.Get2DGraphCY = function(db,cell,horizInit) {
   // but do this just in case change in future
   let maxHoriz = 0;
   for (const v in pos2D) {
-    //if (!pos2D.hasOwnProperty(v)) continue;
     maxHoriz = Math.max(pos2D[v][0], maxHoriz);
   }
   maxHoriz -= horizInit;

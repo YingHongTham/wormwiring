@@ -57,6 +57,9 @@ FloatingDialog2 = function(parent=null, title='', isHidden=falsemodal=false) {
     yDiff: 0,
   };
 
+  // set with SetDeleteWhenCloseWindow
+  this.deleteWindowWhenClose = false;
+
   this.CreateHTML(title, modal);
   this.EnableDragging();
 };
@@ -129,6 +132,8 @@ FloatingDialog2.prototype.CreateHTML = function(title,modal) {
   this.renderWindow(); // in particular sets visibility
 
   window.addEventListener('resize', () => {
+    if (self.window === null || self.window === undefined)
+      return;
     self.OnResize();
   },false);
 
@@ -170,7 +175,7 @@ FloatingDialog2.prototype.EnableDragging = function() {
     self.state.xDiff = ev.pageX - self.state.x;
     self.state.yDiff = ev.pageY - self.state.y;
   });
-  document.addEventListener('mousemove', (ev) => {
+  this.bar.addEventListener('mousemove', (ev) => {
     if (self.state.isDragging) {
       self.state.x = self.ClampX(ev.pageX - self.state.xDiff);
       self.state.y = self.ClampY(ev.pageY - self.state.yDiff);
@@ -178,10 +183,11 @@ FloatingDialog2.prototype.EnableDragging = function() {
 
     self.renderWindow();
   });
-  document.addEventListener('mouseup', (ev) => {
+  this.bar.addEventListener('mouseup', (ev) => {
     self.state.isDragging = false;
   });
 };
+
 
 // limit position of top-left corner of window
 FloatingDialog2.prototype.ClampX = function(x) {
@@ -203,8 +209,6 @@ FloatingDialog2.prototype.ClampY = function(y) {
 
 // use to resize
 FloatingDialog2.prototype.SetWidthHeight = function(width=null, height=null) {
-  //console.log('resizing Help Dialog');
-
   // if given width/height are null,
   // just keep current width/height
   if (width !== null) {
@@ -287,7 +291,8 @@ FloatingDialog2.prototype.renderWindow = function() {
     }
   }
 
-  this.window.style.transform = 'translate(' + this.state.x + 'px, ' + this.state.y + 'px)';
+  this.window.style.transform =
+   `translate(${this.state.x}px,${this.state.y}px)`;
 };
 
 FloatingDialog2.prototype.OpenWindow = function() {
@@ -297,6 +302,10 @@ FloatingDialog2.prototype.OpenWindow = function() {
 };
 
 FloatingDialog2.prototype.CloseWindow = function() {
+  if (this.deleteWindowWhenClose) {
+    this.DeleteWindowFromHTML();
+    return;
+  }
   this.state.isHidden = true;
   this.renderWindow();
 };
@@ -315,4 +324,8 @@ FloatingDialog2.prototype.DeleteWindowFromHTML = function() {
   this.modalBackground = null;
 
   this.state = {};
+};
+
+FloatingDialog2.prototype.SetDeleteWhenCloseWindow = function(bool=true) {
+  this.deleteWindowWhenClose = bool;
 };

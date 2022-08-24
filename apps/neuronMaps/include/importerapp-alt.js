@@ -430,7 +430,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
 
   const inputLoad = document.getElementById('LoadFromFileInput');
   // annoying that width can't be controlled properly..
-  inputLoad.style.width = document.getElementById('left').offsetWidth;
+  inputLoad.style.width = document.getElementById('left').offsetWidth + 'px';
   inputLoad.size = document.getElementById('left').offsetWidth;
   inputLoad.onchange = () => this.LoadFromFile();
   const btnSave = document.getElementById('SaveToFileButton');
@@ -898,24 +898,31 @@ ImporterApp.prototype.CellSelectorDialog = function()
  * loads, creates 2D viewer in floating dialog
  */
 ImporterApp.prototype.Open2DViewer = function() {
-  console.log('open 2dview');
-  if (this.dialog2DViewer === null) {
-    this.dialog2DViewer = new FloatingDialog2(
-      parent=null,
-      title='2D Viewer',
-      isHidden=true,
-      modal=false
-    );
-  }
-  const dialog = this.dialog2DViewer;
+  const dialog = new FloatingDialog2(
+    parent=null,
+    title='2D Viewer',
+    isHidden=true,
+    modal=false
+  );
+  dialog.SetDeleteWhenCloseWindow();
 
   dialog.SetWidthHeight(500,null);
   
   const contentDiv = dialog.GetContentDiv();
-  contentDiv.innerHTML = 'strange, 2d graph loads but very slow and only partially?';
-  this.viewer.load2DViewer(contentDiv);
+
+  // unclear why this extra div is needed,
+  // but it works! so don't get rid of this
+  const innerDiv = document.createElement('div');
+  innerDiv.id = 'innerDiv';
+  const h = dialog.ComputeHeight() - dialog.barHeight;
+  const w = 500 - 5;
+  innerDiv.style = `height:${h}px;width:${w}px`;
+  this.viewer.load2DViewer(innerDiv);
+  contentDiv.appendChild(innerDiv);
+
   dialog.OpenWindow();
 
+  // using old floating dialog
   //const self = this;
   //this.dialog.Open({
   //  //className: '',
