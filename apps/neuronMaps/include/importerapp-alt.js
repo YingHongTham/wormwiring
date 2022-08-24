@@ -53,6 +53,10 @@ ImporterApp = function()
   this.dbDivForm = null;
   this.dbDivFormNames = null;
 
+  // set when 2D Viewer is opened;
+  // reset to null when closed
+  this.dialog2DViewer = null;
+
   // object dealing with the viewer inside canvas
   // it holds most of the data, like the skeleton maps,
   // synapses, volume objects etc.
@@ -127,6 +131,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
 
   this.InitHelpDialog();
   this.InitCellSelectorDialog();
+  // 2D Viewer is created and loaded each time opened
 
   // set up the top menu, Help, cell selector etc.
   const topElem = document.getElementById ('top');
@@ -642,8 +647,16 @@ ImporterApp.prototype.updateFormsInCellSelectorDialog =
 
 /*
  * loads, creates 2D viewer in floating dialog
+ * reference to dialog stored as this.dialog2DViewer
+ * dialog is deleted when closed
+ * (and this.dialog2DViewer is set to null when deleted,
+ * helps prevent opening mulitple windows of 2D Viewer)
  */
 ImporterApp.prototype.Open2DViewer = function() {
+  if (this.dialog2DViewer !== null) {
+    // means there is still an active 2D Viewer dialog open
+    return;
+  }
   const dialog = new FloatingDialog2(
     parent=null,
     title='2D Viewer',
@@ -651,6 +664,12 @@ ImporterApp.prototype.Open2DViewer = function() {
     modal=false
   );
   dialog.SetDeleteWhenCloseWindow();
+  this.dialog2DViewer = dialog;
+
+  const self = this;
+  dialog.SetCallbackBeforeClose(() => {
+    self.dialog2DViewer = null;
+  });
 
   dialog.SetWidthHeight(500,null);
   

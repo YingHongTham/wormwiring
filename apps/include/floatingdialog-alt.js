@@ -57,8 +57,10 @@ FloatingDialog2 = function(parent=null, title='', isHidden=falsemodal=false) {
     yDiff: 0,
   };
 
+  // some optional things that user can set with setters
   // set with SetDeleteWhenCloseWindow
   this.deleteWindowWhenClose = false;
+  this.callbackBeforeClose = null;
 
   this.CreateHTML(title, modal);
   this.EnableDragging();
@@ -302,6 +304,9 @@ FloatingDialog2.prototype.OpenWindow = function() {
 };
 
 FloatingDialog2.prototype.CloseWindow = function() {
+  if (this.callbackBeforeClose !== null) {
+    this.callbackBeforeClose();
+  }
   if (this.deleteWindowWhenClose) {
     this.DeleteWindowFromHTML();
     return;
@@ -326,6 +331,13 @@ FloatingDialog2.prototype.DeleteWindowFromHTML = function() {
   this.state = {};
 };
 
+//=============================================
+// setters for optional stuff
+
 FloatingDialog2.prototype.SetDeleteWhenCloseWindow = function(bool=true) {
   this.deleteWindowWhenClose = bool;
+};
+
+FloatingDialog2.prototype.SetCallbackBeforeClose = function(callback) {
+  this.callbackBeforeClose = callback;
 };
