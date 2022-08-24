@@ -1155,7 +1155,8 @@ MapViewer.prototype.FilterSynapsesByType = function(typesSelected) {
     }
   }
 };
-// expect sizeRange = { min: , max: }
+// expect sizeRange = { min: num or null, max: num or null}
+// or null if no filtering
 MapViewer.prototype.FilterSynapsesBySize = function(sizeRange) {
   if (sizeRange === null) return;
 
@@ -1164,10 +1165,10 @@ MapViewer.prototype.FilterSynapsesBySize = function(sizeRange) {
     for (const cell in this.maps) {
       for (const contin in this.maps[cell].allSynData) {
         const synData = this.maps[cell].allSynData[contin];
-        if ((sizeRange.min === null
-              || synData.size < sizeRange.min)
-          || (sizeRange.max === null
-              || synData.size > sizeRange.max)) {
+        if ((sizeRange.min !== null
+              && synData.size < sizeRange.min)
+          || (sizeRange.max !== null
+              && synData.size > sizeRange.max)) {
           synData.sphere.visible = false;
         }
         // no else, don't set true if pass

@@ -2,22 +2,20 @@
  * new version of ImporterApp,
  * where we expect index.html to have most of the elements,
  * and we just need to link functionality to those elements
- * TODO? perhaps do the same to FloatingDialog too
+ * (their values change, but the remain the same)
+ * some HTML elements that are added here are:
+ * -entries in the Maps section
+ * -floating dialogs (in particular the cell selector)
  *
  * note confusing terminology:
  * series can refer to database N2U etc
- * or also the regions of the worm, VC, NR etc..
- * we try to use db for the former sense
- *
- * expect some libraries:
- * apps/include/floatingdialog.js - for FloatingDialog class
+ * or series may mean the regions of the worm, VC, NR etc..
+ * we use database(db) to refer to the former,
+ * but may sometimes still say series to refer to db
+ * hopefully it's clear from context
  *
  * css used: /css/importer.css (mostly?)
  * class 'panel-group' is from bootstrap.css
- *
- * finally changed selectedNeurons to cellsInSlctdSrs 
- * cellsInSlctdSrs is just two arrays
- * (leave the walink, visied, plotted stuff to elsewhere)
  */
 
 
@@ -44,19 +42,6 @@ if (typeof(FloatingDialog2) === undefined) {
 
 ImporterApp = function()
 {
-  //this.db = this.GetSeriesFromHTML();
-
-  // cellsInSlctdSrs are cells in selected db/series
-  // appear in the cell selector dialog
-  // { neuron: [...], muscle: [...] }
-  // I think these are only needed for the old way
-  // of dealing with cell selected dialog
-  // TODO I think this is obsolete
-  this.cellsInSlctdSrs = celllistByDbType[this.db];
-
-  // actually user selected cells, unlike before
-  this.selectedCells = new Set();
-
   // should agree with this.viewer.maps
   this.loadedCells = {};
   for (const db in celllistByDbType) {
@@ -68,31 +53,13 @@ ImporterApp = function()
   this.dbDivForm = null;
   this.dbDivFormNames = null;
 
-  // set in Open2DViewer
-  this.dialog2DViewer = null;
-
-  // starting value of the Synapse Info section
-  // see AddSynapseInfo for more
-  this.defaultSynapseInfo = {
-    cellname: '---',
-    syntype: '---',
-    synsource: '---',
-    syntarget: '---',
-    synweight: '---',
-    synsection: '---',
-    syncontin: '---',
-    synposition: '---',
-  }
-  // will be updated when a synapse is clicked
-  this.synapseInfoClicked = Object.assign({}, this.defaultSynapseInfo);
-  this.synapseClicked = {
-    db: null,
-    cellname: null,
-    contin: null
-  };
-
   // object dealing with the viewer inside canvas
-  this.viewer = null; // initialized properly in Init()
+  // it holds most of the data, like the skeleton maps,
+  // synapses, volume objects etc.
+  // initialized properly in InitViewerStuff()
+  // for debugging purposes, useful to access in console
+  // e.g. importerApp.viewer.dbMaps['N2U']['ADAL'].allSynData..
+  this.viewer = null;
 
   // the small floating window in which
   // help/selector/2Dviewer/synapseviewer is shown
@@ -136,21 +103,13 @@ ImporterApp.prototype.InitViewerStuff = function() {
   // since initially canvas.width and height are 0
   this.ResizeOnlyCanvasLeft();
 
-  const self = this;
-
-  //if (!Detector.webgl) {
-  //  var warning = Detector.getWebGLErrorMessage();
-  //  console.log(warning);
-  //  alert('WebGL failed to load, viewer may not work');
-  //};
-
   const canvas = this.GetCanvasElem();
   
   this.viewer = new MapViewer(canvas, this);
 
+  const self = this;
   let render = function() {
     requestAnimationFrame(render);
-    // TODO make animating/pausing part of MapViewer class
     self.viewer.render();
   };
   render();
@@ -172,30 +131,14 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   // set up the top menu, Help, cell selector etc.
   const topElem = document.getElementById ('top');
   const topItems = topElem.children;
-  topItems[0].onclick = () => { this.OpenHelpDialog2(); };
+  topItems[0].onclick = () => {
+    this.helpDialog.OpenWindow(); };
   topItems[1].onclick = () => { 
     self.updateFormsInCellSelectorDialog();
     self.cellSelectorDialog.OpenWindow();
   };
   topItems[2].onclick = () => { this.Open2DViewer(); };
   topItems[3].onclick = () => { this.ClearMaps(); };
-
-  ////=================================================
-  //// set up reference to each db section
-  //for (const db of ['N2U','JSE','N2W','JSH','n2y','n930']) {
-  //  const dbSectionId = `maps${db}ContentDiv`;
-  //  this.dbSection[db] = document.getElementById(dbSectionId);
-  //}
-
-  ////=================================================
-  //// link series-selector to this.db and this.cellsInSlctdSrs
-  //// make the HTML the source/"ground truth" for db value
-  //const seriesSelector = this.GetSeriesElem();
-  //this.SetSeriesInternal(seriesSelector.value);
-  //seriesSelector.onchange = () => {
-  //  const newDb = self.GetSeriesFromHTML();
-  //  self.SetSeriesInternal(newDb);
-  //};
 
   //=================================================
   // link buttons in Synapse Info
@@ -212,6 +155,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     self.RestoreSynapseInfoLastClicked();
   };
 
+  // button for opening Synapse Viewer in separate window
   const openSynapseEMViewer = document.getElementById('openSynapseEMViewer');
   openSynapseEMViewer.onclick = () => {
     const syn = this.viewer.LastClickedSynapse();
@@ -228,6 +172,8 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     a.href = url;
     a.click();
   };
+  
+  // moves camera and targets camera at synapse
   const centerViewOnSynapse = document.getElementById('centerViewOnSynapse');
   centerViewOnSynapse.onclick = () => {
     const syn = this.viewer.LastClickedSynapse();
@@ -265,6 +211,9 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     sizeRange.min = isNaN(minValue) ? null : minValue;
     let maxValue = parseInt(synFilterSizeMax.value);
     sizeRange.max = isNaN(maxValue) ? null : maxValue;
+    if (sizeRange.min === null && sizeRange.max === null) {
+      sizeRange = null;
+    }
 
     // get cells
     const synFilterCells = document.getElementById('synFilterCells');
@@ -296,7 +245,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
       text += typesSelected.join(',');
       text += ';';
     }
-    if (sizeRange.min !== null || sizeRange.max !== null) {
+    if (sizeRange !== null) {
       let mn = sizeRange.min === null ? '*' : sizeRange.min;
       let mx = sizeRange.max === null ? '*' : sizeRange.max;
       text += `(${mn},${mx});`;
@@ -493,15 +442,6 @@ ImporterApp.prototype.SaveToFile = function() {
   a.click();
 };
 
-// no longer needed, preloading triggered by build_neuronMaps.js
-//// recall that the params here are a bit different from
-//// those given in url;
-//// see build_neuronMaps.js for how it was preprocessed
-//ImporterApp.prototype.PreloadParamsLoaded = function() {
-//  return 'cell' in this.params
-//      && 'db' in this.params
-//      && 'sex' in this.params;
-//};
 
 // used to be PreloadCells2
 ImporterApp.prototype.LoadDbCell = function(db, cell)
@@ -509,7 +449,6 @@ ImporterApp.prototype.LoadDbCell = function(db, cell)
   // update the series selector in menu
   this.SetSeriesToHTML(db);
   this.SetSeriesInternal(db);
-  //this.cellsInSlctdSrs = celllistByDbType[db];
 
   this.LoadMap2(db,cell);
 };
@@ -520,145 +459,8 @@ ImporterApp.prototype.LoadDbCell = function(db, cell)
 // functionality for the top menu
 // Help, Select Cells, 2D Viewer, Clear Maps
 
-ImporterApp.prototype.OpenHelpDialog2 = function() {
-  this.helpDialog.OpenWindow();
-};
-
-// old help dialog
-ImporterApp.prototype.OpenHelpDialog = function()
-{
-  this.dialog.Open({
-    className: 'dialog',
-    title : 'Help',
-    buttons : [
-      {
-        text : 'close',
-        callback : function (dialog) {
-          dialog.Close();
-        }
-      }
-    ],
-  });
-
-  const contentDiv = this.dialog.GetContentDiv();
-    
-  const panelGroup = document.createElement('div');
-  contentDiv.appendChild(panelGroup);
-
-  panelGroup.classList.add('panel-group');
-  // panel-group etc is from bootstrap.css
-  for (const helpItem of helpDialogItems) {
-    panelGroup.appendChild(this.CreateHelpPanel(helpItem));
-  }
-}
-
 /*
- * returns help entry defined by params
- *
- * HTML:
- *  <div> // panel --> returned
- *    <div> // panelHeader
- *      <div> // panelTitle
- *        <div> // panelA
- *          params.title (e.g. Quick Start)
- *        </div>
- *      </div>
- *    </div>
- *    <div> // panelCollapse, the main content
- *      <div> // panelBody - text
- *      </div>
- *      <iframe> // panelIFrame - for video
- *      </iframe>
- *    </div>
- *  </div>
- *
- * the CSS classes like panel-* and attributes data-*
- * are from bootstrap.css,
- * which is linked to bootstrap.js, which provides func'ty
- */
-ImporterApp.prototype.CreateHelpPanel = function(params)
-{
-  const panel = document.createElement('div');
-  panel.classList.add('panel','panel-default');
-
-  const panelHeader = document.createElement('div');
-  panelHeader.classList.add('panel-heading');
-  panelHeader.classList.add('accordion-toggle');
-  panelHeader.setAttribute('data-toggle','collapse');
-  panelHeader.setAttribute('data-parent','#accordion');
-  panelHeader.setAttribute('data-target','#'+params.name);
-
-  const panelTitle = document.createElement('h4');
-  panelTitle.classList.add('panel-title');
-
-  const panelA = document.createElement('a');
-  panelA.innerHTML = params.title;
-  //panelA.classList.add('accordion-toggle');
-  //panelA.setAttribute('data-toggle','collapse');
-  //panelA.setAttribute('data-parent','#accordion');
-  //panelA.href = '#' + params.name;
-
-  panelTitle.appendChild(panelA);
-  panelHeader.appendChild(panelTitle);
-  panel.appendChild(panelHeader);
-
-  // content
-  const panelCollapse = document.createElement('div');
-  // important to assign id! as this is how 
-  // bootstrap.js finds and the right div to collapse
-  panelCollapse.id = params.name;
-  panelCollapse.classList.add('panel-collapse','collapse');
-  if (typeof params.text !== "undefined"){
-    var panelBody = document.createElement('div');
-    panelBody.classList.add('panel-body');
-    panelBody.innerHTML = params.text;
-    panelCollapse.appendChild(panelBody);
-  };
-  if (typeof params.video !== "undefined"){
-    panelIFrame = document.createElement("iframe");
-    panelIFrame.setAttribute("width","1140");
-    panelIFrame.setAttribute("height","740");
-    panelIFrame.setAttribute("src",params.video);
-    panelCollapse.appendChild(panelIFrame);
-  };
-  panel.appendChild(panelCollapse);
-  
-  return panel;
-};
-
-ImporterApp.prototype.OpenInfoDialog = function(url,title)
-{
-  console.log(`opening info dialog for ${url}`);
-  this.dialog.Open ({
-    className: 'infoFrame',
-    title : title,
-    //text : dialogText,
-    buttons : [{
-        text : 'close',
-        callback : function (dialog) {
-          dialog.Close();
-        }
-    }]
-  });
-
-  const contentDiv = this.dialog.GetContentDiv();
-
-  const urlSpan = document.createElement('span');
-  urlSpan.innerHTML = 'open in new tab: ';
-  contentDiv.appendChild(urlSpan);
-  const urlA = document.createElement('a');
-  urlSpan.appendChild(urlA);
-  urlA.href = url;
-  urlA.target = '_blank';
-  urlA.innerHTML = urlA.href;
-
-  const iframe = document.createElement('iframe');
-  iframe.src = url;
-  iframe.id = 'infoFrame';
-  contentDiv.appendChild(iframe);
-}
-
-/*
+ * expected HTML:
  *  <div> -- contentDiv from FloatingDialog2
  *    <label> Choose a database/series: </label>
  *    <select> -- dbSelector
@@ -839,62 +641,6 @@ ImporterApp.prototype.updateFormsInCellSelectorDialog =
 
 
 /*
- * loads, creates neuron selector dialog when click 'Select neuron'
- * for neurons that are selected, calls LoadMaps,
- * which sends request to php for the neuron data,
- * skeleton, synapses etc
- *
- * use adding cellDivSelected class to cellDiv's
- * as means of identifying selected cells
- * (also CSS in /css/importer.css)
- *
- * old: NeuronSelectorDialog
- *
- * now using LoadMap2 instead of LoadMap
- */
-ImporterApp.prototype.CellSelectorDialog = function()
-{
-  const self = this;
-
-  // create floating dialog with appropriate buttons
-  this.dialog.Open({
-    className: 'cell-selector',
-    title : 'Cell Selector',
-    //text : dialogText,
-    buttons : [{
-      // loads selected cells
-      text : 'load',
-      callback : function (dialog) {
-        const series = self.GetSeriesFromHTML();
-        const selectedCells = Array.from(
-          document.getElementsByClassName('cellDiv cellDivSelected')
-        );
-        selectedCells.forEach( el => {
-          const cell = el.value;
-          if (self.selectedCells.has(cell)) {
-            return;
-          }
-          self.selectedCells.add(cell);
-          self.LoadMap2(series,cell);
-        });
-        self.dialog.Close();
-      }
-    }, {
-      text : 'close',
-      callback : function (dialog) {
-        self.dialog.Close();
-      }
-    }],
-  });
-
-  //adds cells from selected database to the dialog
-  const contentDiv = this.dialog.GetContentDiv();
-  for (const celltype in this.cellsInSlctdSrs) {
-    contentDiv.appendChild(this.AddSelectPanel(celltype));
-  }
-};
-
-/*
  * loads, creates 2D viewer in floating dialog
  */
 ImporterApp.prototype.Open2DViewer = function() {
@@ -921,22 +667,6 @@ ImporterApp.prototype.Open2DViewer = function() {
   contentDiv.appendChild(innerDiv);
 
   dialog.OpenWindow();
-
-  // using old floating dialog
-  //const self = this;
-  //this.dialog.Open({
-  //  //className: '',
-  //  title : '2DViewer',
-  //  buttons : [{
-  //    text : 'close',
-  //    callback : function(dialog) {
-  //      self.dialog.Close();
-  //    }
-  //  }],
-  //});
-  //
-  //const contentDiv = this.dialog.GetContentDiv();
-  //this.viewer.load2DViewer(contentDiv);
 };
 
 ImporterApp.prototype.ClearMaps = function() {
@@ -971,7 +701,6 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
   if (this.loadedCells[db].includes(cell)) {
     return;
   }
-  this.selectedCells.add(cell);
   this.loadedCells[db].push(cell);
 
   const self = this;
@@ -1038,8 +767,7 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
  * (creates section if first time)
  *
  */
-ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
-{
+ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
   const self = this;
   const dbTitleDiv = this.GetDbTitleDiv(db);
   dbTitleDiv.style.display = '';
@@ -1212,11 +940,6 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   walinkA.target = '_blank';
   const walinkUrl = cellnameToWALink(cellname);
   walinkA.href = walinkUrl;
-  //walinkBtn.innerHTML = 'WormAtlas';
-  //walinkBtn.onclick = () => {
-  //  const url = cellnameToWALink(cellname);
-  //  self.OpenInfoDialog(url, 'WormAtlas');
-  //};
 
   //===============================================
   // Synapse By Partners
@@ -1224,12 +947,6 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist)
   synPartnerListA.target = '_blank';
   const synParterListUrl = `../listViewerAlt/?db=${db}&cell=${cellname}&listtype=partner`;
   synPartnerListA.href = synParterListUrl;
-  //synPartnerListBtn.innerHTML = 'Synapse By Partners';
-  //synPartnerListBtn.onclick = () => {
-  //  const url = `../listViewerAlt/?db=${db}&cell=${cellname}&listtype=partner`;
-  //  self.OpenInfoDialog(url,'Synaptic Partners');
-  //};
-
 };
 
 ImporterApp.prototype.InitHelpDialog = function(cellname) {
@@ -1403,75 +1120,6 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
 };
 
 
-/*
- * adds the entries in the Cell Selector Dialog
- * celltype = Neurons or Muscles
- * called by CellSelectorDialog, i.e. when click on 'Select neuron'
- * each cell is in one div, with class 'cellDiv',
- * when click, adds class 'cellDivSelected';
- * we used this in CellSelectorDialog to get selected cells
- *
- * html structure (for celltype='neuron'):
- *  <div> // bigDiv
- *    <button> // header
- *      Neurons
- *    </button>
- *    <div> // panel
- *      cells
- *    </div>
- *  </div>
- *
- * similar to AddHelpPanel,
- * the CSS classes are from bootstrap.css,
- * which is linked to bootstrap.js, which provides func'ty
- */
-ImporterApp.prototype.AddSelectPanel = function(celltype) {
-  const bigDiv = document.createElement('div');
-
-  // large button, click to expand/collapse list
-  const panelHeader = document.createElement('button');
-  panelHeader.classList.add('panel-header'); // /css/importer.css
-  //panelHeader.setAttribute('type','button');
-  //panelHeader.setAttribute('data-toggle','collapse');
-  //panelHeader.setAttribute('data-target','#'+celltype);
-  panelHeader.innerHTML = celltype === 'neuron' ? 'Neurons' : 'Muscles';
-  // add onclick attribute after panel
-
-  // div containing the cell entries
-  const panel = document.createElement('div');
-  panel.style.display = 'none';
-  //panel.classList.add('collapse');
-  // add cell entries to panel div
-  for (const cell of this.cellsInSlctdSrs[celltype]) {
-    const cellDiv = document.createElement('div');
-    cellDiv.classList.add('cellDiv');
-    //cellDiv.id = cell;
-    cellDiv.value = cell;
-    cellDiv.innerHTML = cell;
-    panel.appendChild(cellDiv);
-
-    // highlight if previously selected/loaded this cell
-    if ( this.viewer.maps.hasOwnProperty(cell) ) {
-      cellDiv.classList.add('cellDivSelected');
-    }
-
-    // toggle selectedness
-    cellDiv.onclick = () => {
-      cellDiv.classList.toggle('cellDivSelected');
-    };
-  }
-
-  panelHeader.onclick = () => {
-    const disp = panel.style.display;
-    panel.style.display = (disp === 'none') ? 'block' : 'none';
-  };
-
-  bigDiv.appendChild(panelHeader);
-  bigDiv.appendChild(panel);
-
-  return bigDiv;
-};
-
 
 ImporterApp.prototype.ResizeOnlyCanvasLeft = function () {
   function SetWidth (elem, value) {
@@ -1572,23 +1220,21 @@ ImporterApp.prototype.UpdateSynapseInfo = function(db,cellname,contin) {
   }
   const synData = this.viewer.GetSynData(db,cellname,contin);
   const pos = synData.coord;
-    //this.viewer.GetObjCoordAbsolute(db,cellname,synData.obj);
-  document.getElementById('synInfoCellname').innerHTML
-    = cellname;
   document.getElementById('synInfoType').innerHTML
-    = synData.type;
-  document.getElementById('synInfoSource').innerHTML
-    = synData.pre;
-  document.getElementById('synInfoTarget').innerHTML
-    = synData.post;
+    = synData.type === 'gap' ? 'Electrical' : 'Chemical';
+  document.getElementById('synInfoPartners').innerHTML
+    = synData.partners;
   document.getElementById('synInfoWeight').innerHTML
     = synData.size;
   document.getElementById('synInfoSections').innerHTML
     = `(${synData.zLow},${synData.zHigh})`;
   document.getElementById('synInfoContin').innerHTML
     = contin;
+  let x = Math.round(pos.x * 10) / 10;
+  let y = Math.round(pos.y * 10) / 10;
+  let z = Math.round(pos.z * 10) / 10;
   document.getElementById('synInfoPosition').innerHTML
-    = `x: ${pos.x}, y: ${pos.y}, z: ${pos.z}`;
+    = `x: ${x}, y: ${y}, z: ${z}`;
 };
 
 /*
@@ -1596,13 +1242,8 @@ ImporterApp.prototype.UpdateSynapseInfo = function(db,cellname,contin) {
  * also sets synapse clicked to null
  */
 ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
-  //this.synapseClicked.db = null;
-  //this.synapseClicked.cellname = null;
-  //this.synapseClicked.contin = null;
-  document.getElementById('synInfoCellname').innerHTML = '---';
   document.getElementById('synInfoType').innerHTML = '---';
-  document.getElementById('synInfoSource').innerHTML = '---';
-  document.getElementById('synInfoTarget').innerHTML = '---';
+  document.getElementById('synInfoPartners').innerHTML = '---';
   document.getElementById('synInfoWeight').innerHTML = '---';
   document.getElementById('synInfoSections').innerHTML = '---';
   document.getElementById('synInfoContin').innerHTML = '---';
@@ -1654,7 +1295,6 @@ ImporterApp.prototype.SetSeriesToHTML = function(db) {
 // set series for the class
 ImporterApp.prototype.SetSeriesInternal = function(db) {
   this.db = db;
-  this.cellsInSlctdSrs = celllistByDbType[db];
 };
 
 // content of maps section

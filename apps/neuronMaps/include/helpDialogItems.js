@@ -121,6 +121,7 @@ In all three sections leaving it blank means
 no filtering is performed for that type of condition.
 <ul>
   <li>Pre/Post/Gap: type of synapse</li>
+  <li>Range on the Number of Sections</li>
   <li>Cells: comma-separated list of cells;
   filters out synapses whose pre/post partner cells
   do not intersect the given list of cells</li>
