@@ -359,10 +359,14 @@ n2y seems to line up nicely though it's quite far away.
 
 TODO synapse balls and label disappear when aggregate volume present
 
-TODO allow user adjust synapse sizes
+TODO save to file: do synapse filter too
+
+TODO perhaps allow load multiple cells in url?
 
 
 ## Figuring out the scaling for skeleton:
+Use N2U, other db scaling are found by comparing to N2U cells
+(e.g. ADAL appears in both N2U and JSH)
 Fix some image, N2UNR061.
 Find synapse objects with min/max x/y values:
 select * from object where IMG_Number = 'N2UNR061' and type = 'chemical' order by OBJ_X asc limit 1;

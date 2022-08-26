@@ -16,6 +16,17 @@
  *
  * css used: /css/importer.css (mostly?)
  * class 'panel-group' is from bootstrap.css
+ *
+ * we organize into several sections (search *Section*)
+ * -Initialization
+ * -functionality for the top menu, e.g. Help, Select Cells..
+ * -stuff when cell is loaded
+ * -stuff handling window resize
+ * -Synapse Info related things
+ * -Translate Maps related things
+ * -getters/setters from/to HTML stuff
+ * -Load/Save
+ * -auxiliary stuff
  */
 
 
@@ -86,6 +97,9 @@ ImporterApp = function()
   // more intialization; but no new member variables declared
   this.Init();
 };
+
+//======================================================
+// *Section*: Initialization
 
 
 /*
@@ -387,68 +401,9 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   // link Load/Save
 
   const inputLoad = document.getElementById('LoadFromFileInput');
-  // annoying that width can't be controlled properly..
-  inputLoad.style.width = document.getElementById('left').offsetWidth + 'px';
-  inputLoad.size = document.getElementById('left').offsetWidth;
   inputLoad.onchange = () => this.LoadFromFile();
   const btnSave = document.getElementById('SaveToFileButton');
   btnSave.onclick = () => this.SaveToFile();
-};
-
-/*
- * load settings from file
- * file expected to be .json; see SaveToFile
- */
-ImporterApp.prototype.LoadFromFile = function() {
-  const input = document.getElementById('LoadFromFileInput');
-  const file = new FileReader();
-
-  const self = this;
-
-  file.readAsText(input.files[0]);
-  file.onloadend = function(ev) {
-    // read data is in this.result
-    const data = JSON.parse(this.result);
-
-    for (const db in data.mapsSettings) {
-      self.SetSeriesToHTML(db);
-      self.SetSeriesInternal(db);
-
-      for (const cell in data.mapsSettings[db]) {
-        self.LoadMap2(db, cell);
-        let color = data.mapsSettings[db][cell].color;
-        document.addEventListener('loadMapComplete', () => {
-          self.viewer.SetSkeletonColor(
-            db, cell, color
-          );
-          // set camera again because LoadMap2 sets camera too
-          self.viewer.SetCameraFromJSON(data.cameraSettings);
-        });
-      }
-    }
-
-    setTimeout(() => {
-      self.SetMapsTranslate(data.mapsTranslation);
-      self.viewer.SetCameraFromJSON(data.cameraSettings);
-    },0);
-  };
-};
-
-ImporterApp.prototype.SaveToFile = function() {
-  // object to hold data to save
-  const data = {
-    mapsSettings: this.viewer.dumpMapSettingsJSON(),
-    cameraSettings: this.viewer.dumpCameraJSON(),
-    mapsTranslation: this.GetMapsTranslate(),
-  };
-
-  const a = document.getElementById('forSaveToFileButton');
-  a.href = URL.createObjectURL(new Blob(
-    [JSON.stringify(data)],
-    { type: 'application/json', }
-  ));
-  a.setAttribute('download', 'session.json');
-  a.click();
 };
 
 
@@ -457,7 +412,6 @@ ImporterApp.prototype.LoadDbCell = function(db, cell)
 {
   // update the series selector in menu
   this.SetSeriesToHTML(db);
-  this.SetSeriesInternal(db);
 
   this.LoadMap2(db,cell);
 };
@@ -465,7 +419,7 @@ ImporterApp.prototype.LoadDbCell = function(db, cell)
 
 
 //=========================================================
-// functionality for the top menu
+// *Section*: functionality for the top menu
 // Help, Select Cells, 2D Viewer, Clear Maps
 
 
@@ -713,7 +667,7 @@ ImporterApp.prototype.Open2DViewer = function() {
 };
 
 ImporterApp.prototype.ClearMaps = function() {
-  for (const db of ['N2U','JSE','N2W','JSH','n2y','n930']) {
+  for (const db in celllistByDbType) {
     const dbTitleDiv = this.GetDbTitleDiv(db);
     dbTitleDiv.style.display = 'none';
 
@@ -722,21 +676,16 @@ ImporterApp.prototype.ClearMaps = function() {
       dbContentDiv.removeChild(dbContentDiv.lastChild);
     }
   }
-  //const mapsContentDiv = this.GetMapsContentDiv();
-  //while(mapsContentDiv.lastChild) {
-  //  mapsContentDiv.removeChild(mapsContentDiv.lastChild);
-  //}
   this.viewer.clearMaps();
 };
 
 
 //=======================================================
-// Stuff when cell is loaded
+// *Section*: Stuff when cell is loaded
 
 /*
- * better version of LoadMap
- * calls retrieve_trace_coord_alt.php
- * which returns data in terms of object numbers
+ * calls retrieve_trace_coord_alt_2.php
+ * and passes data to viewer to load
  *
  * @param {String} db - name of database
  * @param {String} cell - name of cell
@@ -760,11 +709,12 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
       console.time(`Load to viewer ${cell}`);
 
       let data = JSON.parse(this.responseText);
-      self.viewer.loadMap2(data);
+      self.viewer.loadMap(data);
       if (cellsWithVolumeModels.hasOwnProperty(db) && 
           cellsWithVolumeModels[db].includes(cell)) {
-        self.LoadMapMenu2(db,cell,true);
-        self.retrieveVolumetric(db, cell); // async
+        //self.LoadMapMenu2(db,cell,true); // TODO uncomment
+        self.LoadMapMenu2(db,cell,false);
+        //self.retrieveVolumetric(db, cell); // async
       }
       else {
         console.log('volume not available');
@@ -787,7 +737,7 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
 
 /*
  * loads menu entry for cell in 'Maps'
- * assumes loadMap2 has been run
+ * assumes loadMap has been run
  *
  * @param {String} db - database/series
  * @param {String} cellname - name of cell
@@ -866,13 +816,13 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
     li.appendChild(elem);
   }
 
-  //===============================================
+  //===============================
   // add accordion functionality
   div.classList.add('accordionSection');
   content.classList.add('sectionContent');
 
   content.classList.add('collapse');
-  content.id = cellname+'-mapMenuItem';
+  content.id = `${db}-${cellname}-mapMenuItem`;
 
   title.classList.add('sectionTitle');
   title.setAttribute('data-toggle','collapse');
@@ -880,13 +830,13 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
   title.setAttribute('role','button');
   title.setAttribute('aria-expanded','false');
 
-  //====================================================
+  //===============================
   // structure done,
   // now we customize the text/buttons
 
   title.append(cellname);
 
-  //===============================================
+  //===============================
   // eye image for visibility
   // also have entry because may not be obvious
 	image.src = 'images/visible.png';
@@ -900,7 +850,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
     cellBtn.innerHTML = vis ? 'Hide Cell' : 'Show Cell';
   };
 
-  //===============================================
+  //===============================
   // Synapse List
   this.InitSynapseListWindow(db,cellname); // creates, hidden
 
@@ -909,7 +859,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
     self.synapseListWindows[db][cellname].OpenWindow();
   };
 
-  //===============================================
+  //===============================
   // now do each item in content
 
   // color span/input
@@ -935,15 +885,15 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
   }, false);
 
 
-  //===============================================
+  //===============================
   // button for centering view on cell
   centerViewBtn.innerHTML = 'Center View';
   //centerViewBtn.classList.add('mapBtn');
   centerViewBtn.onclick = () => {
-    self.viewer.CenterViewOnCell(cellname);
+    self.viewer.CenterViewOnCell(db,cellname);
   };
   
-  //===============================================
+  //===============================
   // show/hide remarks
   remarksBtn.innerHTML = 'Show Remarks';
   remarksBtn.onclick = () => {
@@ -953,7 +903,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
     self.viewer.toggleRemarksByCell(db,cellname,!remarkVis);
   };
 
-  //===============================================
+  //===============================
   // show/hide volumetric
   if (volExist) {
     volumeBtn.innerHTML = 'Hide Volume';
@@ -968,14 +918,14 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
     volumeBtn.innerHTML = 'Volume Unavailable';
   }
 
-  //===============================================
+  //===============================
   // WormAtlas link
   walinkA.innerHTML = 'WormAtlas';
   walinkA.target = '_blank';
   const walinkUrl = cellnameToWALink(cellname);
   walinkA.href = walinkUrl;
 
-  //===============================================
+  //===============================
   // Synapse By Partners
   synPartnerListA.innerHTML = 'Synapse By Partners';
   synPartnerListA.target = '_blank';
@@ -984,15 +934,15 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
 };
 
 /*
- * assumes loadMap2 is done
- * (meant to be used in loadMapMenu2 which is after loadMap2
+ * assumes loadMap is done
+ * (meant to be used in loadMapMenu2 which is after loadMap
  */
 ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
   this.viewer.maps = this.viewer.dbMaps[db];
 
   const dialog = new FloatingDialog2(
     parent=null,
-    title=cellname,
+    title=`${db} ${cellname}`,
     isHidden=true,
     modal=false
   );
@@ -1090,7 +1040,7 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
     };
   }
   
-  //==================================================
+  //===============================
   // add sorting functionality for each column
   let theadrow = thead.childNodes[0];
 
@@ -1173,8 +1123,8 @@ ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
 
 
 
-//=====================================================
-// Resize business
+//===============================
+// *Section*: Resize business
 
 ImporterApp.prototype.ResizeOnlyCanvasLeft = function () {
   function SetWidth (elem, value) {
@@ -1212,7 +1162,7 @@ ImporterApp.prototype.Resize = function () {
 
 
 //===============================================
-// Synapse Info section
+// *Section*: Synapse Info section
 // shows info about synapse that mouse is hovering over,
 // but if mouse not hovering over any synapse,
 // returns it to info on synapse that was last shown here
@@ -1284,7 +1234,7 @@ ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
 
 
 //=======================================================
-// Translate Maps section
+// *Section*: Translate Maps section
 
 // translation = {x: , y: , z: }
 ImporterApp.prototype.SetMapsTranslate = function(translation) {
@@ -1317,7 +1267,7 @@ ImporterApp.prototype.GetMapsTranslate = function() {
 
 
 //=====================================================
-// getters/setters from/to HTML stuff
+// *Section*: getters/setters from/to HTML stuff
 
 ImporterApp.prototype.GetCanvasElem = function() {
   return document.getElementById('meshviewer');
@@ -1363,10 +1313,69 @@ ImporterApp.prototype.GetTranslationSliderValue = function() {
   return pos;
 };
 
+//=====================================================
+// *Section*: Load/Save section
 
-/*=======================================================
- * auxiliary stuff
+/*
+ * load settings from file
+ * file expected to be .json; see SaveToFile
  */
+ImporterApp.prototype.LoadFromFile = function() {
+  const input = document.getElementById('LoadFromFileInput');
+  const file = new FileReader();
+
+  const self = this;
+
+  file.readAsText(input.files[0]);
+  file.onloadend = function(ev) {
+    // read data is in this.result
+    const data = JSON.parse(this.result);
+
+    for (const db in data.mapsSettings) {
+      self.SetSeriesToHTML(db);
+
+      for (const cell in data.mapsSettings[db]) {
+        self.LoadMap2(db, cell);
+        let color = data.mapsSettings[db][cell].color;
+        document.addEventListener('loadMapComplete', () => {
+          self.viewer.SetSkeletonColor(
+            db, cell, color
+          );
+          // set camera again because LoadMap2 sets camera too
+          self.viewer.SetCameraFromJSON(data.cameraSettings);
+        });
+      }
+    }
+
+    setTimeout(() => {
+      self.SetMapsTranslate(data.mapsTranslation);
+      self.viewer.SetCameraFromJSON(data.cameraSettings);
+    },0);
+  };
+};
+
+ImporterApp.prototype.SaveToFile = function() {
+  // object to hold data to save
+  const data = {
+    mapsSettings: this.viewer.dumpMapSettingsJSON(),
+    cameraSettings: this.viewer.dumpCameraJSON(),
+    mapsTranslation: this.GetMapsTranslate(),
+  };
+
+  const a = document.getElementById('forSaveToFileButton');
+  a.href = URL.createObjectURL(new Blob(
+    [JSON.stringify(data)],
+    { type: 'application/json', }
+  ));
+  a.setAttribute('download', 'session.json');
+  a.click();
+};
+
+
+
+//=======================================================
+// *Section*: auxiliary stuff
+
 
 // expect hexStr of form either:
 // #05f2Dc

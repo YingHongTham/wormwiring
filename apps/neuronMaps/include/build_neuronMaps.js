@@ -73,6 +73,12 @@ window.onload = function(){
     },0);
   }
 
+  // doing some testing
+  setTimeout(() => {
+    importerApp.LoadDbCell('N2U', 'RMFL');
+    importerApp.LoadDbCell('JSH', 'RMFL');
+  },0);
+
   // access importerApp in the console
 	window.importerApp = importerApp;
 
