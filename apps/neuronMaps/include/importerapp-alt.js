@@ -59,6 +59,9 @@ ImporterApp = function()
     this.loadedCells[db] = [];
   }
 
+  // only used for LoadFromFile to pass color values
+  this.cellColorFromFile = {};
+
   // these are set in InitCellSelectorDialog
   this.cellSelectorDialog = null;
   this.dbDivForm = null;
@@ -109,8 +112,8 @@ ImporterApp = function()
  */
 ImporterApp.prototype.Init = function ()
 {
-  this.InitLinkFunctionalityWithHTML();
   this.InitViewerStuff();
+  this.InitLinkFunctionalityWithHTML();
 
   //this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
   //this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
@@ -327,24 +330,60 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   };
 
   //===============================
-  // link Translate Maps sliders
+  // link Translate Maps sliders and the select option
+
+  const translateMapsDbSelector = document.getElementById('translate-maps-dbselector');
+  translateMapsDbSelector.onchange = () => {
+    // hide all divs for sliders
+    for (const db in celllistByDbType) {
+      const div = document.getElementById(`translateMaps-${db}`);
+      div.style.display = 'none';
+    }
+    // don't forget the all one
+    const allDiv = document.getElementById('translateMaps-All');
+    allDiv.style.display = 'none';
+
+    // now show selected sliders
+    const val = translateMapsDbSelector.value;
+    const div = document.getElementById(`translateMaps-${val}`);
+    div.style.display = '';
+  };
+  translateMapsDbSelector.onchange();
 
   // give all three sliders same response to change:
   // set the shown value and apply viewer.translateMapsTo
-  function MapsTranslateSliderOnChange() {
-    const pos = self.GetTranslationSliderValue();
+  function MapsTranslateSliderOnChange(db=null) {
+    const pos = self.GetTranslationSliderValue(db);
     // need to update the number showing the value too
     for (const i of ['x','y','z']) {
-      const span = document.getElementById(i+'-slider-show-value');
+      const sliderValId = (db === null) ?
+        `${i}-slider-All-show-value` :
+        `${i}-slider-${db}-show-value`;
+      const span = document.getElementById(sliderValId);
       span.innerHTML = pos[i];
     }
-    self.viewer.translateMapsTo(pos.x,pos.y,pos.z);
+    if (db === null) {
+      self.viewer.translateMapsTo(pos.x,pos.y,pos.z);
+    }
+    else {
+      self.viewer.translateMapsToDb(db,pos.x,pos.y,pos.z);
+    }
   }
   for (const i of ['x','y','z']) {
-    const slider = document.getElementById(i+'-slider');
+    const slider = document.getElementById(i+'-slider-All');
     slider.onchange = slider.oninput = slider.onmousemove =
-      MapsTranslateSliderOnChange;
-  };
+      () => { MapsTranslateSliderOnChange(); };
+    slider.onchange();
+  }
+  for (const db in celllistByDbType) {
+    for (const i of ['x','y','z']) {
+      const sliderId = i+'-slider-'+db;
+      const slider = document.getElementById(sliderId);
+      slider.onchange = slider.oninput = slider.onmousemove =
+        () => { MapsTranslateSliderOnChange(db); };
+      slider.onchange();
+    }
+  }
 
   //================================
   // link Global Viewer Options
@@ -610,8 +649,7 @@ ImporterApp.prototype.InitCellSelectorDialog = function() {
 // (form and loaded cells out of sync when:
 // -preload cell from url
 // -user clicks some cells in dialog, but doesn't load them)
-ImporterApp.prototype.updateFormsInCellSelectorDialog =
-  function() {
+ImporterApp.prototype.updateFormsInCellSelectorDialog = function() {
   for (const db in this.dbDivFormNames) {
     const formName = this.dbDivFormNames[db];
     const checkedBoxes = document.querySelectorAll(
@@ -676,6 +714,9 @@ ImporterApp.prototype.ClearMaps = function() {
       dbContentDiv.removeChild(dbContentDiv.lastChild);
     }
   }
+  for (const db in celllistByDbType) {
+    this.loadedCells[db] = [];
+  }
   this.viewer.clearMaps();
 };
 
@@ -712,15 +753,13 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
       self.viewer.loadMap(data);
       if (cellsWithVolumeModels.hasOwnProperty(db) && 
           cellsWithVolumeModels[db].includes(cell)) {
-        //self.LoadMapMenu2(db,cell,true); // TODO uncomment
-        self.LoadMapMenu2(db,cell,false);
-        //self.retrieveVolumetric(db, cell); // async
+        self.LoadMapMenu2(db,cell,true);
+        self.retrieveVolumetric(db, cell); // async
       }
       else {
         console.log('volume not available');
         self.LoadMapMenu2(db,cell,false);
       }
-
       console.timeEnd(`Load to viewer ${cell}`);
 
       document.dispatchEvent(new CustomEvent('loadMapComplete', {
@@ -761,7 +800,6 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
  *
  * adds to the section for db,
  * (creates section if first time)
- *
  */
 ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
   const self = this;
@@ -862,20 +900,32 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
   //===============================
   // now do each item in content
 
+  //===============================
   // color span/input
   colorSpan.innerHTML = 'Color Selector:';
   colorInput.type = 'color';
   colorInput.style.height = '5px';
 
-  // get color of cell, transform to appropriate format
-  let {r, g, b} = self.viewer.GetSkeletonColor(db,cellname);
-  r = Math.round(255*r);
-  b = Math.round(255*b);
-  g = Math.round(255*g);
+  let r,g,b;
+  let color = {};
+  if (this.cellColorFromFile.hasOwnProperty(db)
+    && this.cellColorFromFile[db].hasOwnProperty(cellname)) {
+    // we are probably loading from a json file,
+    // get color of cell
+    color = this.cellColorFromFile[db][cellname];
+  }
+  else {
+    // get color of cell from viewer,
+    // transform to appropriate format
+    color = this.viewer.GetSkeletonColor(db,cellname);
+  }
+  r = Math.round(255 * color.r);
+  b = Math.round(255 * color.b);
+  g = Math.round(255 * color.g);
   let rgb = b | (g << 8) | (r << 16);
   let hex = '#' + rgb.toString(16);
-
   colorInput.setAttribute('value',hex);
+
   colorInput.addEventListener('change', (ev) => {
     const color = ev.target.value;
     let {r, g, b} = hexToRGB(color);
@@ -1237,10 +1287,13 @@ ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
 // *Section*: Translate Maps section
 
 // translation = {x: , y: , z: }
-ImporterApp.prototype.SetMapsTranslate = function(translation) {
-  const xEl = document.getElementById('x-slider');
-  const yEl = document.getElementById('y-slider');
-  const zEl = document.getElementById('z-slider');
+ImporterApp.prototype.SetMapsTranslateByDb = function(db,translation) {
+  if (db === null) {
+    db = 'All';
+  }
+  const xEl = document.getElementById(`x-slider-${db}`);
+  const yEl = document.getElementById(`y-slider-${db}`);
+  const zEl = document.getElementById(`z-slider-${db}`);
 
   xEl.value = translation.x;
   yEl.value = translation.y;
@@ -1251,12 +1304,18 @@ ImporterApp.prototype.SetMapsTranslate = function(translation) {
   //yEl.onchange(); // all have same onchange()
   //zEl.onchange();
 };
-
-
-ImporterApp.prototype.GetMapsTranslate = function() {
-  const xEl = document.getElementById('x-slider');
-  const yEl = document.getElementById('y-slider');
-  const zEl = document.getElementById('z-slider');
+ImporterApp.prototype.SetMapsTranslate = function(allTranslations) {
+  for (const db in allTranslations) {
+    this.SetMapsTranslateByDb(db,allTranslations[db]);
+  }
+};
+ImporterApp.prototype.GetMapsTranslateByDb = function(db) {
+  if (db === null) {
+    db = 'All';
+  }
+  const xEl = document.getElementById(`x-slider-${db}`);
+  const yEl = document.getElementById(`y-slider-${db}`);
+  const zEl = document.getElementById(`z-slider-${db}`);
 
   return {
     x: parseInt(xEl.value),
@@ -1264,6 +1323,14 @@ ImporterApp.prototype.GetMapsTranslate = function() {
     z: parseInt(zEl.value),
   };
 };
+ImporterApp.prototype.GetMapsTranslate = function() {
+  const trans = {};
+  for (const db in celllistByDbType) {
+    trans[db] = this.GetMapsTranslateByDb(db);
+  }
+  trans['All'] = this.GetMapsTranslateByDb('All');
+  return trans;
+}
 
 
 //=====================================================
@@ -1303,10 +1370,12 @@ ImporterApp.prototype.GetDbTitleDiv = function(db) {
 };
 
 // returns { x: , y: , z: } (not THREE.Vector3)
-ImporterApp.prototype.GetTranslationSliderValue = function() {
+ImporterApp.prototype.GetTranslationSliderValue = function(db=null) {
   const pos = { x: 0, y: 0, z: 0 };
   for (const i of ['x','y','z']) {
-    const slider = document.getElementById(i+'-slider');
+    const sliderId = (db === null) ? `${i}-slider-All` :
+      `${i}-slider-${db}`;
+    const slider = document.getElementById(sliderId);
     const val = parseInt(slider.value);
     pos[i] = val;
   }
@@ -1331,16 +1400,34 @@ ImporterApp.prototype.LoadFromFile = function() {
     // read data is in this.result
     const data = JSON.parse(this.result);
 
+    // may be redundant as we clear values after use anyway
+    self.cellColorFromFile = {};
+
     for (const db in data.mapsSettings) {
       self.SetSeriesToHTML(db);
 
       for (const cell in data.mapsSettings[db]) {
         self.LoadMap2(db, cell);
-        let color = data.mapsSettings[db][cell].color;
-        document.addEventListener('loadMapComplete', () => {
+
+        if (!self.cellColorFromFile.hasOwnProperty(db)) {
+          self.cellColorFromFile[db] = {};
+        }
+        self.cellColorFromFile[db][cell] = {
+          r: data.mapsSettings[db][cell].color.r,
+          g: data.mapsSettings[db][cell].color.g,
+          b: data.mapsSettings[db][cell].color.b,
+        };
+        console.log(self.cellColorFromFile[db][cell]);
+        document.addEventListener('loadMapComplete', (e) => {
+          console.log(e.detail.db, e.detail.cell,
+            self.cellColorFromFile[db][cell]);
           self.viewer.SetSkeletonColor(
-            db, cell, color
+            e.detail.db, e.detail.cell,
+            self.cellColorFromFile[db][cell]
           );
+          // clear value so don't get mixed up later
+          delete self.cellColorFromFile[db][cell];
+
           // set camera again because LoadMap2 sets camera too
           self.viewer.SetCameraFromJSON(data.cameraSettings);
         });

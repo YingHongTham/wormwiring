@@ -97,23 +97,6 @@ MapViewer = function(canvas,app)
   // for smoothness of synapse sphere
   this.sphereWidthSegments = 5;
   this.sphereHeightSegments = 5;
-
-  // in past used in applyPlotTransform
-  // always set to plotMinMaxValues[db] before use
-  // currently not used
-  // but TODO at some point, need to again transform cells
-  // in each db differently,
-  // because some cells appear in several db's,
-  // e.g. ADAL in N2U and JSH,
-  // but when loaded into viewer, slightly off
-  this.plotParam = {
-    xmid: 0,
-    xmin: 0,
-    ymid: 0,
-    ymax: 0,
-    zmid: 0,
-    zmin: 0,
-  };
   
   // keeps track of movement of skeleton etc by the user
   // in Translate Maps section, using id='x-slider' etc
@@ -123,10 +106,21 @@ MapViewer = function(canvas,app)
   // but the camera and view target remain fixed
   //
   // should always be equal to this.GetTranslateOnMaps
+  //
+  // for overall
   const transPos = this.app.GetTranslationSliderValue();
   this.position = new THREE.Vector3(
     transPos.x, transPos.y, transPos.z);
-
+  // same but for each db, relative to this.position
+  // (see 
+  this.dbPosition = {
+    'N2U': new THREE.Vector3(),
+    'JSE': new THREE.Vector3(),
+    'N2W': new THREE.Vector3(),
+    'JSH': new THREE.Vector3(),
+    'n2y': new THREE.Vector3(),
+    'n930': new THREE.Vector3(),
+  };
   
   // this.skelMaterial a bit redundant
   // as each skeleton will need its own Material
@@ -461,15 +455,6 @@ MapViewer.prototype.loadMap = function(data)
   const db = data.db;
   const cell = data.name;
 
-  // for scale/translate obj coords
-  const plotMinMax = plotMinMaxValues[data.db];
-  this.plotParam.xmid = 0.5*(plotMinMax.xMin+plotMinMax.xMax);
-  this.plotParam.xmin = plotMinMax.xMin;
-  this.plotParam.ymid = 0.5*(plotMinMax.yMin+plotMinMax.yMax);
-  this.plotParam.ymax = plotMinMax.yMax;
-  this.plotParam.zmid = 0.5*(plotMinMax.zMin+plotMinMax.zMax);
-  this.plotParam.zmin = plotMinMax.zMin;
-
   // linewidth actually no longer supported
   const skelMaterial = new THREE.LineBasicMaterial({ color: this.skelColor,
     linewidth: this.skelWidth});
@@ -606,7 +591,7 @@ MapViewer.prototype.loadMap = function(data)
       BuildGraphFromEdgeList(data.skeleton);
   map.skeletonLines = 
       BreakGraphIntoLineSubgraphs(map.skeletonGraph);
-  this.loadSkeletonIntoViewer(map.name);
+  this.loadSkeletonIntoViewer(db,map.name);
 
   //===============================================
   // cellbody
@@ -846,15 +831,15 @@ MapViewer.prototype.loadMap = function(data)
  *
  * @param {String} name - cell name
  */
-MapViewer.prototype.loadSkeletonIntoViewer = function(name) { 
+MapViewer.prototype.loadSkeletonIntoViewer = function(db,cell) { 
   // this is only ever used once,
   // and in that context, this.maps is properly set
-  for (const line of this.maps[name].skeletonLines) {
-    const points = line.map(obj => this.maps[name].objCoord[obj]);
+  for (const line of this.dbMaps[db][cell].skeletonLines) {
+    const points = line.map(obj => this.dbMaps[db][cell].objCoord[obj]);
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = this.maps[name].skelMaterial;
+    const material = this.dbMaps[db][cell].skelMaterial;
     const l = new THREE.Line(geometry, material);
-    this.maps[name].skeletonGrp.add(l);
+    this.dbMaps[db][cell].skeletonGrp.add(l);
   }
 };
 
@@ -1403,8 +1388,7 @@ MapViewer.prototype.isCellLoaded = function(db,cell) {
 // note: color selector thing is created when user clicks button,
 // so we just need to modify the color directly on the object
 MapViewer.prototype.SetSkeletonColor = function(db,cell,color) {
-  this.maps = this.dbMaps[db];
-  for (const obj of this.maps[cell].skeletonGrp.children) {
+  for (const obj of this.dbMaps[db][cell].skeletonGrp.children) {
     obj.material.color.r = color.r;
     obj.material.color.g = color.g;
     obj.material.color.b = color.b;
@@ -1416,11 +1400,10 @@ MapViewer.prototype.SetSkeletonColor = function(db,cell,color) {
  * note it is out of 1.0, for rgb should *255 and round
  */
 MapViewer.prototype.GetSkeletonColor = function(db,cell) {
-  this.maps = this.dbMaps[db];
-  if (this.maps[cell].skeletonGrp.children.length === 0) {
+  if (this.dbMaps[db][cell].skeletonGrp.children.length === 0) {
     return { r: 0, g: 0, b: 0 };
   }
-  const obj = this.maps[cell].skeletonGrp.children[0];
+  const obj = this.dbMaps[db][cell].skeletonGrp.children[0];
   return {
     r: obj.material.color.r,
     g: obj.material.color.g,
@@ -1575,15 +1558,10 @@ MapViewer.prototype.CycleClickedSynapseRight = function() {
  * translate this.position to given x,y,z
  * this.position is (0,0,0) at the beginning
  * maps of each cell relative position to this.position
- * should be unchanged
  * this.position is controlled directly by user
  * through the x/y/z-slider
- * note that this used to be called with -x,-y,-z
- * in the onchange functions of the sliders
- * old code here did delta = old position - new position
  */
-MapViewer.prototype.translateMapsTo = function(x,y,z)
-{
+MapViewer.prototype.translateMapsTo = function(x,y,z) {
   const delta = new THREE.Vector3(x,y,z);
   delta.sub(this.position);
 
@@ -1599,7 +1577,26 @@ MapViewer.prototype.translateMapsTo = function(x,y,z)
   }
 
   for (const db in this.aggrVol) {
-    this.aggrVol[db].applyMatrix(m);
+    if (this.aggrVol[db] !== null)
+      this.aggrVol[db].applyMatrix(m);
+  }
+};
+MapViewer.prototype.translateMapsToDb = function(db,x,y,z) {
+  const delta = new THREE.Vector3(x,y,z);
+  delta.sub(this.dbPosition[db]);
+
+  this.dbPosition[db].set(x,y,z);
+
+  const m = new THREE.Matrix4();
+  m.makeTranslation(delta.x,delta.y,delta.z);
+  
+  for (const name in this.dbMaps[db]) {
+    this.transformStuffOneCell(m,db,name);
+  }
+
+  if (this.aggrVol.hasOwnProperty(db)) {
+    if (this.aggrVol[db] !== null)
+      this.aggrVol[db].applyMatrix(m);
   }
 };
 
@@ -1621,17 +1618,19 @@ MapViewer.prototype.translateMapsTo = function(x,y,z)
 
 /*
  * translate one cell (usually when newly loaded)
- * by this.position (ThisPos) to match others
+ * by this.position and this.dbPosition[db] to match others
+ * that have been translated by slider
  * important that all operations here are synchronous
  * so that if user is sliding, this will complete
  * before this.position is updated again
  */
 MapViewer.prototype.translateOneMapsToThisPos = function(db,cellname) {
-  this.maps = this.dbMaps[db];
-
   const m = new THREE.Matrix4();
-  const pos = this.position;
-  m.makeTranslation(pos.x,pos.y,pos.z);
+  m.makeTranslation(
+    this.position.x + this.dbPosition[db].x,
+    this.position.y + this.dbPosition[db].y,
+    this.position.z + this.dbPosition[db].z
+  );
 
   this.transformStuffOneCell(m,db,cellname);
 };
