@@ -286,7 +286,7 @@ MapViewer.prototype.InitStuffInScene = function() {
     gridNumSquaresAcross,
     mainAxesGridLineColor,
     generalGridLineColor);
-  grid.visible = false;
+  //grid.visible = false;
   this.gridGrp.add(grid);
 
   grid = new THREE.GridHelper(
@@ -295,23 +295,23 @@ MapViewer.prototype.InitStuffInScene = function() {
     mainAxesGridLineColor,
     generalGridLineColor);
   grid.position.z += gridWidth;
-  grid.visible = false;
+  //grid.visible = false;
   this.gridGrp.add(grid);
 
 
-  // for finding the right plotTransform
-  let gridWidthP = 1000;
-  let gridNumSquaresAcrossP = 100;
-  grid = new THREE.GridHelper(
-    gridWidthP,
-    gridNumSquaresAcrossP,
-    mainAxesGridLineColor,
-    generalGridLineColor);
-  const mm = new THREE.Matrix4();
-  mm.makeTranslation(500,-500,0);
-  grid.applyMatrix(mm);
-  grid.rotation.x = Math.PI/2;
-  this.gridGrp.add(grid);
+  //// for finding the right plotTransform
+  //let gridWidthP = 1000;
+  //let gridNumSquaresAcrossP = 100;
+  //grid = new THREE.GridHelper(
+  //  gridWidthP,
+  //  gridNumSquaresAcrossP,
+  //  mainAxesGridLineColor,
+  //  generalGridLineColor);
+  //const mm = new THREE.Matrix4();
+  //mm.makeTranslation(500,-500,0);
+  //grid.applyMatrix(mm);
+  //grid.rotation.x = Math.PI/2;
+  //this.gridGrp.add(grid);
 
 
   //========================================
