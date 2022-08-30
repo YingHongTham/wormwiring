@@ -108,7 +108,7 @@ MapViewer = function(canvas,app)
   // should always be equal to this.GetTranslateOnMaps
   //
   // for overall
-  const transPos = this.app.GetTranslationSliderValue();
+  const transPos = this.app.GetTranslationSlider();
   this.position = new THREE.Vector3(
     transPos.x, transPos.y, transPos.z);
   // same but for each db, relative to this.position
@@ -121,6 +121,12 @@ MapViewer = function(canvas,app)
     'n2y': new THREE.Vector3(),
     'n930': new THREE.Vector3(),
   };
+  for (const db in this.dbPosition) {
+    const transPos = this.app.GetTranslationSlider(db);
+    this.dbPosition[db].x = transPos.x;
+    this.dbPosition[db].y = transPos.y;
+    this.dbPosition[db].z = transPos.z;
+  }
   
   // this.skelMaterial a bit redundant
   // as each skeleton will need its own Material
@@ -286,7 +292,7 @@ MapViewer.prototype.InitStuffInScene = function() {
     gridNumSquaresAcross,
     mainAxesGridLineColor,
     generalGridLineColor);
-  //grid.visible = false;
+  grid.visible = false;
   this.gridGrp.add(grid);
 
   grid = new THREE.GridHelper(
@@ -295,7 +301,7 @@ MapViewer.prototype.InitStuffInScene = function() {
     mainAxesGridLineColor,
     generalGridLineColor);
   grid.position.z += gridWidth;
-  //grid.visible = false;
+  grid.visible = false;
   this.gridGrp.add(grid);
 
 
@@ -845,8 +851,6 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(db,cell) {
 
 
 /*
- * new version of addOneSynapse
- *
  * create THREE.Sphere for synapse and add to viewer
  * sphere has emits events when clicked and hover
  * (shows synapse details in menu,
@@ -1602,8 +1606,9 @@ MapViewer.prototype.translateMapsToDb = function(db,x,y,z) {
   }
 
   if (this.aggrVol.hasOwnProperty(db)) {
-    if (this.aggrVol[db] !== null)
+    if (this.aggrVol[db] !== null) {
       this.aggrVol[db].applyMatrix(m);
+    }
   }
 };
 
@@ -2541,7 +2546,7 @@ MapViewer.prototype.loadVolumetric = function(db,cell,volumeObj) {
     volumeObj.scale.set(0.133,-0.133,0.0199);
     volumeObj.position.x = -526;
     volumeObj.position.y = 214;
-    volumeObj.position.z = 13675;
+    volumeObj.position.z = 13675; // TODO uncomment
   }
 
 

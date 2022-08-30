@@ -112,9 +112,9 @@ ImporterApp.prototype.Init = function ()
   this.InitViewerStuff();
   this.InitLinkFunctionalityWithHTML();
 
-  //this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
+  this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
   //this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
-  //this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
+  this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
 };
 
 
@@ -329,6 +329,7 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   //===============================
   // link Translate Maps sliders and the select option
 
+  // hide/show translation sliders based on selection
   const translateMapsDbSelector = document.getElementById('translate-maps-dbselector');
   translateMapsDbSelector.onchange = () => {
     // hide all divs for sliders
@@ -347,40 +348,47 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   };
   translateMapsDbSelector.onchange();
 
-  // give all three sliders same response to change:
-  // set the shown value and apply viewer.translateMapsTo
-  function MapsTranslateSliderOnChange(db=null) {
-    const pos = self.GetTranslationSliderValue(db);
-    // need to update the number showing the value too
-    for (const i of ['x','y','z']) {
-      const sliderValId = (db === null) ?
-        `${i}-slider-All-show-value` :
-        `${i}-slider-${db}-show-value`;
-      const span = document.getElementById(sliderValId);
-      span.innerHTML = pos[i];
-    }
-    if (db === null) {
-      self.viewer.translateMapsTo(pos.x,pos.y,pos.z);
-    }
-    else {
-      self.viewer.translateMapsToDb(db,pos.x,pos.y,pos.z);
-    }
-  }
+  //=================================
+  // now do translation sliders
   for (const i of ['x','y','z']) {
     const slider = document.getElementById(i+'-slider-All');
-    slider.onchange = slider.oninput = slider.onmousemove =
-      () => { MapsTranslateSliderOnChange(); };
-    slider.onchange();
+    slider.onmousemove = slider.onmouseup = () => {
+      self.SetTranslationNumber(null,self.GetTranslationSlider());
+      self.ApplyTranslateToViewer();
+    };
+    slider.onmousemove();
   }
   for (const db in celllistByDbType) {
     for (const i of ['x','y','z']) {
-      const sliderId = i+'-slider-'+db;
-      const slider = document.getElementById(sliderId);
-      slider.onchange = slider.oninput = slider.onmousemove =
-        () => { MapsTranslateSliderOnChange(db); };
-      slider.onchange();
+      const slider = document.getElementById(i+'-slider-'+db);
+      slider.onmousemove = slider.onmouseup = () => {
+        self.SetTranslationNumber(db,self.GetTranslationSlider(db));
+        self.ApplyTranslateToViewer(db);
+      };
+      slider.onmousemove();
     }
   }
+  //=================================
+  // now do translation number input
+  for (const i of ['x','y','z']) {
+    const numInput = document.getElementById(i+'-number-All');
+    numInput.onchange = () => {
+      self.SetTranslationSlider(null,self.GetTranslationNumber());
+      self.ApplyTranslateToViewer();
+    };
+    numInput.onchange();
+  }
+  for (const db in celllistByDbType) {
+    for (const i of ['x','y','z']) {
+      const numInput = document.getElementById(i+'-number-'+db);
+      numInput.onchange = () => {
+        self.SetTranslationSlider(db,self.GetTranslationNumber(db));
+        self.ApplyTranslateToViewer(db);
+      };
+      numInput.onchange();
+    }
+  }
+
 
   //================================
   // link Global Viewer Options
@@ -1287,8 +1295,24 @@ ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
 //=======================================================
 // *Section*: Translate Maps section
 
+// read value of translate from sliders
+// and tell viewer to apply the translation
+ImporterApp.prototype.ApplyTranslateToViewer = function(db=null) {
+  const pos = this.GetTranslationSlider(db);
+  if (db === null || db === 'All') {
+    this.viewer.translateMapsTo(pos.x,pos.y,pos.z);
+  }
+  else {
+    this.viewer.translateMapsToDb(db,pos.x,pos.y,pos.z);
+  }
+};
+
+//=================================
+// subsection: get/set translation values to sliders
+// (only related to HTML, not viewer)
+
 // translation = {x: , y: , z: }
-ImporterApp.prototype.SetMapsTranslateByDb = function(db,translation) {
+ImporterApp.prototype.SetTranslationSlider = function(db,translation) {
   if (db === null) {
     db = 'All';
   }
@@ -1299,18 +1323,18 @@ ImporterApp.prototype.SetMapsTranslateByDb = function(db,translation) {
   xEl.value = translation.x;
   yEl.value = translation.y;
   zEl.value = translation.z;
-
+  
+  this.ApplyTranslateToViewer(db);
   // trigger the usual function to update the viewer
-  xEl.onchange();
-  //yEl.onchange(); // all have same onchange()
-  //zEl.onchange();
+  //xEl.onmousemove();
 };
-ImporterApp.prototype.SetMapsTranslate = function(allTranslations) {
+ImporterApp.prototype.SetAllTranlationSlider = function(allTranslations) {
   for (const db in allTranslations) {
-    this.SetMapsTranslateByDb(db,allTranslations[db]);
+    this.SetTranslationSlider(db,allTranslations[db]);
   }
 };
-ImporterApp.prototype.GetMapsTranslateByDb = function(db) {
+// returns { x: , y: , z: } (not THREE.Vector3)
+ImporterApp.prototype.GetTranslationSlider = function(db=null) {
   if (db === null) {
     db = 'All';
   }
@@ -1324,18 +1348,53 @@ ImporterApp.prototype.GetMapsTranslateByDb = function(db) {
     z: parseInt(zEl.value),
   };
 };
-ImporterApp.prototype.GetMapsTranslate = function() {
+
+ImporterApp.prototype.GetAllTranslationSlider = function() {
   const trans = {};
   for (const db in celllistByDbType) {
-    trans[db] = this.GetMapsTranslateByDb(db);
+    trans[db] = this.GetTranslationSlider(db);
   }
-  trans['All'] = this.GetMapsTranslateByDb('All');
+  trans['All'] = this.GetTranslationSlider('All');
   return trans;
 }
 
+//=======================
+// translation HTML get/set but for the number input
+
+// translation = {x: , y: , z: }
+ImporterApp.prototype.SetTranslationNumber = function(db,translation) {
+  if (db === null) {
+    db = 'All';
+  }
+  const xEl = document.getElementById(`x-number-${db}`);
+  const yEl = document.getElementById(`y-number-${db}`);
+  const zEl = document.getElementById(`z-number-${db}`);
+
+  xEl.value = translation.x;
+  yEl.value = translation.y;
+  zEl.value = translation.z;
+
+  this.ApplyTranslateToViewer(db);
+};
+// returns { x: , y: , z: } (not THREE.Vector3)
+ImporterApp.prototype.GetTranslationNumber = function(db=null) {
+  if (db === null) {
+    db = 'All';
+  }
+  const xEl = document.getElementById(`x-number-${db}`);
+  const yEl = document.getElementById(`y-number-${db}`);
+  const zEl = document.getElementById(`z-number-${db}`);
+
+  return {
+    x: parseInt(xEl.value),
+    y: parseInt(yEl.value),
+    z: parseInt(zEl.value),
+  };
+};
 
 //=====================================================
 // *Section*: getters/setters from/to HTML stuff
+// (except translations, which gets its own section)
 
 ImporterApp.prototype.GetCanvasElem = function() {
   return document.getElementById('meshviewer');
@@ -1403,19 +1462,6 @@ ImporterApp.prototype.GetDbTitleDiv = function(db) {
   return document.getElementById(`maps${db}TitleDiv`);
 };
 
-// returns { x: , y: , z: } (not THREE.Vector3)
-ImporterApp.prototype.GetTranslationSliderValue = function(db=null) {
-  const pos = { x: 0, y: 0, z: 0 };
-  for (const i of ['x','y','z']) {
-    const sliderId = (db === null) ? `${i}-slider-All` :
-      `${i}-slider-${db}`;
-    const slider = document.getElementById(sliderId);
-    const val = parseInt(slider.value);
-    pos[i] = val;
-  }
-  return pos;
-};
-
 //=====================================================
 // *Section*: Load/Save section
 
@@ -1450,7 +1496,7 @@ ImporterApp.prototype.LoadFromFile = function() {
     }
 
     setTimeout(() => {
-      self.SetMapsTranslate(data.mapsTranslation);
+      self.SetAllTranlationSlider(data.mapsTranslation);
       self.viewer.SetCameraFromJSON(data.cameraSettings);
     },0);
   };
@@ -1461,7 +1507,7 @@ ImporterApp.prototype.SaveToFile = function() {
   const data = {
     mapsSettings: this.viewer.dumpMapSettingsJSON(),
     cameraSettings: this.viewer.dumpCameraJSON(),
-    mapsTranslation: this.GetMapsTranslate(),
+    mapsTranslation: this.GetAllTranslationSlider(),
   };
 
   const a = document.getElementById('forSaveToFileButton');
