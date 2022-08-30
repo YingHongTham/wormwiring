@@ -59,9 +59,6 @@ ImporterApp = function()
     this.loadedCells[db] = [];
   }
 
-  // only used for LoadFromFile to pass color values
-  this.cellColorFromFile = {};
-
   // these are set in InitCellSelectorDialog
   this.cellSelectorDialog = null;
   this.dbDivForm = null;
@@ -730,8 +727,11 @@ ImporterApp.prototype.ClearMaps = function() {
  *
  * @param {String} db - name of database
  * @param {String} cell - name of cell
+ * @param {Object} postParams - optional parameters for
+ *                              after cell loaded:
+ *                              color, cameraSettings
  */
-ImporterApp.prototype.LoadMap2 = function(db,cell)
+ImporterApp.prototype.LoadMap2 = function(db,cell,postParams=null)
 {
   // already loaded?
   if (this.loadedCells[db].includes(cell)) {
@@ -761,13 +761,28 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
         self.LoadMapMenu2(db,cell,false);
       }
       console.timeEnd(`Load to viewer ${cell}`);
+      
+      // apply postParams
 
-      document.dispatchEvent(new CustomEvent('loadMapComplete', {
-        detail: {
-          db: db,
-          cell: cell,
-        }
-      }));
+      if (postParams === null) {
+        return;
+      }
+
+      if (postParams.hasOwnProperty('color')) {
+        self.viewer.SetSkeletonColor(db,cell,postParams.color);
+        self.SetColorToHTML(db,cell,postParams.color);
+      }
+      
+      if (postParams.hasOwnProperty('cameraSettings')) {
+        self.viewer.SetCameraFromJSON(postParams.cameraSettings);
+      }
+
+      //document.dispatchEvent(new CustomEvent('loadMapComplete', {
+      //  detail: {
+      //    db: db,
+      //    cell: cell,
+      //  }
+      //}));
     }
   };
   xhttp.open("GET",url,true);
@@ -777,6 +792,9 @@ ImporterApp.prototype.LoadMap2 = function(db,cell)
 /*
  * loads menu entry for cell in 'Maps'
  * assumes loadMap has been run
+ * (mainly for the skeleton color;
+ * if really want, can just get the default value
+ * from viewer)
  *
  * @param {String} db - database/series
  * @param {String} cellname - name of cell
@@ -905,33 +923,16 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
   colorSpan.innerHTML = 'Color Selector:';
   colorInput.type = 'color';
   colorInput.style.height = '5px';
+  colorInput.id = `color-selector-${db}-${cellname}`;
 
-  let r,g,b;
-  let color = {};
-  if (this.cellColorFromFile.hasOwnProperty(db)
-    && this.cellColorFromFile[db].hasOwnProperty(cellname)) {
-    // we are probably loading from a json file,
-    // get color of cell
-    color = this.cellColorFromFile[db][cellname];
-  }
-  else {
-    // get color of cell from viewer,
-    // transform to appropriate format
-    color = this.viewer.GetSkeletonColor(db,cellname);
-  }
-  r = Math.round(255 * color.r);
-  b = Math.round(255 * color.b);
-  g = Math.round(255 * color.g);
-  let rgb = b | (g << 8) | (r << 16);
-  let hex = '#' + rgb.toString(16);
-  colorInput.setAttribute('value',hex);
+  // get color of cell from viewer,
+  // transform to appropriate format
+  let color = this.viewer.GetSkeletonColor(db,cellname);
+  this.SetColorToHTML(db,cellname,color);
 
   colorInput.addEventListener('change', (ev) => {
-    const color = ev.target.value;
-    let {r, g, b} = hexToRGB(color);
-    self.viewer.SetSkeletonColor(
-      db,cellname, {r:r/255., g:g/255., b:b/255.}
-    );
+    const color = ev.target.value; // hex value
+    self.viewer.SetSkeletonColorHex(db,cellname,color);
   }, false);
 
 
@@ -1356,6 +1357,39 @@ ImporterApp.prototype.SetSeriesToHTML = function(db) {
   dbEl.onchange(); // shows/hides appropriate list of cells
 };
 
+// return value is color, values between 0 and 1
+ImporterApp.prototype.GetColorFromHTML = function(db,cell) {
+  let hex = this.GetHexColorFromHTML(db,cell);
+  let rgb = this.hexToRGB(hex);
+  if (rgb === null) {
+    return null;
+  }
+  return {
+    r: rgb.r * 1.0 / 255,
+    g: rgb.g * 1.0 / 255,
+    b: rgb.b * 1.0 / 255,
+  };
+};
+// return is like #00FF00
+ImporterApp.prototype.GetHexColorFromHTML = function(db,cell) {
+  const colorInput = 
+    document.getElementById(`color-selector-${db}-${cell}`);
+  return colorInput.value;
+};
+// 0.0 <= color.r <= 1.0
+ImporterApp.prototype.SetColorToHTML = function(db,cell,color) {
+  // convert to RGB (integer values 0 to 255)
+  let r = Math.round(255 * color.r);
+  let b = Math.round(255 * color.b);
+  let g = Math.round(255 * color.g);
+  let rgb = b | (g << 8) | (r << 16);
+  let hex = '#' + rgb.toString(16);
+
+  const colorInput = 
+    document.getElementById(`color-selector-${db}-${cell}`);
+  colorInput.setAttribute('value',hex);
+};
+
 // content of maps section
 ImporterApp.prototype.GetMapsContentDiv = function() {
   return document.getElementById('mapsContentDiv');
@@ -1400,36 +1434,17 @@ ImporterApp.prototype.LoadFromFile = function() {
     // read data is in this.result
     const data = JSON.parse(this.result);
 
-    // may be redundant as we clear values after use anyway
-    self.cellColorFromFile = {};
-
     for (const db in data.mapsSettings) {
       self.SetSeriesToHTML(db);
 
       for (const cell in data.mapsSettings[db]) {
-        self.LoadMap2(db, cell);
-
-        if (!self.cellColorFromFile.hasOwnProperty(db)) {
-          self.cellColorFromFile[db] = {};
-        }
-        self.cellColorFromFile[db][cell] = {
-          r: data.mapsSettings[db][cell].color.r,
-          g: data.mapsSettings[db][cell].color.g,
-          b: data.mapsSettings[db][cell].color.b,
-        };
-        console.log(self.cellColorFromFile[db][cell]);
-        document.addEventListener('loadMapComplete', (e) => {
-          console.log(e.detail.db, e.detail.cell,
-            self.cellColorFromFile[db][cell]);
-          self.viewer.SetSkeletonColor(
-            e.detail.db, e.detail.cell,
-            self.cellColorFromFile[db][cell]
-          );
-          // clear value so don't get mixed up later
-          delete self.cellColorFromFile[db][cell];
-
-          // set camera again because LoadMap2 sets camera too
-          self.viewer.SetCameraFromJSON(data.cameraSettings);
+        self.LoadMap2(db, cell, {
+          color: {
+            r: data.mapsSettings[db][cell].color.r,
+            g: data.mapsSettings[db][cell].color.g,
+            b: data.mapsSettings[db][cell].color.b,
+          },
+          cameraSettings: data.cameraSettings,
         });
       }
     }
@@ -1467,7 +1482,7 @@ ImporterApp.prototype.SaveToFile = function() {
 // expect hexStr of form either:
 // #05f2Dc
 // #06d --> #0066dd
-function hexToRGB(hexStr) {
+ImporterApp.prototype.hexToRGB = function(hexStr) {
   const rgb = { r: 0, g: 0, b: 0};
   if (hexStr.length === 7) {
     rgb.r = parseInt(hexStr[1] + hexStr[2], 16);

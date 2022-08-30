@@ -1394,6 +1394,13 @@ MapViewer.prototype.SetSkeletonColor = function(db,cell,color) {
     obj.material.color.b = color.b;
   }
 };
+MapViewer.prototype.SetSkeletonColorHex = function(db,cell,hex) {
+  const color = this.app.hexToRGB(hex);
+  color.r = color.r / 255.0;
+  color.g = color.g / 255.0;
+  color.b = color.b / 255.0;
+  this.SetSkeletonColor(db,cell,color);
+};
 
 /*
  * get skeleton color
