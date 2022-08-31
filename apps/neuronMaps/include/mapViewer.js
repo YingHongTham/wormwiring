@@ -292,7 +292,7 @@ MapViewer.prototype.InitStuffInScene = function() {
     gridNumSquaresAcross,
     mainAxesGridLineColor,
     generalGridLineColor);
-  grid.visible = false;
+  //grid.visible = false;
   this.gridGrp.add(grid);
 
   grid = new THREE.GridHelper(
@@ -301,7 +301,7 @@ MapViewer.prototype.InitStuffInScene = function() {
     mainAxesGridLineColor,
     generalGridLineColor);
   grid.position.z += gridWidth;
-  grid.visible = false;
+  //grid.visible = false;
   this.gridGrp.add(grid);
 
 
@@ -380,6 +380,17 @@ MapViewer.prototype.InitStuffInScene = function() {
       origin.z),
     rotate: { x: -Math.PI/2 },
   }));
+
+  // make text rotate with camera
+  const self = this;
+  document.onmouseup = () => {
+    for (const m in self.axesText) {
+      if (m.name === 'text') {
+        console.log(m);
+        self.RotateTextFaceCamera(m);
+      }
+    }
+  };
 };
 
 
@@ -2422,6 +2433,12 @@ MapViewer.prototype.addText = function(text,params) {
  * params.pos + params.offset,
  * and an arrow points from text to position params.pos
  *
+ * returns a group consisting of an arrow
+ * and text from addText
+ * in RotateTextFaceCamera, use the 'name' property
+ * of the mesh returned by addText
+ * to find it as a child of this group
+ *
  * @param {Object} params - almost same as addText
  *  but with the following additional keys:
  * @param {Vector3} params.offset - THREE.Vector3 (required)
@@ -2475,20 +2492,30 @@ MapViewer.prototype.addTextWithArrow = function(text,params) {
   return group;
 };
 
-// expect textGrp to be created from addTextWithArrow
+// expect textGrp to be created from addText
+// or addTextWithArrow
 // (in particular, the text to be rotated should be a
 // child of textGrp, and have property name = 'text'
 MapViewer.prototype.RotateTextFaceCamera = function(textGrp) {
-  let mesh = null;
-  for (const m of textGrp.children) {
-    if (m.name === 'text') {
-      mesh = m;
-      break;
-    }
-  }
-  if (mesh === null) {
-    console.log("textGrp expected to have child node with name = 'text'");
+  if (textGrp.name !== 'text' && !textGrp.isGroup) {
+    console.log('given object is not text or group containing text');
     return;
+  }
+  let mesh = null;
+  if (!textGrp.isGroup) {
+    mesh = textGrp;
+  }
+  else {
+    for (const m of textGrp.children) {
+      if (m.name === 'text') {
+        mesh = m;
+        break;
+      }
+    }
+    if (mesh === null) {
+      console.log("textGrp expected to have child node with name = 'text'");
+      return;
+    }
   }
   let direction = new THREE.Vector3();
   // = mesh + (camera - target)

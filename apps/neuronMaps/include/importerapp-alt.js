@@ -491,6 +491,8 @@ ImporterApp.prototype.InitHelpDialog = function(cellname) {
  *      <option> N2U etc </option>
  *    </select>
  *    <button> Load </button>
+ *    <br/>
+ *    <span>(Cells with volume are underlined)</span>
  *    <div id='cellListDiv-N2U'> -- dbDiv['N2U']
  *      <form name='cellListDiv-N2U-form'> -- dbDivForm['N2U']
  *        <span> neuron </span>
@@ -571,6 +573,16 @@ ImporterApp.prototype.InitCellSelectorDialog = function() {
   };
 
   //======================
+  // help text explaining volume cells are underlined
+
+  const br = document.createElement('br');
+  contentDiv.appendChild(br);
+
+  const helpText = document.createElement('span');
+  contentDiv.appendChild(helpText);
+  helpText.innerHTML = '(Cells with volume are underlined)';
+
+  //======================
   // divs for each db
   for (const db in celllistByDbType) {
     dbDiv[db] = document.createElement('div');
@@ -622,7 +634,14 @@ ImporterApp.prototype.InitCellSelectorDialog = function() {
         input.type = 'checkbox';
         input.name = dbDivFormNames[db];
         input.value = cell;
-        cellSpan.innerHTML = cell;
+
+        if (cellsWithVolumeModels.hasOwnProperty(db)
+          && cellsWithVolumeModels[db].includes(cell)) {
+          cellSpan.innerHTML = `<u>${cell}</u>`;
+        }
+        else {
+          cellSpan.innerHTML = cell;
+        }
 
         label.style.width = '100px';
         label.style.display = 'inline-block';

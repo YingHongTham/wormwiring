@@ -348,10 +348,6 @@ have contin with count = 0
 and this seems to freeze everything,
 (importerApp.viewer.controls.target becomes NaN and camera.position too)
 
-TODO volume viewer better feedback on volume availability (perhaps show on the
-cell selector dialog which volumes are available)
-TODO related: switch cell selector dialog to be like in listViewerAlt,
-better because Series Selector is awkwardly placed in left menu
 
 TODO scaling changed, but maybe need a bit of translation,
 try to make the aggregate volumes line up between N2U and JSH;

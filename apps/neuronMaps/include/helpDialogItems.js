@@ -19,6 +19,9 @@ Click on the desired cells, and click load.
 <p>
 Viewer will focus on the cell that was loaded last.
 </p>
+<p>
+Underlined cells are cells that have volume data
+</p>
 
 <h4>On Navigating the Viewer</h4>
 <p>
