@@ -90,6 +90,9 @@ ImporterApp = function()
     // created when cell is loaded
   }
 
+  // array of filters that have so far been imposed
+  this.synapseFilters = [];
+
   // db sections (under maps section)
   // (set to refer to HTML divs in
   //  InitLinkFunctionalityWithHTML())
@@ -114,7 +117,7 @@ ImporterApp.prototype.Init = function ()
   this.InitLinkFunctionalityWithHTML();
 
   this.retrieveVolumetric('N2U','PARTIAL_REDUCED_COMBINED_REDUCED_25');
-  //this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
+  this.retrieveVolumetric('JSH','PARTIAL_REDUCED_COMBINED_50_smoothed');
   this.retrieveVolumetric('n2y','PARTIAL_REDUCED_COMBINED_50');
 };
 
@@ -213,56 +216,45 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   synFilterBtnFilter.onclick = () => {
     // get the values from HTML
     // set to null if not used
+    const filters = {};
 
     // get types
-    let typesSelected = self.GetSynFilterType();
+    filters.types = self.GetSynFilterType();
 
     // get size range
-    let sizeRange = self.GetSynFilterSizeRange();
+    filters.sizeRange = self.GetSynFilterSizeRange();
 
     // get cells
-    let cells = self.GetSynFilterCells();
+    filters.cells = self.GetSynFilterCells();
 
     // get contins
-    let contins = self.GetSynFilterContins();
+    filters.contins = self.GetSynFilterContins();
+
+    if (filters.types === null
+      && filters.sizeRange === null
+      && filters.cells === null
+      && filters.contins === null) {
+      // nothing to filter
+      return;
+    }
+
+    // record the filter
+    self.synapseFilters.push(filters);
 
     // viewer performs filtering
-    self.viewer.FilterSynapses(typesSelected, sizeRange, cells, contins);
+    self.viewer.FilterSynapses(filters);
+
+    // add entry in the 'current filters'
+    self.AddToCurrentFilters(filters);
 
     // filter synapse list (in the floating window)
     self.SynapseListFilterByVis();
-
-    // add entry in the 'current filters'
-    const currentFilters = document.getElementById('currentFilters');
-    currentFilters.style.display = '';
-    const currentFiltersUL = document.getElementById('currentFiltersUL');
-    const liItem = document.createElement('li');
-    currentFiltersUL.appendChild(liItem);
-
-    let text = '';
-    if (typesSelected !== null) {
-      text += typesSelected.join(',');
-      text += ';';
-    }
-    if (sizeRange !== null) {
-      let mn = sizeRange.min === null ? '*' : sizeRange.min;
-      let mx = sizeRange.max === null ? '*' : sizeRange.max;
-      text += `(${mn},${mx});`;
-    }
-    if (cells !== null) {
-      text += cells.join(',');
-      text += ';';
-    }
-    if (contins !== null) {
-      text += contins.join(',');
-      text += ';';
-    }
-    liItem.innerHTML = text;
   };
 
   // Restore
   const synFilterBtnRestore = document.getElementById('synFilterBtnRestore');
   synFilterBtnRestore.onclick = () => {
+    self.synapseFilters = [];
     self.RestoreFilterSynapse();
     self.viewer.RestoreSynapses();
     self.SynapseListClearFilter();
@@ -727,6 +719,8 @@ ImporterApp.prototype.LoadMap2 = function(db,cell,postParams=null)
   }
   this.loadedCells[db].push(cell);
 
+  console.log(db,cell,postParams);
+
   const self = this;
   const url = `../php/retrieve_trace_coord_alt_2.php?db=${db}&cell=${cell}`;
   console.log('retrieving skeleton map via '+url);
@@ -741,12 +735,12 @@ ImporterApp.prototype.LoadMap2 = function(db,cell,postParams=null)
       self.viewer.loadMap(data);
       if (cellsWithVolumeModels.hasOwnProperty(db) && 
           cellsWithVolumeModels[db].includes(cell)) {
-        self.LoadMapMenu2(db,cell,true);
+        self.LoadMapMenu(db,cell);
         self.retrieveVolumetric(db, cell); // async
       }
       else {
         console.log('volume not available');
-        self.LoadMapMenu2(db,cell,false);
+        self.LoadMapMenu(db,cell);
       }
       console.timeEnd(`Load to viewer ${cell}`);
       
@@ -763,6 +757,22 @@ ImporterApp.prototype.LoadMap2 = function(db,cell,postParams=null)
       
       if (postParams.hasOwnProperty('cameraSettings')) {
         self.viewer.SetCameraFromJSON(postParams.cameraSettings);
+      }
+
+      if (postParams.hasOwnProperty('synapseFilters')) {
+        this.synapseFilters = postParams.synapseFilters;
+        for (const filters of postParams.synapseFilters) {
+          console.log(filters);
+          // viewer performs filtering
+          self.viewer.FilterSynapses(filters);
+          // we leave the adding of entry in 'current filters'
+          // to the LoadFromFile function
+          // (otherwise each call of LoadMap2 would
+          // add a copy of these synapse filters)
+          //self.AddToCurrentFilters(filters);
+        }
+        // filter synapse list (in the floating window)
+        self.SynapseListFilterByVis();
       }
 
       //document.dispatchEvent(new CustomEvent('loadMapComplete', {
@@ -786,7 +796,6 @@ ImporterApp.prototype.LoadMap2 = function(db,cell,postParams=null)
  *
  * @param {String} db - database/series
  * @param {String} cellname - name of cell
- * @param {Boolean} volExist - whether volume data exists
  *
  * each cell entry should be of the form:
  *  <div> // div
@@ -796,18 +805,21 @@ ImporterApp.prototype.LoadMap2 = function(db,cell,postParams=null)
  *        <span>Color Selector:</span>
  *        <input type='color'>
  *      </div>
+ *      <button>Synapse List</button>
+ *      <button>Hide Cell</button>
  *      <button>Show Remarks</button>
- *      <button>WormAtlas</button>
- *      <button>Synapse By Partners</button>
- *      <button>Synaptic List</button>
- *      <button>Show Volume</button>
+ *      <button>Center View</button>
+ *      <button>Hide Volume</button>
+ *      <a>WormAtlas</a>
+ *      <a>Synapse By Partners</a>
  *    </div>
  *  </div>
  *
  * adds to the section for db,
  * (creates section if first time)
  */
-ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
+ImporterApp.prototype.LoadMapMenu = function(db,cellname) {
+  console.log('in loadmapmenu', db, cellname);
   const self = this;
   const dbTitleDiv = this.GetDbTitleDiv(db);
   dbTitleDiv.style.display = '';
@@ -944,7 +956,8 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
 
   //===============================
   // show/hide volumetric
-  if (volExist) {
+  if (cellsWithVolumeModels.hasOwnProperty(db) && 
+    cellsWithVolumeModels[db].includes(cellname)) {
     volumeBtn.innerHTML = 'Hide Volume';
     volumeBtn.onclick = () => {
       const volumeVis = self.viewer.GetVolumeVis(db,cellname);
@@ -974,7 +987,7 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
 
 /*
  * assumes loadMap is done
- * (meant to be used in loadMapMenu2 which is after loadMap
+ * (meant to be used in LoadMapMenu which is after loadMap
  *
  * initializes the floating dialog that houses
  * the Synapse List
@@ -1353,6 +1366,44 @@ ImporterApp.prototype.RestoreFilterSynapse = function() {
   }
 };
 
+ImporterApp.prototype.AddToCurrentFilters = function(filters) {
+  // make current filters section visible
+  const currentFilters = document.getElementById('currentFilters');
+  currentFilters.style.display = '';
+
+  // add a list item
+  const currentFiltersUL = document.getElementById('currentFiltersUL');
+  const liItem = document.createElement('li');
+  currentFiltersUL.appendChild(liItem);
+
+  // produce text for the list item
+  let text = '';
+
+  if (filters.types !== null) {
+    text += filters.types.join(',');
+    text += ';';
+  }
+
+  if (filters.sizeRange !== null) {
+    let mn = filters.sizeRange.min === null ? '*' : filters.sizeRange.min;
+    let mx = filters.sizeRange.max === null ? '*' : filters.sizeRange.max;
+    text += `(${mn},${mx});`;
+  }
+
+  if (filters.cells !== null) {
+    text += filters.cells.join(',');
+    text += ';';
+  }
+
+  if (filters.contins !== null) {
+    text += filters.contins.join(',');
+    text += ';';
+  }
+
+  // finally set text to list item
+  liItem.innerHTML = text;
+};
+
 // filter rows of synapse list table by looking at
 // visibility of individual synapses in viewer
 // (thus, one should apply the filtering to the viewer first)
@@ -1567,7 +1618,7 @@ ImporterApp.prototype.GetDbTitleDiv = function(db) {
 // *Section*: Load/Save section
 
 /*
- * load settings from file
+ * load from file
  * file expected to be .json; see SaveToFile
  */
 ImporterApp.prototype.LoadFromFile = function() {
@@ -1577,7 +1628,7 @@ ImporterApp.prototype.LoadFromFile = function() {
   const self = this;
 
   file.readAsText(input.files[0]);
-  file.onloadend = function(ev) {
+  file.onloadend = function() {
     // read data is in this.result
     const data = JSON.parse(this.result);
 
@@ -1592,8 +1643,13 @@ ImporterApp.prototype.LoadFromFile = function() {
             b: data.mapsSettings[db][cell].color.b,
           },
           cameraSettings: data.cameraSettings,
+          synapseFilters: data.synapseFilters,
         });
       }
+    }
+    
+    for (const filters of data.synapseFilters) {
+      self.AddToCurrentFilters(filters);
     }
 
     setTimeout(() => {
@@ -1609,6 +1665,7 @@ ImporterApp.prototype.SaveToFile = function() {
     mapsSettings: this.viewer.dumpMapSettingsJSON(),
     cameraSettings: this.viewer.dumpCameraJSON(),
     mapsTranslation: this.GetAllTranslationSlider(),
+    synapseFilters: this.synapseFilters,
   };
 
   const a = document.getElementById('forSaveToFileButton');

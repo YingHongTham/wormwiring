@@ -342,22 +342,28 @@ wormwiring.m.html
 eventaully dbaux.php too, but that has Unk,
 TODO put Unk class in it's own file..
 
-TODO some cells, like AIZR from JSH,
-have contin with count = 0
+
+## Some things to resolve/clean up:
+-change scaling, in particular, figure out the right scaling for each database,
+performing the same analysis as described below
+
+
+-some cells, like AIZR from JSH, have contin with count = 0
 (select * from contin where type = 'neuron' and count = 0;)
 and this seems to freeze everything,
 (importerApp.viewer.controls.target becomes NaN and camera.position too)
 
 
 TODO scaling changed, but maybe need a bit of translation,
-try to make the aggregate volumes line up between N2U and JSH;
-n2y seems to line up nicely though it's quite far away.
 
 TODO synapse balls and label disappear when aggregate volume present
 
 TODO save to file: do synapse filter too
 
 TODO perhaps allow load multiple cells in url?
+
+TODO for synapse viewer, it seems that if an image fails to load,
+then it crashes the mysql server and everything else breaks
 
 
 ## Figuring out the scaling for skeleton:

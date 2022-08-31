@@ -75,14 +75,7 @@ window.onload = function(){
 
   // doing some testing
   setTimeout(() => {
-    // URBR
-    // RMFL
-    // RIAR
-    //importerApp.LoadDbCell('N2U', 'ADAL');
-    //importerApp.LoadDbCell('JSE', 'AVAL');
-    //importerApp.LoadDbCell('JSH', 'AVAL');
-    //importerApp.LoadDbCell('n2y', 'AVAL');
-    //importerApp.LoadDbCell('n930', 'AVAL');
+    importerApp.LoadDbCell('JSH', 'AIZR');
   },0);
 
   // access importerApp in the console

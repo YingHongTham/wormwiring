@@ -5,7 +5,13 @@
  * to viewer
  * so that data from different databases are compatible
  *
- * see MapViewer.pplyPlotTransform on how this is used
+ * plotTransformVol is the same but for the volumes
+ * this was hand tuned to fit with the skeleton data
+ *
+ * see MapViewer methods
+ * (ApplyPlotTransform and loadVolumetric)
+ * how this is used
+ * (basically, scale is applied, then translate)
  *
  * see README on how we computed for N2U;
  * the others are hand-tuned relative to N2U
@@ -20,29 +26,13 @@
  * +x = right
  * +y = ventral
  * +z = posterior
- *
- **********************
- * below is obsolete
- * for plotMinMaxValues, for mapViewer to make plotParams
- * may be completely obsolete since I got rid of dependence
- * on plot params
- *
- * the queries were made manually for each database, with:
- *  select max(x1), min(x1), min(y1), max(y1), min(z1), max(z1) from {DB}.display2;
- * where DB is N2U, N2W, JSE, JSH, n2y, n930
- * 
- * we also apply *(-1) to the x's (so min and max flipped)
- * because for some reason all over the place there are negatives
- * in say dbaux.php
- *
- * xMin = xScaleMin in old version etc.
  */
 
 const plotTransform = {
   N2U: {
     translate: {
       x: 0,
-      y: 0,
+      y: 1000,
       z: 0,
     },
     scale: {
@@ -53,8 +43,8 @@ const plotTransform = {
   },
   N2W: {
     translate: {
-      x: 0,
-      y: 0,
+      x: -1500,
+      y: 1200,
       z: 0,
     },
     scale: {
@@ -65,8 +55,8 @@ const plotTransform = {
   },
   JSE: {
     translate: {
-      x: 0,
-      y: 0,
+      x: 1444,
+      y: 667,
       z: 0,
     },
     scale: {
@@ -77,8 +67,8 @@ const plotTransform = {
   },
   JSH: {
     translate: {
-      x: 0,
-      y: 0,
+      x: 1000,
+      y: 875,
       z: 0,
     },
     scale: {
@@ -86,44 +76,11 @@ const plotTransform = {
       y: -0.13,
       z: 1,
     },
-    //// AIYR
-    //translate: {
-    //  x: -300,
-    //  y: 50,
-    //  z: 0,
-    //},
-    //scale: {
-    //  x: 0.20,
-    //  y: -0.17,
-    //  z: 1,
-    //},
-    //// RMFL, RIAR
-    //translate: {
-    //  x: -100,
-    //  y: 50,
-    //  z: 0,
-    //},
-    //scale: {
-    //  x: 0.17,
-    //  y: -0.17,
-    //  z: 1,
-    //},
-    //// URBR
-    //translate: {
-    //  x: -100,
-    //  y: -100,
-    //  z: 0,
-    //},
-    //scale: {
-    //  x: 0.17,
-    //  y: -0.17,
-    //  z: 1,
-    //},
   },
   n2y: {
     translate: {
-      x: 0,
-      y: 0,
+      x: 170,
+      y: 850,
       z: 0,
     },
     scale: {
@@ -134,8 +91,8 @@ const plotTransform = {
   },
   n930: {
     translate: {
-      x: 0,
-      y: 0,
+      x: -3000,
+      y: 3000,
       z: 0,
     },
     scale: {
@@ -146,55 +103,44 @@ const plotTransform = {
   },
 };
 
-
-const plotMinMaxValues = {
+const plotTransformVol = {
   N2U: {
-    xMin: -8907,
-    xMax: -205,
-    yMin: 45,
-    yMax: 7023,
-    zMin: 1,
-    zMax: 2550,
-  },
-//select max(x1), min(x1), min(y1), max(y1), min(z1), max(z1) from N2W.display2;
-  N2W: {
-    xMin: -9372,
-    xMax: -2401,
-    yMin: 1643,
-    yMax: 8595,
-    zMin: 34,
-    zMax: 1432,
-  },
-  JSE: {
-    xMin: -7166,
-    xMax: -58,
-    yMin: 315,
-    yMax: 4807,
-    zMin: 1,
-    zMax: 5463,
+    // tuned with AIBR, ADFR
+    translate: {
+      x: -435,
+      y: 1140,
+      z: -5,
+    },
+    scale: {
+      x: 39,
+      y: -39,
+      z: 6.5,
+    },
   },
   JSH: {
-    xMin: -6380,
-    xMax: -1929,
-    yMin: 769,
-    yMax: 5681,
-    zMin: 1,
-    zMax: 409,
+    // tuned with AINL, refined with AVKL
+    translate: {
+      x: 1000,
+      y: 875,
+      z: 0,
+    },
+    scale: {
+      x: 39,
+      y: -39,
+      z: 6.1,
+    },
   },
   n2y: {
-    xMin: -7479,
-    xMax: -47,
-    yMin: 121,
-    yMax: 6404,
-    zMin: 1,
-    zMax: 15773,
-  },
-  n930: {
-    xMin: -5565,
-    xMax: -1,
-    yMin: 78,
-    yMax: 6921,
-    zMin: 1,
-    zMax: 5127,
+    // tuned using AS10, AVDL
+    translate: {
+      x: -526 + 170,
+      y: 1214 - 150,
+      z: 13675,
+    },
+    scale: {
+      x: 0.133,
+      y: -0.133,
+      z: 0.0199,
+    },
   },
 };

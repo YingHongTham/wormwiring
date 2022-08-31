@@ -48,7 +48,7 @@
 if (celllistByDbType === undefined) {
   console.error('expect /apps/include/cellLists-alt.js');
 }
-if (plotMinMaxValues === undefined) {
+if (plotTransform === undefined) {
   console.error('require /apps/include/plotParams.js');
 }
 if (cytoscape === undefined) {
@@ -590,7 +590,7 @@ MapViewer.prototype.loadMap = function(data)
   // set object coordinates, apply transformation
   for (const obj in data.objCoord) {
     map.objCoord[obj] = 
-      this.applyPlotTransform(db,
+      this.ApplyPlotTransform(db,
         new THREE.Vector3(
           data.objCoord[obj].x,
           data.objCoord[obj].y,
@@ -603,11 +603,15 @@ MapViewer.prototype.loadMap = function(data)
   // but because keys of object in JS are strings,
   // be careful if comparing key and value with ===
   // e.g. for (v in G) --> v is string, while G[v] = [int's]
+
+  console.log(data.skeleton);
   map.skeletonGraph =
       BuildGraphFromEdgeList(data.skeleton);
   map.skeletonLines = 
       BreakGraphIntoLineSubgraphs(map.skeletonGraph);
   this.loadSkeletonIntoViewer(db,map.name);
+
+  return;
 
   //===============================================
   // cellbody
@@ -640,7 +644,7 @@ MapViewer.prototype.loadMap = function(data)
       size: syn.sections,
       coord: syn.coord === 'NOT_FOUND' ?
         null :
-        this.applyPlotTransform(db,
+        this.ApplyPlotTransform(db,
           new THREE.Vector3(
             syn.coord['x'],
             syn.coord['y'],
@@ -706,7 +710,7 @@ MapViewer.prototype.loadMap = function(data)
       size: syn.sections,
       coord: syn.coord === 'NOT_FOUND' ?
         null :
-        this.applyPlotTransform(db,
+        this.ApplyPlotTransform(db,
           new THREE.Vector3(
             syn.coord['x'],
             syn.coord['y'],
@@ -746,7 +750,7 @@ MapViewer.prototype.loadMap = function(data)
       size: syn.sections,
       coord: syn.coord === 'NOT_FOUND' ?
         null :
-        this.applyPlotTransform(db,
+        this.ApplyPlotTransform(db,
           new THREE.Vector3(
             syn.coord['x'],
             syn.coord['y'],
@@ -997,7 +1001,7 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
  * @param {String} db - database
  * @param {Object} vec - Vector3, or object with keys x,y,z
  */
-MapViewer.prototype.applyPlotTransform = function(db,vec) {
+MapViewer.prototype.ApplyPlotTransform = function(db,vec) {
   const trans = plotTransform[db].translate;
   const scale = plotTransform[db].scale;
   return new THREE.Vector3(
@@ -1710,37 +1714,38 @@ MapViewer.prototype.transformStuffOneCell = function(m,db,name) {
 
 /*
  * filter synapses from view
- * performed on all cells
+ * performed on all synapses from all db,cell
  *
  * note that this operation is subtractive only
  * in that if previously we applied a filter,
  * we do not automatically restore visibility of a synapse
  * if it is not filtered by the new filter
  *
- * @param {Array} typesSelected - 'pre','post', and/or 'gap'
- * @param {Array} cells - cells which a synapse should touch
- *  at least one of
- * @param {Array} contins - strictest, only show synapses in this list
+ * @param {Object} filters - has the following keys:
+ *  types - 'pre','post', and/or 'gap'
+ *  sizeRange - range on number of sections
+ *  cells - cells which a synapse should touch at least one of
+ *  contins - strictest, only show synapses in this list
  *
- * in each of the variables, if the array given is empty,
+ * in each of the variables, if the array given is null,
  * then we do not filter based on that
  */
-MapViewer.prototype.FilterSynapses = function(typesSelected, sizeRange, cells, contins) {
-  this.FilterSynapsesByType(typesSelected);
-  this.FilterSynapsesBySize(sizeRange);
-  this.FilterSynapsesByCells(cells);
-  this.FilterSynapsesByContins(contins);
+MapViewer.prototype.FilterSynapses = function(filters) {
+  this.FilterSynapsesByType(filters.types);
+  this.FilterSynapsesBySize(filters.sizeRange);
+  this.FilterSynapsesByCells(filters.cells);
+  this.FilterSynapsesByContins(filters.contins);
 };
 
-MapViewer.prototype.FilterSynapsesByType = function(typesSelected) {
-  if (typesSelected === null) return;
-  if (typesSelected.length === 0) return;
+MapViewer.prototype.FilterSynapsesByType = function(types) {
+  if (types === null) return;
+  if (types.length === 0) return;
 
   for (const db in this.dbMaps) {
     this.maps = this.dbMaps[db];
     for (const cell in this.maps) {
       for (const type of ['pre','post','gap']) {
-        if (!typesSelected.includes(type)) {
+        if (!types.includes(type)) {
           this.maps[cell][type+'Grp'].visible = false;
         }
       }
@@ -2529,7 +2534,8 @@ MapViewer.prototype.RotateTextFaceCamera = function(textGrp) {
 // Volumetric
 
 MapViewer.prototype.loadVolumetric = function(db,cell,volumeObj) {
-  if (!['N2U','JSH','n2y'].includes(db)) {
+  if (!cellsWithVolumeModels.hasOwnProperty(db)) {
+    // probably wouldn't even be called if this was the case
     console.log(`Volumetric data not available for ${db}`);
     return;
   }
@@ -2539,8 +2545,7 @@ MapViewer.prototype.loadVolumetric = function(db,cell,volumeObj) {
     return;
   }
 
-  // seems that, at least for OBJ loaded for n2y,
-  // the object loaded by THREE has one child,
+  // note that volumeObj has one child,
   // and that child is the actual object
   // useful to know because this is how to find the
   // bounding box of the object,
@@ -2551,55 +2556,13 @@ MapViewer.prototype.loadVolumetric = function(db,cell,volumeObj) {
   //const boundingBox = obj.geometry.boundingBox;
   //console.log(boundingBox);
 
-  // tuned with AIBR, ADFR
-  if (db === 'N2U') {
-    volumeObj.scale.set(39,-39,6.5);
-    volumeObj.position.x = -435;
-    volumeObj.position.y = 140;
-    volumeObj.position.z = -5;
-  }
-
-  if (db === 'JSH') {
-    // tuned with AINL, refined with AVKL
-    volumeObj.scale.set(39,-39,6.1);
-    volumeObj.position.x = 0;
-    volumeObj.position.y = 0;
-    volumeObj.position.z = 0;
-  }
-
-  if (db === 'n2y') {
-    // tuned using AS10, AVDL
-    volumeObj.scale.set(0.133,-0.133,0.0199);
-    volumeObj.position.x = -526;
-    volumeObj.position.y = 214;
-    volumeObj.position.z = 13675; // TODO uncomment
-  }
-
-
-  // old values, assuming using plotparams
-  // and display2
-  //if (db === 'N2U') {
-  //  volumeObj.scale.set(4.5,-4.5,6.5);
-  //  volumeObj.position.x = -270;
-  //  volumeObj.position.y = 188;
-  //  volumeObj.position.z = -5;
-  //}
-
-  //if (db === 'JSH') {
-  //  // tuned with AINL, refined with AVKL
-  //  volumeObj.scale.set(15,-15,6);
-  //  volumeObj.position.x = -110;
-  //  volumeObj.position.y = 122;
-  //  volumeObj.position.z = 0;
-  //}
-
-  //if (db === 'n2y') {
-  //  // tuned using PGA; also R9BR, EF2
-  //  volumeObj.scale.set(0.015,-0.015,0.02);
-  //  volumeObj.position.x = -186;
-  //  volumeObj.position.y = -50;
-  //  volumeObj.position.z = 13670;
-  //}
+  volumeObj.scale.set(
+    plotTransformVol[db].scale.x,
+    plotTransformVol[db].scale.y,
+    plotTransformVol[db].scale.z);
+  volumeObj.position.x = plotTransformVol[db].translate.x;
+  volumeObj.position.y = plotTransformVol[db].translate.y;
+  volumeObj.position.z = plotTransformVol[db].translate.z;
 
   volumeObj.visible = true;
 
