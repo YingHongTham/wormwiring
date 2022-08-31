@@ -146,8 +146,6 @@ const plotTransform = {
   },
 };
 
-console.log(plotTransform);
-
 
 const plotMinMaxValues = {
   N2U: {

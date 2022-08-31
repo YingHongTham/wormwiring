@@ -384,9 +384,8 @@ MapViewer.prototype.InitStuffInScene = function() {
   // make text rotate with camera
   const self = this;
   document.onmouseup = () => {
-    for (const m in self.axesText) {
+    for (const m of self.axesText.children) {
       if (m.name === 'text') {
-        console.log(m);
         self.RotateTextFaceCamera(m);
       }
     }

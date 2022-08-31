@@ -23,6 +23,7 @@
  * -stuff when cell is loaded
  * -stuff handling window resize
  * -Synapse Info related things
+ * -Filter Synapse
  * -Translate Maps related things
  * -getters/setters from/to HTML stuff
  * -Load/Save
@@ -214,45 +215,22 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
     // set to null if not used
 
     // get types
-    const synFilterTypeNodes = document.querySelectorAll(`input[name='synFilterType']:checked`);
-    let typesSelected = [];
-    synFilterTypeNodes.forEach( nn => {
-      typesSelected.push(nn.value);
-    });
-    if (typesSelected.length === 0) {
-      typesSelected = null;
-    }
+    let typesSelected = self.GetSynFilterType();
 
     // get size range
-    const synFilterSizeMin = document.getElementById('synFilterSizeMin');
-    const synFilterSizeMax = document.getElementById('synFilterSizeMax');
-
-    let sizeRange = {};
-    let minValue = parseInt(synFilterSizeMin.value);
-    sizeRange.min = isNaN(minValue) ? null : minValue;
-    let maxValue = parseInt(synFilterSizeMax.value);
-    sizeRange.max = isNaN(maxValue) ? null : maxValue;
-    if (sizeRange.min === null && sizeRange.max === null) {
-      sizeRange = null;
-    }
+    let sizeRange = self.GetSynFilterSizeRange();
 
     // get cells
-    const synFilterCells = document.getElementById('synFilterCells');
-    let cells = synFilterCells.value === '' ?
-      null : synFilterCells.value.replace(' ','').split(',');
+    let cells = self.GetSynFilterCells();
 
     // get contins
-    const synFilterContins = document.getElementById('synFilterContins');
-    let continsStr = synFilterContins.value.split(',');
-    let contins = [];
-    for (const cStr of continsStr) {
-      let c = parseInt(cStr);
-      if (!isNaN(c))
-        contins.push(c);
-    }
-    if (contins.length === 0) contins = null;
+    let contins = self.GetSynFilterContins();
 
+    // viewer performs filtering
     self.viewer.FilterSynapses(typesSelected, sizeRange, cells, contins);
+
+    // filter synapse list (in the floating window)
+    self.SynapseListFilterByVis();
 
     // add entry in the 'current filters'
     const currentFilters = document.getElementById('currentFilters');
@@ -285,26 +263,9 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   // Restore
   const synFilterBtnRestore = document.getElementById('synFilterBtnRestore');
   synFilterBtnRestore.onclick = () => {
-    const synFilterTypeNodes = document.querySelectorAll(`input[name='synFilterType']:checked`);
-    synFilterTypeNodes.forEach( nn => {
-      nn.checked = false;
-    });
-
-    const synFilterCells = document.getElementById('synFilterCells');
-    synFilterCells.value = '';
-
-    const synFilterContins = document.getElementById('synFilterContins');
-    synFilterContins.value = '';
-
+    self.RestoreFilterSynapse();
     self.viewer.RestoreSynapses();
-
-    // clear 'current filters'
-    const currentFilters = document.getElementById('currentFilters');
-    currentFilters.style.display = 'none';
-    const currentFiltersUL = document.getElementById('currentFiltersUL');
-    while (currentFiltersUL.lastChild) {
-      currentFiltersUL.removeChild(currentFiltersUL.lastChild);
-    }
+    self.SynapseListClearFilter();
   };
 
   //===============================
@@ -1014,6 +975,10 @@ ImporterApp.prototype.LoadMapMenu2 = function(db,cellname,volExist) {
 /*
  * assumes loadMap is done
  * (meant to be used in loadMapMenu2 which is after loadMap
+ *
+ * initializes the floating dialog that houses
+ * the Synapse List
+ * populates the dialog with a single table
  */
 ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
   this.viewer.maps = this.viewer.dbMaps[db];
@@ -1078,6 +1043,9 @@ ImporterApp.prototype.InitSynapseListWindow = function(db,cellname) {
     const tdContin = document.createElement('td');
     const tdCells = document.createElement('td');
 
+    // order of appending is important,
+    // as this will be used to identify synapse by
+    // contin number when perform filter
     tbody.appendChild(row);
     row.appendChild(tdZ);
     row.appendChild(tdType);
@@ -1308,6 +1276,120 @@ ImporterApp.prototype.RestoreSynapseInfoToDefault2 = function() {
   document.getElementById('synInfoSections').innerHTML = '---';
   document.getElementById('synInfoContin').innerHTML = '---';
   document.getElementById('synInfoPosition').innerHTML = '---';
+};
+
+//=======================================================
+// *Section*: Filter Synapse
+// deals purely with HTML (except SynapseListFilterByVis)
+// relation to viewer is set up in initialization
+// (see InitLinkFunctionalityWithHTML,
+// subsection on synapse filter)
+
+// returns array of types or null if empty
+ImporterApp.prototype.GetSynFilterType = function() {
+  let typesSelected = [];
+  const synFilterTypeNodes = document.querySelectorAll(`input[name='synFilterType']:checked`);
+  synFilterTypeNodes.forEach( nn => {
+    typesSelected.push(nn.value);
+  });
+  if (typesSelected.length === 0) {
+    typesSelected = null;
+  }
+  return typesSelected;
+};
+// returns { min: , max: } or null if both not given
+ImporterApp.prototype.GetSynFilterSizeRange = function() {
+  const synFilterSizeMin = document.getElementById('synFilterSizeMin');
+  const synFilterSizeMax = document.getElementById('synFilterSizeMax');
+
+  let sizeRange = {};
+  let minValue = parseInt(synFilterSizeMin.value);
+  sizeRange.min = isNaN(minValue) ? null : minValue;
+  let maxValue = parseInt(synFilterSizeMax.value);
+  sizeRange.max = isNaN(maxValue) ? null : maxValue;
+  if (sizeRange.min === null && sizeRange.max === null) {
+    sizeRange = null;
+  }
+  return sizeRange;
+};
+// returns array or null if empty
+ImporterApp.prototype.GetSynFilterCells = function() {
+  const synFilterCells = document.getElementById('synFilterCells');
+  return ( synFilterCells.value === '' ) ?
+      null : synFilterCells.value.replace(' ','').split(',');
+};
+// returns array of contins or null if empty
+ImporterApp.prototype.GetSynFilterContins = function() {
+  const synFilterContins = document.getElementById('synFilterContins');
+  let continsStr = synFilterContins.value.split(',');
+  let contins = [];
+  for (const cStr of continsStr) {
+    let c = parseInt(cStr);
+    if (!isNaN(c))
+      contins.push(c);
+  }
+  if (contins.length === 0) contins = null;
+
+  return contins;
+};
+ImporterApp.prototype.RestoreFilterSynapse = function() {
+  const synFilterTypeNodes = document.querySelectorAll(`input[name='synFilterType']:checked`);
+  synFilterTypeNodes.forEach( nn => {
+    nn.checked = false;
+  });
+
+  const synFilterCells = document.getElementById('synFilterCells');
+  synFilterCells.value = '';
+
+  const synFilterContins = document.getElementById('synFilterContins');
+  synFilterContins.value = '';
+
+  // clear 'current filters'
+  const currentFilters = document.getElementById('currentFilters');
+  currentFilters.style.display = 'none';
+  const currentFiltersUL = document.getElementById('currentFiltersUL');
+  while (currentFiltersUL.lastChild) {
+    currentFiltersUL.removeChild(currentFiltersUL.lastChild);
+  }
+};
+
+// filter rows of synapse list table by looking at
+// visibility of individual synapses in viewer
+// (thus, one should apply the filtering to the viewer first)
+ImporterApp.prototype.SynapseListFilterByVis = function() {
+  for (const db in this.synapseListWindows) {
+    for (const cell in this.synapseListWindows[db]) {
+      if (!this.viewer.dbMaps.hasOwnProperty(db)
+        || !this.viewer.dbMaps[db].hasOwnProperty(cell)) {
+        continue;
+      }
+      const allSynData = this.viewer.dbMaps[db][cell].allSynData;
+
+      const dialog = this.synapseListWindows[db][cell];
+      const contentDiv = dialog.GetContentDiv();
+      for (const tr of contentDiv.querySelectorAll('tr')) {
+        const contin = parseInt(tr.childNodes[2].innerHTML);
+        if (isNaN(contin)) continue;
+        if (!allSynData.hasOwnProperty(contin)) {
+          console.log(`weird, synapse ${contin} not found in allSynData of ${db},${cell}`);
+          continue;
+        }
+        const vis = allSynData[contin].sphere.visible;
+        tr.style.display = vis ? '' : 'none';
+      }
+    }
+  }
+};
+ImporterApp.prototype.SynapseListClearFilter = function() {
+  for (const db in this.synapseListWindows) {
+    for (const cell in this.synapseListWindows[db]) {
+      const dialog = this.synapseListWindows[db][cell];
+      const contentDiv = dialog.GetContentDiv();
+      for (const tr of contentDiv.querySelectorAll('tr')) {
+        tr.style.display = '';
+      }
+    }
+  }
 };
 
 
