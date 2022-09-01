@@ -38,19 +38,14 @@ window.onload = function(){
     params.cell = params.neuron;
   }
 
-  // fix db case, and deduce sex from db
-  // if db bad, delete from params
-  // sex no longer needed
+  // fix db case; if db bad, delete from params
   if (params.hasOwnProperty('db')) {
     params.db = params.db.toUpperCase();
-    if (['N2U','JSE','N2W','JSH'].includes(params.db)) {
-      params.sex = 'herm';
-    } else if (['N2Y','N930'].includes(params.db)) {
-      params.sex = 'male';
-      params.db = params.db.toLowerCase();
-    }
-    else {
+    if (!['N2U','JSE','N2W','JSH','N2Y','N930'].includes(params.db)) {
       delete params.db;
+    }
+    else if (['N2Y','N930'].includes(params.db)) {
+      params.db = params.db.toLowerCase();
     }
   }
 
@@ -59,11 +54,7 @@ window.onload = function(){
     window.dispatchEvent(new Event('resize'));
   });
 
-  //// params, if url does have enough query data,
-  //// will have keys db,sex,cell
-  //// old behaviour (see importerapp.js)
-  //
-  // changed behaviour, 'preload' cells from here
+  // 'preload' cells from here
 	const importerApp = new ImporterApp();
   if (params.hasOwnProperty('db')
     && params.hasOwnProperty('cell')) {

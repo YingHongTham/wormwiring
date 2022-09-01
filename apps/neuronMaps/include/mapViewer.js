@@ -582,12 +582,10 @@ MapViewer.prototype.loadMap = function(data)
   map.synObjs.add(map.gapGrp);
   
   // default visibilities
-  // see use of AddToggleButton in importerapp.js,
-  // which should have the same default values
   map.skeletonGrp.visible = true;
   map.synObjs.visible = true;
   map.remarksGrp.visible = false; // see remarksparams
-  map.synLabels.visible = true;
+  map.synLabels.visible = true; // but individually not vis
 
   // set object coordinates, apply transformation
   for (const obj in data.objCoord) {
@@ -843,8 +841,6 @@ MapViewer.prototype.loadMap = function(data)
  * (need to make new material object so can change
  * color of each cell separately)
  * (see loadMap)
- *
- * takes the place of this.addSkeleton(..) in importerapp.js
  *
  * for now, ignoring series(region)
  *
