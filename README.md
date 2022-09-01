@@ -36,10 +36,10 @@ Sometimes name means cell, other times it means number..
 e.g. objName1 is a number
 
 **On Coordinates**:
+in the 3D viewer,
 - positive x is right,
 - positive y is dorsal,
 - positive z is posterior.
-(TODO but actually it's the opposite because of all the negative signs?)
 
 Here is a summary of the relevant tables:
 
@@ -82,12 +82,6 @@ as display2 has more information.
 - ObjName2: object number connected to ObjName1
 - segmentNum: diff in section number bt obj 1 and 2 (I think)
 - continNum: contin number
-
-Synapses appear on the skeleton
-because the query looks in synapsecombind for all synapse
-with that cell as pre, and gets that cell's object number,
-and gets the coordinates for that object number,
-NOT the coordinates of the synapse object
 
 **synapsecombined**: each row is one synapse
 (note to self: in the early days of Elegance,
@@ -314,56 +308,9 @@ Volumetric Viewer gets its .obj and .mtl files from
 (which are also symlinks to the relevant folder)
 
 
-
-
-
-
-
-# Some obsolete files that I deleted
-(but should still be in the repo;
-go back to before July 25, 2022)
-apps/php/synList.php
-maps/neuronPage.php 
-apps/php/redirectMaps.php
-apps/synapseList/\*
-apps/partnerList/\*
-apps/php/images-alt.php
-apps/php/getSynapse.php
-apps/php/loadSynapseImage.php
-apps/php/getSynapseList.php
-apps/php/getPartnerList.php
-apps/php/selectorCells.php
-apps/listViewer/\*
-apps/php/retrieve_trace_coord.php
-apps/php/retrieve_trace_coord_test.php
-wormwiring.m.html
-
-
-eventaully dbaux.php too, but that has Unk,
-TODO put Unk class in it's own file..
-
-
-## Some things to resolve/clean up:
--change scaling, in particular, figure out the right scaling for each database,
-performing the same analysis as described below
-
-
--some cells, like AIZR from JSH, have contin with count = 0
-(select * from contin where type = 'neuron' and count = 0;)
-and this seems to freeze everything,
-(importerApp.viewer.controls.target becomes NaN and camera.position too)
-
-
-TODO scaling changed, but maybe need a bit of translation,
-
-TODO synapse balls and label disappear when aggregate volume present
-
-TODO save to file: do synapse filter too
-
-TODO perhaps allow load multiple cells in url?
-
-TODO for synapse viewer, it seems that if an image fails to load,
-then it crashes the mysql server and everything else breaks
+# Old versions of files/apps
+Roll back to before July 25, 2022 to see all;
+another big cleaning was performed on Sep 01, 2022.
 
 
 ## Figuring out the scaling for skeleton:
@@ -411,3 +358,36 @@ So 0.084px/unit * 0.05mm/631px = 6.66nm/unit
 Now it's known that one section is about 50nm.
 So we scale x and y by 0.13
 (as set by this.XYScale in MapViewer)
+
+
+
+## Some things to resolve/clean up:
+-change scaling, in particular, figure out the right scaling for each database,
+performing the same analysis as described above
+
+
+-some cells, like AIZR from JSH, have contin with count = 0
+(select * from contin where type = 'neuron' and count = 0;)
+Issue mainly occurs when try to 'center view' on the cell.
+Currently worked around it by using 'objCoord',
+which are coordinates (from object + image tables)
+of objects that should be in the skeleton
+(but for some reason no skeleton..);
+furthermore, if even that fails,
+try to use synapses' coordinates.
+If these fail, just return null and 'center view' functionality
+is moot (and there wouldn't be anything to center the view on
+anyway).
+
+
+-synapse balls and label sometimes disappear or get blocked by
+the aggregate volume (even though it's set to opacity 0.1);
+this seems to be an issue with the interal workings of THREE,
+so it's unclear to me what the best way around it is.
+Probably one can make better aggregate volume models,
+using more fancy 3D editing techniques.
+For now, if it does get too much in the way,
+the user may simply hide the aggregate volumes,
+and problem is averted.
+
+
