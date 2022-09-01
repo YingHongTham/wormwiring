@@ -5,7 +5,7 @@
 // of a synapse, given its contin number
 //
 // the image itself, with the drawings over it,
-// is obtained from loadSynapseImage-alt.php
+// is obtained from loadSynapseImage.php
 //
 // for my local testing, I only have N2U/NR/0(61,62,63).tif
 // so test on synapse with CON_Number = 3321
