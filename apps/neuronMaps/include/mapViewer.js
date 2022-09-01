@@ -410,7 +410,7 @@ MapViewer.prototype.clearMaps = function() {
 // main routine for loading cell data into viewer
 
 /*
- * to be compatible w/ LoadMap in importerapp-alt.js
+ * to be compatible w/ LoadMap in importerapp.js
  * and retrieveSkeletonMaps.php,
  * where object numbers are used efficiently
  *
