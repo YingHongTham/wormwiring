@@ -33,7 +33,7 @@
 
 // required libraries/classes
 if (celllistByDbType === undefined) {
-  console.error('expect /apps/include/cellLists-alt.js');
+  console.error('expect /apps/include/cellLists.js');
 }
 if (cellsWithVolumeModels === undefined) {
   console.error('expect /apps/include/cellModelList.js');
@@ -981,7 +981,7 @@ ImporterApp.prototype.LoadMapMenu = function(db,cellname) {
   // Synapse By Partners
   synPartnerListA.innerHTML = 'Synapse By Partners';
   synPartnerListA.target = '_blank';
-  const synParterListUrl = `../listViewerAlt/?db=${db}&cell=${cellname}&listtype=partner`;
+  const synParterListUrl = `../listViewer/?db=${db}&cell=${cellname}&listtype=partner`;
   synPartnerListA.href = synParterListUrl;
 };
 

@@ -40,13 +40,13 @@
 
 
 // requires:
-// apps/include/cellLists-alt.js
+// apps/include/cellLists.js
 // apps/include/plotParams.js
 // apps/include/cytoscape-3.21.1.min.js
 // apps/include/three/threex.windowresize.js
 
 if (celllistByDbType === undefined) {
-  console.error('expect /apps/include/cellLists-alt.js');
+  console.error('expect /apps/include/cellLists.js');
 }
 if (plotTransform === undefined) {
   console.error('require /apps/include/plotParams.js');

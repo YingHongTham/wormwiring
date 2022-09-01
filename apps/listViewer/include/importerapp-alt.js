@@ -1,6 +1,6 @@
-// requires /apps/include/cellLists-alt.js, floatingdialog-alt.js
+// requires /apps/include/cellLists.js, floatingdialog-alt.js
 if (celllistByDbType === undefined) {
-  console.error('expect /apps/include/cellLists-alt.js');
+  console.error('expect /apps/include/cellLists.js');
 }
 if (typeof(FloatingDialog2) === undefined) {
   console.error('expect /apps/include/floatingdialog-alt.js');
@@ -173,7 +173,7 @@ ImporterApp.prototype.prepareCellSelectorDialog = function() {
         label.appendChild(input);
         label.appendChild(cellSpan);
 
-        // input given css in ../css/listViewer-alt.css
+        // input given css in ../css/listViewer.css
         // makes cellSpan turn bold when clicked
         input.type = 'checkbox';
         input.name = dbDivFormNames[db];
@@ -1054,7 +1054,7 @@ ImporterApp.prototype.ToggleSynapseOrPartner = function(showingPartnerList=null)
 
 // always use ToggleSynapseOrPartner unless want to set
 // the default list type before loading cell
-// (see build_listViewer_alt.js)
+// (see build_listViewer.js)
 ImporterApp.prototype.SetStartingListType = function(showingPartnerList) {
   this.showingPartnerList = showingPartnerList;
 };
