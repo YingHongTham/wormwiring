@@ -518,22 +518,24 @@ MapViewer.prototype.loadMap = function(data)
    *
    *  -allSynData: {
    *    3860: { // key is contin number of synapse
+   *      db: db,
    *      pre: syn.pre,
    *      post: syn.post,
    *      type: 'pre'/'post/'gap',
-   *      contin: 3860,
+   *      contin: syn.continNum, (=3860)
+   *      size: syn.sections,
    *      zLow: syn.zLow, // lowest and highest z of synapse
    *      zHigh: syn.zHigh,
-   *      cellname: cell on which this synapse is shown
-   *        (i.e. this is part of self.maps[cellname])
+   *      cellname: map.name,
+   *        cell on which this synapse is shown
    *      partners: all cells involved
    *        (used to be other cell(s) on other side of synapse
    *        e.g. if we have RICL -> AVAL,ADAL
    *        and cellname = ADAL (so type = post),
    *        then partner is just RICL)
-   *      obj: object that synapse is attached to
+   *      cellObj: object that synapse is attached to
    *        (use its coordinates to position synapse sphere)
-   *      sphere: THREE Object
+   *      sphere: THREE Object for the synapse
    *      synLabelObj: THREE Object for label
    *    },
    *    ...
@@ -561,7 +563,7 @@ MapViewer.prototype.loadMap = function(data)
     postGrp: new THREE.Group(),
     gapGrp: new THREE.Group(),
     //gap: [], // used?
-    allSynData: {}, // TODO new, add comments above
+    allSynData: {},
     synLabels : new THREE.Group(),
     remarksGrp : new THREE.Group(),
     remarks: {}, // the data behind remarksGrp
@@ -604,14 +606,11 @@ MapViewer.prototype.loadMap = function(data)
   // be careful if comparing key and value with ===
   // e.g. for (v in G) --> v is string, while G[v] = [int's]
 
-  console.log(data.skeleton);
   map.skeletonGraph =
       BuildGraphFromEdgeList(data.skeleton);
   map.skeletonLines = 
       BreakGraphIntoLineSubgraphs(map.skeletonGraph);
   this.loadSkeletonIntoViewer(db,map.name);
-
-  return;
 
   //===============================================
   // cellbody
@@ -640,8 +639,8 @@ MapViewer.prototype.loadMap = function(data)
       pre: syn.pre,
       post: syn.post,
       type: 'gap',
-      contin: syn.continNum,
-      size: syn.sections,
+      contin: parseInt(syn.continNum),
+      size: parseInt(syn.sections),
       coord: syn.coord === 'NOT_FOUND' ?
         null :
         this.ApplyPlotTransform(db,
@@ -706,8 +705,8 @@ MapViewer.prototype.loadMap = function(data)
       pre: syn.pre,
       post: syn.post,
       type: 'pre',
-      contin: syn.continNum,
-      size: syn.sections,
+      contin: parseInt(syn.continNum),
+      size: parseInt(syn.sections),
       coord: syn.coord === 'NOT_FOUND' ?
         null :
         this.ApplyPlotTransform(db,
@@ -746,8 +745,8 @@ MapViewer.prototype.loadMap = function(data)
       pre: syn.pre,
       post: syn.post,
       type: 'post',
-      contin: syn.continNum,
-      size: syn.sections,
+      contin: parseInt(syn.continNum),
+      size: parseInt(syn.sections),
       coord: syn.coord === 'NOT_FOUND' ?
         null :
         this.ApplyPlotTransform(db,
@@ -2084,14 +2083,17 @@ MapViewer.prototype.dumpJSON = function() {
 // but the actual coordinates as appearing in the viewer
 // also adds a translation that the user can perform
 // in the Translate Maps section
+//
 // we say posiiton/coord "in viewer" for the latter,
 // and "absolute" for the former
 // (note the absolute coord's have already been transformed
-// under plotParams)
+// under ApplyPlotTransform
 
 // get average position of cell in viewer
 // used for recentering view on LoadMap
-MapViewer.prototype.GetAveragePosition = function(db,cell) {
+//
+// returns null if no skeleton
+MapViewer.prototype.GetAverageSkeletonPosAbsolute = function(db,cell) {
   // maybe easier to just do objCoord directly,
   // but in the future might add objs that are
   // not part of the skeleton per se
@@ -2105,16 +2107,77 @@ MapViewer.prototype.GetAveragePosition = function(db,cell) {
       ++count;
     }
   }
-  tot.x = tot.x / count;
-  tot.y = tot.y / count;
-  tot.z = tot.z / count;
 
-  const trans = this.GetTranslateOnMaps(db,cell);
-  tot.x += trans.x;
-  tot.y += trans.y;
-  tot.z += trans.z;
+  // some cells have no skeleton data, like JSH-AIZR
+  if (count === 0) {
+    return null;
+  }
+
+  tot.multiplyScalar(1.0 / count);
 
   return tot;
+};
+MapViewer.prototype.GetAverageSkeletonPosViewer = function(db,cell) {
+  const pos = this.GetAverageSkeletonPosAbsolute(db,cell);
+  if (pos === null) return null;
+  const trans = this.GetTranslateOnMaps(db,cell);
+  pos.add(trans);
+
+  return pos;
+};
+// sometimes skeleton data is missing,
+// use objCoord directly
+// returns null if objCoord is empty
+MapViewer.prototype.GetAverageObjCoordAbsolute = function(db,cell) {
+  const objCoord = this.dbMaps[db][cell].objCoord;
+  const tot = new THREE.Vector3(0,0,0);
+  let count = 0;
+  for (const obj in objCoord) {
+    tot.add(objCoord[obj]);
+  }
+
+  // objCoord may also be empty
+  if (count === 0) {
+    return null;
+  }
+
+  tot.multiplyScalar(1.0 / count);
+
+  return tot;
+};
+MapViewer.prototype.GetAverageObjCoordViewer = function(db,cell) {
+  const pos = this.GetAverageObjCoordAbsolute(db,cell);
+  if (pos === null) return null;
+  const trans = this.GetTranslateOnMaps(db,cell);
+  pos.add(trans);
+
+  return pos;
+};
+// sometimes skeleton data/objCoord is missing,
+// use average of synapses instead in CenterViewOnCell
+MapViewer.prototype.GetAverageSynapsePosAbsolute = function(db,cell) {
+  const tot = new THREE.Vector3(0,0,0);
+  let count = 0;
+  for (const contin in this.dbMaps[db][cell].allSynData) {
+    const synData = this.dbMaps[db][cell].allSynData[contin];
+    tot.add(synData.coord);
+    count += 1;
+  }
+  if (count === 0) {
+    return null;
+  }
+
+  tot.multiplyScalar(1.0 / count);
+
+  return tot;
+};
+MapViewer.prototype.GetAverageSynapsePosViewer = function(db,cell) {
+  const pos = this.GetAverageSynapsePosAbsolute(db,cell);
+  if (pos === null) return null;
+  const trans = this.GetTranslateOnMaps(db,cell);
+  pos.add(trans);
+
+  return pos;
 };
 
 // get the amount that this cell has been translated
@@ -2236,7 +2299,17 @@ MapViewer.prototype.SetCameraPosition = function(pos) {
 };
 
 MapViewer.prototype.CenterViewOnCell = function(db,cellname) {
-  const pos = this.GetAveragePosition(db,cellname);
+  let pos = this.GetAverageSkeletonPosViewer(db,cellname);
+  if (pos === null) {
+    pos = this.GetAverageObjCoordViewer(db,cellname);
+    if (pos === null) {
+      pos = this.GetAverageSynapsePosViewer(db,cellname);
+      if (pos === null) {
+        console.log('no coordinate data...');
+        return;
+      }
+    }
+  }
   this.SetCameraTarget(pos);
   pos.y += 1000;
   this.SetCameraPosition(pos);
@@ -2604,8 +2677,7 @@ MapViewer.prototype.loadVolumetric = function(db,cell,volumeObj) {
  *    but in our use case expected numbers
  */
 function BuildGraphFromEdgeList(edges) {
-  // return object
-  const graph = {};
+  const graph = {}; // return object
   for (const edge of edges) {
     if (edge[0] === edge[1]) {
       continue;
