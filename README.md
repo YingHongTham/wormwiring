@@ -144,26 +144,9 @@ and it has been smoothed out by Elegance.
   (can be different)
 
 
-# Skeleton Viewer
-The Skeleton Viewer app is the app that makes the most queries,
-in quantity and complexity, to the MySQL tables.
-Here we give a summary of the queries made
-in a single request for the skeleton/synapses etc of a cell
-in the app,
-php mostly processed by retrieve_trace_coord_alt.php and dbconnect.php
-in the /apps/php folder.
-
-TODO
-
-
-
-TODO color changer for volume
-
-
 # JS library files
 Notes on various javascript files.
 (All filepaths are relative to here)
-
 
 General purpose libraries:
 - apps/include/jquery-3.6.0.min.js: jQuery library
@@ -185,42 +168,47 @@ General purpose libraries:
 
 - apps/include/floatingdialog.js: library for floating window used in
   apps to display stuff e.g. Cell Selector, Help Dialog etc.
-- apps/include/floatingdialog-alt.js: arguably better (but still incomplete)
-  floating window, plan to make it replace floatingdialog.js
-  (better because user can drag with mouse;
-  incomplete because should add option to have 'modal-background',
-  and also to add nice buttons)
+- apps/include/floatingdialog-alt.js:
+  floating window, meant to replace floatingdialog.js
+  (better because user can drag with mouse,
+	and much cleaner, I think;
+  incomplete because should add option to add nice buttons.
+	currently only neuronVolume uses floatingdialog.js
 
 - apps/include/importers.js: deals with menu items on the left of apps, still
   used by neuronVolume,
-  but in neuronMaps has been just written into importerapp-alt.js
+  but in neuronMaps has been just written into importerapp.js
 
 - apps/include/spectrum: probably for color selection, but unclear if still used
   (probably still in neuronVolume)
 
 JS files that essentially act as data,
 most should be updated if databases are updated:
-- apps/include/cellLists-alt.js: list of cells grouped by database (series)
+- apps/include/cellLists.js: list of cells grouped by database (series)
   and cell type (neuron/muscle)
 
 - apps/include/wa_link.js: provides a function that,
   given a cell name, returns the WormAtlas link
 
-- apps/include/plotParams.js: some parameters like min/max coords that help to
-  adjust cell position in neuronMaps
+- apps/include/plotParams.js: values used to convert
+	coordinates obtained from MySQL tables into viewer
+	in neuronMaps;
+	in particular, gives the right scaling so x,y,z are
+	in the correct ratio.
 
-- apps/neuronMaps/include/helpDialogItems.js
+- apps/neuronMaps/include/helpDialogItems.js:
+	text for Help dialog
 
 
 **App-specific files**, grouped by apps,
 as named in the Emmonslab page
 
 Synapse/Partner List:
-- apps/listViewerAlt/include/build_listViewer_alt.js:
+- apps/listViewer/include/build_listViewer.js:
 	entry point for listViewer,
 	variables are initiliazed here,
 	reads url parameters and preloads
-- apps/listViewerAlt/include/importerapp-alt.js:
+- apps/listViewer/include/importerapp.js:
 	provides ImporterApp class,
 	which interacts with html to allow user to
 	select database/cells,
@@ -241,14 +229,14 @@ Synapse Viewer
 	variables are initiliazed here,
 	in particular an instance of ImporterApp,
 	and reads url parameters and preloads
-- apps/neuronMaps/include/importerapp-alt.js
+- apps/neuronMaps/include/importerapp.js
 	provides ImporterApp class,
 	intermediary between HTML and MapViewer class
 - apps/neuronMaps/include/mapViewer.js:
 	deals with the display/mouse events in the 3D viewer,
 	e.g. zoom, rotate view, click on synapses,
 	and also responsible for loading data from
-	apps/php/retrieve_trace_coord_alt.php (via ImporterApp)
+	apps/php/retrieveSkeletonMaps.php (via ImporterApp)
 	into the viewer, and more
 	
 - apps/neuronVolume/include/build_neuronVolume.js
@@ -259,44 +247,9 @@ Synapse Viewer
 - apps/neuronVolume/include/meshviewer.js:
 	counterpart to mapViewer.js
 - apps/neuronVolume/include/importerapp.js:
-	similar to importerapp-alt.js in neuronMaps
+	similar to importerapp.js in neuronMaps
 - apps/neuronVolume/include/importerviewer.js: seems unused?
 
-
-Obsolete files/folders, probably should delete at some point:
-- apps/include/selectorCells.js: at some point used to avoid requesting for
-  cells in given database
-- apps/include/cellLists.js: replaced by cellLists-alt.js
-- apps/include/importWW.js
-- apps/synapseList/include/build_synapseList.js
-- apps/neuronMaps/include/importerapp.js
-- apps/partnerList/include/build_partnerList.js
-- apps/partnerList/include/build_partnerList_alt.js
-- apps/synapseList/include/importerapp.js
-- apps/partnerList/include/importerapp.js
-
-- apps/neuronContacts/include/mapViewer.js: hmm neuronContacts itself seems to
-	be obsolete..
-- apps/listViewer/include/build_listViewer.js:
-	entry point for listViewer,
-	variables are initiliazed here,
-	reads url parameters and preloads
-- apps/listViewer/include/importerapp.js:
-	provides ImporterApp class,
-	which interacts with html to allow user to
-	select database/cells,
-	and also *loads* either synapseList or partnerList,
-	depending on url parameter 'listtype';
-  here 'loads' means literally loads the entire page
-  within an iframe element.
-- apps/synapseList/include/build_synapseList_alt.js:
-	requests data from apps/php/getSynapseList-alt.php,
-	groups by partner, and loads into table;
-  for synapseList app
-- apps/partnerList/include/build_partnerList_alt2.js:
-	requests data from apps/php/getSynapseList-alt.php,
-	groups by partner, and loads into table;
-  for partnerList app
 
 # Setup
 
@@ -365,7 +318,7 @@ So we scale x and y by 0.13
 
 
 
-## Some things to resolve/clean up:
+## Some things to resolve/clean up, i.e. TODO's:
 -change scaling, in particular, figure out the right scaling for each database,
 performing the same analysis as described above
 
@@ -394,4 +347,6 @@ For now, if it does get too much in the way,
 the user may simply hide the aggregate volumes,
 and problem is averted.
 
+
+-allow user to change volume color
 
