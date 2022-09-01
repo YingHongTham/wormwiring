@@ -181,26 +181,6 @@ MapViewer = function(canvas,app)
     'n2y': null,
   };
   
-  // make synapse labels and remarks rotate to face camera
-  // whenever mouse is unclicked
-  // (because only need to rotate when view rotates,
-  // and also don't want to rotate labels all the time)
-  const self = this;
-  document.onmouseup = () => {
-    for (const db in self.dbMaps) {
-      for (const cell in self.dbMaps[db]) {
-        let map = self.dbMaps[db][cell];
-        for (const contin in map.allSynData) {
-          self.RotateTextFaceCamera(
-            map.allSynData[contin].synLabelObj);
-        }
-        for (const rmkText of map.remarksGrp.children) {
-          self.RotateTextFaceCamera(rmkText);
-        }
-      }
-    }
-  };
-
   // but wait! there's more! (and more variables)
   this.InitGL(); // camera stuff
 
@@ -381,15 +361,32 @@ MapViewer.prototype.InitStuffInScene = function() {
     rotate: { x: -Math.PI/2 },
   }));
 
-  // make text rotate with camera
+
+  // make synapse labels, remarks, axes text rotate
+  // to face camera whenever mouse is unclicked
+  // (because only need to rotate when view rotates,
+  // and also don't want to rotate labels all the time)
   const self = this;
   document.onmouseup = () => {
+    for (const db in self.dbMaps) {
+      for (const cell in self.dbMaps[db]) {
+        let map = self.dbMaps[db][cell];
+        for (const contin in map.allSynData) {
+          self.RotateTextFaceCamera(
+            map.allSynData[contin].synLabelObj);
+        }
+        for (const rmkText of map.remarksGrp.children) {
+          self.RotateTextFaceCamera(rmkText);
+        }
+      }
+    }
     for (const m of self.axesText.children) {
       if (m.name === 'text') {
         self.RotateTextFaceCamera(m);
       }
     }
   };
+
 };
 
 
