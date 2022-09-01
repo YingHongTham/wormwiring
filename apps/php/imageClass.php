@@ -1,6 +1,9 @@
 <?php
 
-// improved versioin of images.php
+// a class for handling the processing of synapse EM images
+// in loadSynapseImage
+// mostly just drawing some lines and text over the image
+// used to be called images(-alt).php
 
 class Image {
   // $file is just the filename

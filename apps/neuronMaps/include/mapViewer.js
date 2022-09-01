@@ -411,7 +411,7 @@ MapViewer.prototype.clearMaps = function() {
 
 /*
  * to be compatible w/ LoadMap in importerapp-alt.js
- * and retrieve_trace_coord_alt(_2).php,
+ * and retrieveSkeletonMaps.php,
  * where object numbers are used efficiently
  *
  * expect format of @param data:

@@ -345,7 +345,7 @@ ImporterApp.prototype.LoadCell = function(db, cell) {
   // requesting for data
 
   // url to php which makes the MySQL queries
-  const url = '/apps/php/getSynapseList-alt.php/'
+  const url = '/apps/php/getSynapseList.php/'
     + `?db=${db}&cell=${cell}`;
   console.log('retrieving synapses from ', url);
   const xhttp = new XMLHttpRequest();    
@@ -532,6 +532,10 @@ ImporterApp.prototype.PopulateSynapseListRows = function(db,cell,data) {
   setTimeout(() => this.ToggleAllIndividualRows(db,cell,true));
 };
 
+// the grouping of synapse into partner types
+// used to be performed by getPartnerList(-alt).php
+// but now we do it here,
+// more efficient, as we only need to request php once
 ImporterApp.prototype.PopulatePartnerListRows = function(db,cell,data) {
   // group by type and partner
   const synByTypePartner = {

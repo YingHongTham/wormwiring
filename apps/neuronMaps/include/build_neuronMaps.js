@@ -67,19 +67,13 @@ window.onload = function(){
 	const importerApp = new ImporterApp();
   if (params.hasOwnProperty('db')
     && params.hasOwnProperty('cell')) {
-    // need to wait for everything to initialize properly
     setTimeout(() => {
+      // need to wait for everything to initialize properly
       importerApp.LoadDbCell(params.db, params.cell);
     },0);
   }
 
-  // doing some testing
-  setTimeout(() => {
-    importerApp.LoadDbCell('JSH', 'AIZR');
-  },0);
-
   // access importerApp in the console
 	window.importerApp = importerApp;
-
 };
 

@@ -410,7 +410,7 @@ ImporterApp.prototype.LoadDbCell = function(db, cell)
   // update the series selector in menu
   this.SetSeriesToHTML(db);
 
-  this.LoadMap2(db,cell);
+  this.LoadMap(db,cell);
 };
 
 
@@ -519,7 +519,7 @@ ImporterApp.prototype.InitCellSelectorDialog = function() {
       const checkedBoxes = document.querySelectorAll(
           `input[name=${formName}]:checked`);
       for (const node of checkedBoxes) {
-        self.LoadMap2(db, node.value);
+        self.LoadMap(db, node.value);
       }
     }
     self.cellSelectorDialog.CloseWindow();
@@ -702,7 +702,7 @@ ImporterApp.prototype.ClearMaps = function() {
 // *Section*: Stuff when cell is loaded
 
 /*
- * calls retrieve_trace_coord_alt_2.php
+ * calls retrieveSkeletonMaps.php
  * and passes data to viewer to load
  *
  * @param {String} db - name of database
@@ -711,7 +711,7 @@ ImporterApp.prototype.ClearMaps = function() {
  *                              after cell loaded:
  *                              color, cameraSettings
  */
-ImporterApp.prototype.LoadMap2 = function(db,cell,postParams=null)
+ImporterApp.prototype.LoadMap = function(db,cell,postParams=null)
 {
   // already loaded?
   if (this.loadedCells[db].includes(cell)) {
@@ -722,7 +722,7 @@ ImporterApp.prototype.LoadMap2 = function(db,cell,postParams=null)
   console.log(db,cell,postParams);
 
   const self = this;
-  const url = `../php/retrieve_trace_coord_alt_2.php?db=${db}&cell=${cell}`;
+  const url = `../php/retrieveSkeletonMaps.php?db=${db}&cell=${cell}`;
   console.log('retrieving skeleton map via '+url);
   const xhttp = new XMLHttpRequest();    
   console.time(`Retrieve ${cell}`);
@@ -767,7 +767,7 @@ ImporterApp.prototype.LoadMap2 = function(db,cell,postParams=null)
           self.viewer.FilterSynapses(filters);
           // we leave the adding of entry in 'current filters'
           // to the LoadFromFile function
-          // (otherwise each call of LoadMap2 would
+          // (otherwise each call of LoadMap would
           // add a copy of these synapse filters)
           //self.AddToCurrentFilters(filters);
         }
@@ -1636,7 +1636,7 @@ ImporterApp.prototype.LoadFromFile = function() {
       self.SetSeriesToHTML(db);
 
       for (const cell in data.mapsSettings[db]) {
-        self.LoadMap2(db, cell, {
+        self.LoadMap(db, cell, {
           color: {
             r: data.mapsSettings[db][cell].color.r,
             g: data.mapsSettings[db][cell].color.g,

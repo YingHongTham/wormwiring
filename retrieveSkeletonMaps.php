@@ -1,6 +1,9 @@
 <?php
 
-/* redoing retrieve_trace_coord_alt.php,
+/*
+ * used to be called retrieve_trace_coord_alt_2.php,
+ * which redid retrieve_trace_coord_alt.php
+ *
  * this time using object table to get coordinates,
  * not from display2
  * (even though we still use display2 to get the skeleton)

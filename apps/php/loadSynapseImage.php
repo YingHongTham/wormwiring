@@ -12,7 +12,7 @@ ini_set("display_errors", 1);
 ini_set('memory_limit',"10240M");
 
 require_once('./dbconnect.php');
-require_once('./images-alt.php');
+require_once('./imageClass.php');
 
 // dimensions of rectangle drawn around synapse object
 // (in pixels in original image)

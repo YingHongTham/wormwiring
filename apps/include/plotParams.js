@@ -1,7 +1,7 @@
 /*
  * plotTransform tells MapViewer how to transform
  * (translate and scale)
- * coordinates received from php (retrieve_trace_coord(_alt_2))
+ * coordinates received from retrieveSkeletonMaps.php
  * to viewer
  * so that data from different databases are compatible
  *

@@ -20,7 +20,8 @@
  *
  * (so unlike the old version getSynapseList.php,
  * we do not group by partner (which the Syn class does),
- * and instead let the client-side handle)
+ * and instead let the client-side handle;
+ * that also means getPartnerList(-alt).php is obsolete)
  *
  * for chemical synpases,
  * pre means synapses where given cell is pre, likewise for post

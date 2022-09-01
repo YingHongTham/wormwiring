@@ -70,7 +70,7 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
 
   const self = this;
   
-  const url = `/apps/php/getSynapse-alt.php?db=${this.db}&contin=${this.contin}`;
+  const url = `/apps/php/getSynapseSections.php?db=${this.db}&contin=${this.contin}`;
   console.log('get synapse sections from: ', url);
   const xhttp = new XMLHttpRequest();    
   xhttp.onreadystatechange = function() {
@@ -147,7 +147,7 @@ ImporterApp.prototype.LoadSynapse = function(db, contin) {
 
 ImporterApp.prototype.LoadImage = function(objNum,zoom)
 {
-  const url = `/apps/php/loadSynapseImage-alt-2.php?` +
+  const url = `/apps/php/loadSynapseImage.php?` +
     `contin=${this.contin}&db=${this.db}&` +
     `objNum=${objNum}&zoom=${zoom}`;
   console.log('synapse viewer: ', url);
