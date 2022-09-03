@@ -336,6 +336,13 @@ If these fail, just return null and 'center view' functionality
 is moot (and there wouldn't be anything to center the view on
 anyway).
 
+Ideally, someone fixes the MySQL table,
+by using Elegance to trace the skeleton of such cells again;
+as a stopgap, one could attempt to artificially
+reconstruct the edges from the objCoord's that we have,
+perhaps say that two points are connected if they're
+one section apart and are within a certain distance.
+
 
 -synapse balls and label sometimes disappear or get blocked by
 the aggregate volume (even though it's set to opacity 0.1);
@@ -347,6 +354,8 @@ For now, if it does get too much in the way,
 the user may simply hide the aggregate volumes,
 and problem is averted.
 
-
--allow user to change volume color
-
+-color selector for volume is a tiny bit buggy, for some cells
+like N2U ADAL, when first loaded, the color selector in the menu
+doesn't seem to match the color in the viewer
+(but using console to check the values,
+they seem to agree...)

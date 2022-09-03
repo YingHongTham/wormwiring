@@ -1411,16 +1411,47 @@ MapViewer.prototype.SetSkeletonColorHex = function(db,cell,hex) {
   color.b = color.b / 255.0;
   this.SetSkeletonColor(db,cell,color);
 };
-
-/*
- * get skeleton color
- * note it is out of 1.0, for rgb should *255 and round
- */
+// get skeleton color
+// note it is out of 1.0, for rgb should *255 and round
 MapViewer.prototype.GetSkeletonColor = function(db,cell) {
   if (this.dbMaps[db][cell].skeletonGrp.children.length === 0) {
     return { r: 0, g: 0, b: 0 };
   }
   const obj = this.dbMaps[db][cell].skeletonGrp.children[0];
+  return {
+    r: obj.material.color.r,
+    g: obj.material.color.g,
+    b: obj.material.color.b,
+  };
+};
+MapViewer.prototype.SetVolumeColor = function(db,cell,color) {
+  const volumeObj = this.dbMaps[db][cell].volumeObj;
+  for (const obj of volumeObj.children) {
+    obj.material.color.r = color.r;
+    obj.material.color.g = color.g;
+    obj.material.color.b = color.b;
+  }
+};
+MapViewer.prototype.SetVolumeColorHex = function(db,cell,hex) {
+  const color = this.app.hexToRGB(hex);
+  color.r = color.r / 255.0;
+  color.g = color.g / 255.0;
+  color.b = color.b / 255.0;
+  this.SetVolumeColor(db,cell,color);
+};
+// get volume color
+// note it is out of 1.0, for rgb should *255 and round
+MapViewer.prototype.GetVolumeColor = function(db,cell) {
+  if (!this.dbMaps.hasOwnProperty(db)
+    || !this.dbMaps[db].hasOwnProperty(cell)) {
+    return { r: 0, g: 0, b: 0 };
+  }
+  if (!this.dbMaps[db][cell].hasOwnProperty('volumeObj')
+    || this.dbMaps[db][cell].volumeObj === null
+    || this.dbMaps[db][cell].volumeObj.children.length === 0) {
+    return { r: 0, g: 0, b: 0 };
+  }
+  const obj = this.dbMaps[db][cell].volumeObj.children[0];
   return {
     r: obj.material.color.r,
     g: obj.material.color.g,

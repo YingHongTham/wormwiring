@@ -801,17 +801,19 @@ ImporterApp.prototype.LoadMap = function(db,cell,postParams=null)
  *  <div> // div
  *    <div>Cellname</div> // title
  *    <div> // content
- *      <div>
- *        <span>Color Selector:</span>
- *        <input type='color'>
- *      </div>
- *      <button>Synapse List</button>
- *      <button>Hide Cell</button>
- *      <button>Show Remarks</button>
- *      <button>Center View</button>
- *      <button>Hide Volume</button>
- *      <a>WormAtlas</a>
- *      <a>Synapse By Partners</a>
+ *      <ul>
+ *        <li><span>Color Selector:<br></span>
+ *            Skel.: <input type='color'>
+ *            Vol.: <input type='color'>
+ *        <li></div>
+ *        <li><button>Synapse List</button>
+ *        <li><button>Hide Cell</button>
+ *        <li><button>Show Remarks</button>
+ *        <li><button>Center View</button>
+ *        <li><button>Hide Volume</button>
+ *        <li><a>WormAtlas</a>
+ *        <li><a>Synapse By Partners</a>
+ *      </ul>
  *    </div>
  *  </div>
  *
@@ -843,6 +845,7 @@ ImporterApp.prototype.LoadMapMenu = function(db,cellname) {
   const colorDiv = document.createElement('div');
   const colorSpan = document.createElement('span');
   const colorInput = document.createElement('input');
+  const colorInputVol = document.createElement('input');
   const synapseListBtn = document.createElement('button');
   const cellBtn = document.createElement('button');
   const centerViewBtn = document.createElement('button');
@@ -853,7 +856,11 @@ ImporterApp.prototype.LoadMapMenu = function(db,cellname) {
 
   content.appendChild(ul);
   colorDiv.appendChild(colorSpan);
+  colorDiv.append('Skeleton:');
   colorDiv.appendChild(colorInput);
+  colorDiv.appendChild(document.createElement('br'));
+  colorDiv.append('Volume:');
+  colorDiv.appendChild(colorInputVol);
 
   const listItems = [
     colorDiv,
@@ -920,10 +927,14 @@ ImporterApp.prototype.LoadMapMenu = function(db,cellname) {
 
   //===============================
   // color span/input
-  colorSpan.innerHTML = 'Color Selector:';
+  colorSpan.innerHTML = 'Color Selector:<br>';
   colorInput.type = 'color';
   colorInput.style.height = '5px';
   colorInput.id = `color-selector-${db}-${cellname}`;
+
+  colorInputVol.type = 'color';
+  colorInputVol.style.height = '5px';
+  colorInputVol.id = `color-selector-volume-${db}-${cellname}`;
 
   // get color of cell from viewer,
   // transform to appropriate format
@@ -933,6 +944,18 @@ ImporterApp.prototype.LoadMapMenu = function(db,cellname) {
   colorInput.addEventListener('change', (ev) => {
     const color = ev.target.value; // hex value
     self.viewer.SetSkeletonColorHex(db,cellname,color);
+  }, false);
+
+  // get color of volume from viewer,
+  // transform to appropriate format
+  // (done again at end of retrieveVolumetric;
+  // seems that runs sooner than this sometimes)
+  let colorVol = this.viewer.GetVolumeColor(db,cellname);
+  this.SetColorVolumeToHTML(db,cellname,colorVol);
+
+  colorInputVol.addEventListener('change', (ev) => {
+    const color = ev.target.value; // hex value
+    self.viewer.SetVolumeColorHex(db,cellname,color);
   }, false);
 
 
@@ -1175,7 +1198,13 @@ ImporterApp.prototype.retrieveVolumetric = function(db, cell) {
     objLoader.setMaterials(materials);
     objLoader.load(urlObj, function(object) {
       // sends object to viewer
-      self.viewer.loadVolumetric(db, cell, object);
+      self.viewer.loadVolumetric(db,cell,object);
+
+      // set color in map menu
+      setTimeout(() => {
+        let colorVol = self.viewer.GetVolumeColor(db,cell);
+        self.SetColorVolumeToHTML(db,cell,colorVol);
+      }, 0);
     });
   });
 };
@@ -1599,6 +1628,22 @@ ImporterApp.prototype.SetColorToHTML = function(db,cell,color) {
   const colorInput = 
     document.getElementById(`color-selector-${db}-${cell}`);
   colorInput.setAttribute('value',hex);
+};
+// 0.0 <= color.r <= 1.0
+ImporterApp.prototype.SetColorVolumeToHTML = function(db,cell,color) {
+  // convert to RGB (integer values 0 to 255)
+  let r = Math.round(255 * color.r);
+  let b = Math.round(255 * color.b);
+  let g = Math.round(255 * color.g);
+  let rgb = b | (g << 8) | (r << 16);
+  let hex = '#' + rgb.toString(16);
+
+  const colorInputVol = 
+    document.getElementById(`color-selector-volume-${db}-${cell}`);
+  if (colorInputVol === null) {
+    return;
+  }
+  colorInputVol.setAttribute('value',hex);
 };
 
 // content of maps section
