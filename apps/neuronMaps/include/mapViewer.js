@@ -541,14 +541,13 @@ MapViewer.prototype.loadMap = function(data)
    *  when doing concrete things like deleting from viewer,
    *  e.g. in clearMaps, or toggleAllSynapses
    *  only need to do on synObjs (which is more convenient to go through)
-   *
-   *  TODO add region?
    */
   this.maps[cell] = {
     name: cell,
     db: data.db,
     allGrps: new THREE.Group(),
     objCoord: {}, // key,value = objNum, THREE.Vector3
+    objCoordDisplay: {},
     objSeries: data.objSeries,
     skeletonGraph: {},
     skeletonLines: [],
@@ -585,6 +584,8 @@ MapViewer.prototype.loadMap = function(data)
   map.synLabels.visible = true; // but individually not vis
 
   // set object coordinates, apply transformation
+  // note that objCoord is modified in SmoothSkeletonCoord
+  // (probably not anymore, was trying to manually smooth)
   for (const obj in data.objCoord) {
     map.objCoord[obj] = 
       this.ApplyPlotTransform(db,
@@ -594,8 +595,17 @@ MapViewer.prototype.loadMap = function(data)
           data.objCoord[obj].z)
       );
   }
+  for (const obj in data.objCoordDisplay) {
+    map.objCoordDisplay[obj] = 
+      this.ApplyPlotTransformDisplay2(db,
+        new THREE.Vector3(
+          data.objCoordDisplay[obj].x,
+          data.objCoordDisplay[obj].y,
+          data.objCoordDisplay[obj].z)
+      );
+  }
 
-  // process skeleton data
+  // process skeleton data into graph/lines
   // note: graph's nodes are object numbers
   // but because keys of object in JS are strings,
   // be careful if comparing key and value with ===
@@ -605,6 +615,9 @@ MapViewer.prototype.loadMap = function(data)
       BuildGraphFromEdgeList(data.skeleton);
   map.skeletonLines = 
       BreakGraphIntoLineSubgraphs(map.skeletonGraph);
+
+  //this.SmoothSkeletonCoord(db,map.name);
+
   this.loadSkeletonIntoViewer(db,map.name);
 
   //===============================================
@@ -830,6 +843,55 @@ MapViewer.prototype.loadMap = function(data)
   this.CenterViewOnCell(db,map.name);
 };
 
+
+// assumes that this.dbMaps[db][cell] exists,
+// objCoord and skeletonGrph has already been defined
+// note not every object in objCoord has entry in skeletonGraph
+// (should only be used once in loadMap)
+// (probably not used)
+MapViewer.prototype.SmoothSkeletonCoord = function(db,cell) {
+  const map = this.dbMaps[db][cell];
+  const neighborAverage = {};
+
+  const depth = 7; // max degree of separation to be included
+
+  for (const obj in map.objCoord) {
+    if (!map.skeletonGraph.hasOwnProperty(obj))
+      continue;
+    if (map.skeletonGraph[obj].length <= 1)
+      continue;
+    
+    let neighbors = new Set();
+    neighbors.add(obj);
+    for (let i = 0; i < depth; ++i) {
+      for (const s of neighbors) {
+        for (const w of map.skeletonGraph[s]) {
+          neighbors.add(w);
+        }
+      }
+    }
+
+    let v = new THREE.Vector3(0,0,0);
+    for (const s of neighbors) {
+      v.add(map.objCoord[s]);
+    }
+    v.multiplyScalar(1.0 / neighbors.size);
+    neighborAverage[obj] = v;
+  };
+
+  for (const obj in neighborAverage) {
+    console.log(obj,map.objCoord[obj]);
+    console.log(obj,neighborAverage[obj]);
+    // 0.8 * objCoord + 0.2 * neighborAverage
+    // (but only for x,y)
+    neighborAverage[obj].z = map.objCoord[obj].z;
+    map.objCoord[obj].multiplyScalar(0.8);
+    neighborAverage[obj].multiplyScalar(0.2);
+    map.objCoord[obj].add(neighborAverage[obj]);
+  }
+};
+
+
 /*
  * add the cell skeleton to THREE scene
  * uses this.maps[name].skeletonLines
@@ -847,7 +909,17 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(db,cell) {
   // this is only ever used once,
   // and in that context, this.maps is properly set
   for (const line of this.dbMaps[db][cell].skeletonLines) {
-    const points = line.map(obj => this.dbMaps[db][cell].objCoord[obj]);
+    const points = line.map(obj =>
+        this.dbMaps[db][cell].objCoord[obj]);
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = this.dbMaps[db][cell].skelMaterial;
+    const l = new THREE.Line(geometry, material);
+    this.dbMaps[db][cell].skeletonGrp.add(l);
+  }
+  // load both coordinates
+  for (const line of this.dbMaps[db][cell].skeletonLines) {
+    const points = line.map(obj =>
+        this.dbMaps[db][cell].objCoordDisplay[obj]);
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const material = this.dbMaps[db][cell].skelMaterial;
     const l = new THREE.Line(geometry, material);
@@ -996,6 +1068,20 @@ MapViewer.prototype.addOneSynapse2 = function(synData) {
 MapViewer.prototype.ApplyPlotTransform = function(db,vec) {
   const trans = plotTransform[db].translate;
   const scale = plotTransform[db].scale;
+  return new THREE.Vector3(
+    trans.x + vec.x * scale.x,
+    trans.y + vec.y * scale.y,
+    trans.z + vec.z * scale.z
+  );
+};
+// same as above, but for transforming skeleton coordinates
+// that come from display2 table
+// to fit coordinates from object table
+// (that is, ApplyPlotTransform(object table coord)
+// ~= ApplyPlotTransformDisplay2(display2 table coord) )
+MapViewer.prototype.ApplyPlotTransformDisplay2 = function(db,vec) {
+  const trans = plotTransformDisplay2[db].translate;
+  const scale = plotTransformDisplay2[db].scale;
   return new THREE.Vector3(
     trans.x + vec.x * scale.x,
     trans.y + vec.y * scale.y,

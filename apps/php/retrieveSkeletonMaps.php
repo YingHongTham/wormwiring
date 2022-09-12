@@ -46,8 +46,6 @@
  *    of an object
  *    this is useful to distinguish for the 2D view,
  *    where we want to (have option to) show regions separately
- * - cellbody is now a collection of objects
- *    (previously edges had property cb = 0/1)
  * 
  * note: some query fields returned as string, but should be
  * number; make sure to cast
@@ -96,11 +94,14 @@ $data['db'] = $db;
 $data['name'] = $cell;
 
 // we store other data by the object numbers of objects involved,
-// this is the only place the coordinates are given
-// (hmm maybe also want to put the series(region) and cb
-// as part of coordinate... we'll see if we need it)
+// coordinates of objects are given twice,
+// once in objCoord, from object + image table,
+// another in objCoordDisplay, from display2 table
 // key = object number, value = [x,y,z]
+// unclear whether it's always the case that the set of keys
+// of these arrays are exactly the same
 $data['objCoord'] = array();
+$data['objCoordDisplay'] = array();
 
 // cell goes through several parts of worm e.g. NR, VC etc
 // record skeleton by these parts
@@ -114,7 +115,7 @@ $data['pre'] = array();
 $data['post'] = array();
 $data['gap'] = array();
 
-$data['cellbody'] = array(); // "set" of objects in it
+$data['cellbody'] = array(); // [[obj1,obj2], ...]
 $data['remarks'] = array(); // objNum => remark text
 $data['plotParam'] = array();
 
@@ -163,8 +164,9 @@ $data['objCoord'] = $objCoord;
 
 $continStr = implode(",",$continNums);
 $sql = "select
-    objName1 as objNum1,
+		objName1 as objNum1,
     objName2 as objNum2,
+		x1,y1,z1,x2,y2,z2,
     cellbody1 as cb1,
     remarks1,remarks2,
     continNum,
@@ -183,9 +185,19 @@ foreach ($query_results as $v) {
 	}
 
   // cast to integer
-  foreach (['objNum1','objNum2','cb1','continNum'] as $k) {
+	foreach (['objNum1','objNum2','cb1','continNum',
+						'x1','y1','z1','x2','y2','z2'] as $k) {
     $v[$k] = intval($v[$k]);
-  }
+	}
+
+	$data['objCoordDisplay'][$v['objNum1']] = array(
+		'x' => intval($v['x1']),
+		'y' => intval($v['y1']),
+		'z' => intval($v['z1']));
+	$data['objCoordDisplay'][$v['objNum2']] = array(
+		'x' => intval($v['x2']),
+		'y' => intval($v['y2']),
+		'z' => intval($v['z2']));
 
   // add edge to skeleton
   $data['skeleton'][] = array($v['objNum1'],$v['objNum2']);
