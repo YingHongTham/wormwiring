@@ -119,7 +119,7 @@ const plotTransformDisplay2 = {
       z: 1,
     },
   },
-  N2W: {
+  N2W: { // fits very nicely with plotTransform
     translate: {
       x: -1500,
       y: 1200,
@@ -131,19 +131,21 @@ const plotTransformDisplay2 = {
       z: 1,
     },
   },
-  JSE: {
+  JSE: { // tune with PHBR
+    // weird ALNL is in rear, AVJR in nerve ring..?
+    // but in object table, they appear close..
     translate: {
-      x: 1444,
-      y: 667,
-      z: 0,
+      x: 1470,
+      y: 2160,
+      z: 0000,
     },
     scale: {
-      x: 0.13,
-      y: -0.13,
+      x: 0.43,
+      y: -0.43,
       z: 1,
     },
   },
-  JSH: {
+  JSH: { // fits very nicely with plotTransform
     translate: {
       x: 1000,
       y: 875,
@@ -155,27 +157,27 @@ const plotTransformDisplay2 = {
       z: 1,
     },
   },
-  n2y: {
+  n2y: { // AS10, R7AR
     translate: {
-      x: 170,
-      y: 850,
+      x: -320,
+      y: 2840,
       z: 0,
     },
     scale: {
-      x: 0.13,
-      y: -0.13,
+      x: 0.43,
+      y: -0.43,
       z: 1,
     },
   },
   n930: {
     translate: {
-      x: -3000,
-      y: 3000,
+      x: -2995,
+      y: 2990,
       z: 0,
     },
     scale: {
-      x: 0.13,
-      y: -0.13,
+      x: 0.44,
+      y: -0.44,
       z: 1,
     },
   },

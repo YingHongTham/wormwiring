@@ -921,7 +921,9 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(db,cell) {
     const points = line.map(obj =>
         this.dbMaps[db][cell].objCoordDisplay[obj]);
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = this.dbMaps[db][cell].skelMaterial;
+    //const material = this.dbMaps[db][cell].skelMaterial;
+    const material = new THREE.LineBasicMaterial({ color: 0xfa5882 });
+
     const l = new THREE.Line(geometry, material);
     this.dbMaps[db][cell].skeletonGrp.add(l);
   }
