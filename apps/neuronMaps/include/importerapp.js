@@ -1288,6 +1288,7 @@ ImporterApp.prototype.UpdateSynapseInfo = function(db,cellname,contin) {
     this.RestoreSynapseInfoToDefault2();
     return;
   }
+  console.log(db,cellname,contin);
   const synData = this.viewer.GetSynData(db,cellname,contin);
   const pos = synData.coord;
   document.getElementById('synInfoType').innerHTML

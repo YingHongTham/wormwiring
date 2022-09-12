@@ -35,6 +35,18 @@
  * -text in viewer
  * -some auxiliary functions for graphs
  *
+ *
+ * NOTE: some last minute changes made
+ * reverting back to using display2 for skeleton
+ * because apparently the original object table coords
+ * are too messy
+ * so map.objCoord is for display2 table
+ * and map.objCoordObject is what used to be map.objCoord
+ * for synapses (see addOneSynapse),
+ * synData.coord is from object table
+ * synData.coordDisp is synData.coord but translated
+ * (this assumes synData.cellObj is good..)
+ *
  */
 
 
@@ -547,7 +559,7 @@ MapViewer.prototype.loadMap = function(data)
     db: data.db,
     allGrps: new THREE.Group(),
     objCoord: {}, // key,value = objNum, THREE.Vector3
-    objCoordDisplay: {},
+    objCoordObject: {},
     objSeries: data.objSeries,
     skeletonGraph: {},
     skeletonLines: [],
@@ -586,22 +598,22 @@ MapViewer.prototype.loadMap = function(data)
   // set object coordinates, apply transformation
   // note that objCoord is modified in SmoothSkeletonCoord
   // (probably not anymore, was trying to manually smooth)
-  for (const obj in data.objCoord) {
+  for (const obj in data.objCoordDisp) {
     map.objCoord[obj] = 
+      this.ApplyPlotTransformDisplay2(db,
+        new THREE.Vector3(
+          data.objCoordDisp[obj].x,
+          data.objCoordDisp[obj].y,
+          data.objCoordDisp[obj].z)
+      );
+  }
+  for (const obj in data.objCoord) {
+    map.objCoordObject[obj] = 
       this.ApplyPlotTransform(db,
         new THREE.Vector3(
           data.objCoord[obj].x,
           data.objCoord[obj].y,
           data.objCoord[obj].z)
-      );
-  }
-  for (const obj in data.objCoordDisplay) {
-    map.objCoordDisplay[obj] = 
-      this.ApplyPlotTransformDisplay2(db,
-        new THREE.Vector3(
-          data.objCoordDisplay[obj].x,
-          data.objCoordDisplay[obj].y,
-          data.objCoordDisplay[obj].z)
       );
   }
 
@@ -657,13 +669,14 @@ MapViewer.prototype.loadMap = function(data)
             syn.coord['y'],
             syn.coord['z'])
         ),
+      coordDisp: new THREE.Vector3(0,0,0),
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
       partners: '',
       cellObj: null, // may be bad
-      sphere: null, // set later in addOneSynapse2
-      synLabelObj: null, // set later in addOneSynapse2
+      sphere: null, // set later in addOneSynapse
+      synLabelObj: null, // set later in addOneSynapse
     };
     let synDataP = Object.assign({}, synData);
     // set partner so that this cell is in front
@@ -701,6 +714,22 @@ MapViewer.prototype.loadMap = function(data)
           this.GetClosestCellObjToCoord(db,cell,synDataP.coord);
       }
     }
+
+    // syn coord + (display2 coord - object coord)
+    console.log(synDataP.cellObj,
+      map.objCoord[synDataP.cellObj],
+      map.objCoordObject[synDataP.cellObj]);
+    if (synDataP.coord !== null
+      && map.objCoord[synDataP.cellObj] !== null
+      && map.objCoordObject[synDataP.cellObj] !== null) {
+      synDataP.coordDisp.copy(synDataP.coord);
+      synDataP.coordDisp.add(map.objCoord[synDataP.cellObj]);
+      synDataP.coordDisp.sub(map.objCoordObject[synDataP.cellObj]);
+    }
+    else {
+      synDataP.coordDisp = null;
+    }
+
     map.allSynData[synData.contin] = synDataP;
   }
 
@@ -723,13 +752,14 @@ MapViewer.prototype.loadMap = function(data)
             syn.coord['y'],
             syn.coord['z'])
         ),
+      coordDisp: new THREE.Vector3(0,0,0),
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
       partners: '',
       cellObj: null, // set below
-      sphere: null, // set later in addOneSynapse2
-      synLabelObj: null, // set later in addOneSynapse2
+      sphere: null, // set later in addOneSynapse
+      synLabelObj: null, // set later in addOneSynapse
     };
     let synDataP = Object.assign({}, synData);
 
@@ -741,6 +771,22 @@ MapViewer.prototype.loadMap = function(data)
       }
     }
     synDataP.partners = `${syn.pre}->${syn.post}`;
+
+    // syn coord + (display2 coord - object coord)
+    console.log(synDataP.cellObj,
+      map.objCoord[synDataP.cellObj],
+      map.objCoordObject[synDataP.cellObj]);
+    if (synDataP.coord !== null
+      && map.objCoord[synDataP.cellObj] !== null
+      && map.objCoordObject[synDataP.cellObj] !== null) {
+      synDataP.coordDisp.copy(synDataP.coord);
+      synDataP.coordDisp.add(map.objCoord[synDataP.cellObj]);
+      synDataP.coordDisp.sub(map.objCoordObject[synDataP.cellObj]);
+    }
+    else {
+      synDataP.coordDisp = null;
+    }
+
     map.allSynData[synData.contin] = synDataP;
   }
 
@@ -763,13 +809,14 @@ MapViewer.prototype.loadMap = function(data)
             syn.coord['y'],
             syn.coord['z'])
         ),
+      coordDisp: new THREE.Vector3(0,0,0),
       zLow: syn.zLow,
       zHigh: syn.zHigh,
       cellname: map.name,
       partners: '',
       cellObj: null, // set below
-      sphere: null, // set later in addOneSynapse2
-      synLabelObj: null, // set later in addOneSynapse2
+      sphere: null, // set later in addOneSynapse
+      synLabelObj: null, // set later in addOneSynapse
     };
     let synDataP = Object.assign({}, synData);
     synDataP.partners = `${syn.pre}->${syn.post}`;
@@ -791,6 +838,22 @@ MapViewer.prototype.loadMap = function(data)
           this.GetClosestCellObjToCoord(db,cell,synDataP.coord);
       }
     }
+
+    // syn coord + (display2 coord - object coord)
+    console.log(synDataP.cellObj,
+      map.objCoord[synDataP.cellObj],
+      map.objCoordObject[synDataP.cellObj]);
+    if (synDataP.coord !== null
+      && map.objCoord[synDataP.cellObj] !== null
+      && map.objCoordObject[synDataP.cellObj] !== null) {
+      synDataP.coordDisp.copy(synDataP.coord);
+      synDataP.coordDisp.add(map.objCoord[synDataP.cellObj]);
+      synDataP.coordDisp.sub(map.objCoordObject[synDataP.cellObj]);
+    }
+    else {
+      synDataP.coordDisp = null;
+    }
+
     map.allSynData[synData.contin] = synDataP;
   }
 
@@ -798,7 +861,7 @@ MapViewer.prototype.loadMap = function(data)
   // preprocessing synapses done, now add to viewer
 
   // order by z value ascending
-  // ordering is implicitly used in addOneSynapse2
+  // ordering is implicitly used in addOneSynapse
   // for the synLabels (to stagger them to avoid overlap)
   let allSynList = [];
   for (const contin in map.allSynData) {
@@ -810,7 +873,7 @@ MapViewer.prototype.loadMap = function(data)
     return pos1.z - pos2.z;
   });
   for (const synData of allSynList) {
-    this.addOneSynapse2(synData);
+    this.addOneSynapse(synData);
   }
 
   // synapses done
@@ -916,17 +979,17 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(db,cell) {
     const l = new THREE.Line(geometry, material);
     this.dbMaps[db][cell].skeletonGrp.add(l);
   }
-  // load both coordinates
-  for (const line of this.dbMaps[db][cell].skeletonLines) {
-    const points = line.map(obj =>
-        this.dbMaps[db][cell].objCoordDisplay[obj]);
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    //const material = this.dbMaps[db][cell].skelMaterial;
-    const material = new THREE.LineBasicMaterial({ color: 0xfa5882 });
+  //// load both coordinates
+  //for (const line of this.dbMaps[db][cell].skeletonLines) {
+  //  const points = line.map(obj =>
+  //      this.dbMaps[db][cell].objCoordDisp[obj]);
+  //  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  //  //const material = this.dbMaps[db][cell].skelMaterial;
+  //  const material = new THREE.LineBasicMaterial({ color: 0xfa5882 });
 
-    const l = new THREE.Line(geometry, material);
-    this.dbMaps[db][cell].skeletonGrp.add(l);
-  }
+  //  const l = new THREE.Line(geometry, material);
+  //  this.dbMaps[db][cell].skeletonGrp.add(l);
+  //}
 };
 
 
@@ -940,6 +1003,8 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(db,cell) {
  * -this.maps[name].synObjs - THREE.Group already in scene
  * -this.maps[name].allSynData[contin] - for easy ref
  *    (see Filter Synapses section)
+ *
+ * (does not add if synData.coordDisp is null)
  * 
  * also adds text labels to each synapse,
  * stored and added to this.maps[name].synLabels,
@@ -959,17 +1024,19 @@ MapViewer.prototype.loadSkeletonIntoViewer = function(db,cell) {
  * // (sphere object appears attached to this cell)
  * @param {Object} synData - allSynData[contin]
  */
-MapViewer.prototype.addOneSynapse2 = function(synData) {
+MapViewer.prototype.addOneSynapse = function(synData) {
   // this.maps should already be properly set
-  // in the use context on addOneSynapse2
+  // in the use context on addOneSynapse
   // but reset just in case
   const db = synData.db;
   this.maps = this.dbMaps[db];
 
   const name = synData.cellname; // cell on which synapse shows
 
-  //const synPos = this.maps[name].objCoord[synData.obj];
-  const synPos = synData['coord'];
+  const synPos = synData.coordDisp;
+  if (synPos === null) {
+    return;
+  }
 
   const synType = synData.type;
   const numSect = synData.size;
@@ -2111,7 +2178,6 @@ MapViewer.prototype.ToggleAllAggregateVolume = function(bool=null) {
   if (typeof(bool) !== 'boolean') {
     bool = !this.GetAllAggregateVolumeVis();
   }
-  console.log(bool);
   for (const db in this.aggrVol) {
     this.ToggleAggregateVolumeByDb(db,bool);
   }
@@ -2470,6 +2536,7 @@ MapViewer.prototype.GetClosestCellObjToSynapse = function(db,cell,contin) {
     this.dbMaps[db][cell].allSynData[contin].coord);
 };
 // used in loadMap when the cell object number is bad
+// (might be an issue if skeleton is very sparse..?)
 MapViewer.prototype.GetClosestCellObjToCoord = function(db,cell,coord) {
   let minDist = 10e9;
   let cellObj = null;

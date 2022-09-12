@@ -96,12 +96,21 @@ $data['name'] = $cell;
 // we store other data by the object numbers of objects involved,
 // coordinates of objects are given twice,
 // once in objCoord, from object + image table,
-// another in objCoordDisplay, from display2 table
+// another in objCoordDisp, from display2 table
+// we keep both because objCoordDisp is better for skeleton
+// (smoothed out by Elegance)
+// but objCoord is compatible with synapses and volume
+// so for example, synapses should be translated to the
+// smoothed skeleton from objCoordDisp
+// using syn.coord + (objCoordDisp - objCoord)
+//
+// (note that in MapViewer, objCoord is saved to objCoordObject,
+// and objCoordDisp is saved to objCoord)
+//
 // key = object number, value = [x,y,z]
-// unclear whether it's always the case that the set of keys
-// of these arrays are exactly the same
+// these have same key
 $data['objCoord'] = array();
-$data['objCoordDisplay'] = array();
+$data['objCoordDisp'] = array();
 
 // cell goes through several parts of worm e.g. NR, VC etc
 // record skeleton by these parts
@@ -143,7 +152,7 @@ foreach ($continNums as $contin) {
 	}
 }
 
-$data['objCoord'] = $objCoord;
+//$data['objCoord'] = $objCoord;
 
 
 //===================================================
@@ -179,8 +188,8 @@ foreach ($query_results as $v) {
   // v is row in query results, corresponds to one edge
 
 	// ignore row if objNum1/2 is not found in object table
-	if (!array_key_exists($v['objNum1'], $data['objCoord'])
-		|| !array_key_exists($v['objNum2'], $data['objCoord'])) {
+	if (!array_key_exists($v['objNum1'], $objCoord)
+		|| !array_key_exists($v['objNum2'], $objCoord)) {
 		continue;
 	}
 
@@ -190,11 +199,14 @@ foreach ($query_results as $v) {
     $v[$k] = intval($v[$k]);
 	}
 
-	$data['objCoordDisplay'][$v['objNum1']] = array(
+	$data['objCoord'][$v['objNum1']] = $objCoord[$v['objNum1']];
+	$data['objCoord'][$v['objNum2']] = $objCoord[$v['objNum2']];
+
+	$data['objCoordDisp'][$v['objNum1']] = array(
 		'x' => intval($v['x1']),
 		'y' => intval($v['y1']),
 		'z' => intval($v['z1']));
-	$data['objCoordDisplay'][$v['objNum2']] = array(
+	$data['objCoordDisp'][$v['objNum2']] = array(
 		'x' => intval($v['x2']),
 		'y' => intval($v['y2']),
 		'z' => intval($v['z2']));
