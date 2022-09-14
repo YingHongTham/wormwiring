@@ -266,7 +266,24 @@ MapViewer.prototype.InitGL = function() {
   this.scene.add(ambientLight);
 
   //=================================================
-  // keyboard events for controlling camera
+  // create sphere object that is always
+  // located at camera target
+  // (updated by SetCameraTarget)
+  const geometry = new THREE.SphereGeometry(20,
+    this.sphereWidthSegments,this.sphereHeightSegments);
+  const material = new THREE.MeshLambertMaterial({
+    color: 0x0000ff,
+  });
+  sphere = new THREE.Mesh(geometry,material);
+  this.scene.add(sphere);
+
+  sphere.visible = true;
+  sphere.name = 'cameraTargetSphere';
+  sphere.position.copy(this.GetCameraTarget());
+  sphere.material.transparent = true;
+  sphere.material.opacity = 0.2;
+
+  this.cameraTargetSphere = sphere;
 };
 
 // grid and axes
@@ -2463,6 +2480,7 @@ MapViewer.prototype.SetCameraTarget = function(target) {
   this.cameraTarget.x = target.x;
   this.cameraTarget.y = target.y;
   this.cameraTarget.z = target.z;
+  this.cameraTargetSphere.position.copy(this.controls.target);
   this.updateCamera();
 };
 MapViewer.prototype.GetCameraTarget = function() {

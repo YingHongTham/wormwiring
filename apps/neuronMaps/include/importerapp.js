@@ -401,6 +401,58 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   inputLoad.onchange = () => this.LoadFromFile();
   const btnSave = document.getElementById('SaveToFileButton');
   btnSave.onclick = () => this.SaveToFile();
+
+  //================================
+  // link Camera Options section
+
+  // first the camera target sphere
+  const toggleCameraTargetSphere = 
+    document.getElementById('toggleCameraTargetSphere');
+  toggleCameraTargetSphere.onclick = () => {
+    let vis = self.viewer.cameraTargetSphere.visible;
+    vis = !vis;
+    toggleCameraTargetSphere.innerHTML = vis ?
+      'Hide Camera Target' : 'Show Camera Target';
+    self.viewer.cameraTargetSphere.visible = vis;
+  };
+
+  // now each direction
+  const magnitude = 100;
+  const translateCameraUp =
+    document.getElementById('translateCameraUp');
+  translateCameraUp.onclick = () => {
+    self.viewer.MoveCameraUp(magnitude);
+  };
+
+  const translateCameraDown =
+    document.getElementById('translateCameraDown');
+  translateCameraDown.onclick = () => {
+    self.viewer.MoveCameraDown(magnitude);
+  };
+
+  const translateCameraLeft =
+    document.getElementById('translateCameraLeft');
+  translateCameraLeft.onclick = () => {
+    self.viewer.MoveCameraLeft(magnitude);
+  };
+
+  const translateCameraRight =
+    document.getElementById('translateCameraRight');
+  translateCameraRight.onclick = () => {
+    self.viewer.MoveCameraRight(magnitude);
+  };
+
+  const translateCameraBackward =
+    document.getElementById('translateCameraBackward');
+  translateCameraBackward.onclick = () => {
+    self.viewer.MoveCameraBackward(magnitude);
+  };
+
+  const translateCameraForward =
+    document.getElementById('translateCameraForward');
+  translateCameraForward.onclick = () => {
+    self.viewer.MoveCameraForward(magnitude);
+  };
 };
 
 

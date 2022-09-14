@@ -539,6 +539,40 @@
         <a id='forSaveToFileButton'></a>
       </div>
     </div>
+    <div class='accordionSection'>
+      <div class='sectionTitle'
+           data-toggle='collapse'
+           data-target='#cameraOptionsContentDiv'
+           role='button'
+           aria-expanded='true'>
+        Translate Camera
+      </div>
+      <div class='sectionContent collapse in show'
+           id='cameraOptionsContentDiv'>
+        <div>
+          <div>
+            <button id='translateCameraUp'
+              style="margin-left:50px">Up</button>
+          </div>
+          <div>
+            <button id='translateCameraLeft'>Left</button>
+            <button id='translateCameraRight'
+              style="margin-left:50px">Right</button>
+          </div>
+          <div>
+            <button id='translateCameraDown'
+              style="margin-left:40px">Down</button>
+          </div>
+          <br>
+          <div>
+            <button id='translateCameraBackward'>Backward</button>
+            <button id='translateCameraForward'>Forward</button>
+          </div>
+          <button id='toggleCameraTargetSphere'>
+            Hide Camera Target</button>
+        </div>
+      </div>
+    </div>
   </div></div>
 	<!-- holds the neuron viewer -->
   <canvas id='meshviewer' width='0' height='0'></canvas>
