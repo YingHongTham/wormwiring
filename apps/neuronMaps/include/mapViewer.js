@@ -264,6 +264,9 @@ MapViewer.prototype.InitGL = function() {
   this.scene.add(directionalLight1);
   this.scene.add(directionalLight2);
   this.scene.add(ambientLight);
+
+  //=================================================
+  // keyboard events for controlling camera
 };
 
 // grid and axes
@@ -2462,6 +2465,12 @@ MapViewer.prototype.SetCameraTarget = function(target) {
   this.cameraTarget.z = target.z;
   this.updateCamera();
 };
+MapViewer.prototype.GetCameraTarget = function() {
+  return new THREE.Vector3(
+    this.controls.target.x,
+    this.controls.target.y,
+    this.controls.target.z);
+};
 
 /*
  * set position of camera
@@ -2475,6 +2484,98 @@ MapViewer.prototype.SetCameraPosition = function(pos) {
   this.camera.position.z = pos.z;
   this.updateCamera();
 };
+MapViewer.prototype.GetCameraPosition = function() {
+  return new THREE.Vector3(
+    this.camera.position.x,
+    this.camera.position.y,
+    this.camera.position.z);
+};
+
+//===============
+// move camera target and position
+// used in keyboard events
+// left/right/etc. are from the perspective of the camera,
+// not absolute x,y,z
+
+MapViewer.prototype.MoveCameraRight = function(magnitude) {
+  const camPos = this.GetCameraPosition();
+  const camTar = this.GetCameraTarget();
+
+  // (camTar - camPos) x (0,1,0)
+  const vecRight = new THREE.Vector3(
+    -(camTar.z - camPos.z),
+    0,
+    camTar.x - camPos.x);
+  vecRight.normalize();
+  vecRight.multiplyScalar(magnitude);
+
+  camPos.add(vecRight);
+  camTar.add(vecRight);
+
+  this.SetCameraPosition(camPos);
+  this.SetCameraTarget(camTar);
+};
+MapViewer.prototype.MoveCameraLeft = function(magnitude) {
+  this.MoveCameraRight(-magnitude);
+};
+
+MapViewer.prototype.MoveCameraUp = function(magnitude) {
+  const camPos = this.GetCameraPosition();
+  const camTar = this.GetCameraTarget();
+
+  const camDir = new THREE.Vector3(0,0,0);
+  camDir.copy(camTar);
+  camDir.sub(camPos);
+  camDir.normalize();
+
+  console.log(camDir);
+
+  const dotProdWithY = camDir.y;
+
+  // e_y - <e_y,camDir> camDir
+  const vecUp = new THREE.Vector3(0,1,0);
+  camDir.multiplyScalar(dotProdWithY);
+  vecUp.sub(camDir);
+
+  if (vecUp.length() === 0) {
+    return;
+  }
+
+  vecUp.normalize();
+  vecUp.multiplyScalar(magnitude);
+
+  camPos.add(vecUp);
+  camTar.add(vecUp);
+
+  this.SetCameraPosition(camPos);
+  this.SetCameraTarget(camTar);
+};
+MapViewer.prototype.MoveCameraDown = function(magnitude) {
+  this.MoveCameraUp(-magnitude);
+};
+MapViewer.prototype.MoveCameraForward = function(magnitude) {
+  const camPos = this.GetCameraPosition();
+  const camTar = this.GetCameraTarget();
+
+  const camDir = new THREE.Vector3();
+  camDir.copy(camTar);
+  camDir.sub(camPos);
+  camDir.normalize();
+
+  camDir.multiplyScalar(magnitude);
+
+  camPos.add(camDir);
+  camTar.add(camDir);
+
+  this.SetCameraPosition(camPos);
+  this.SetCameraTarget(camTar);
+};
+MapViewer.prototype.MoveCameraBackward = function(magnitude) {
+  this.MoveCameraForward(-magnitude);
+};
+
+//====================
+// centering on things
 
 MapViewer.prototype.CenterViewOnCell = function(db,cellname) {
   let pos = this.GetAverageSkeletonPosViewer(db,cellname);
