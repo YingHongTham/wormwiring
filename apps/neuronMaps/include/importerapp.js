@@ -453,6 +453,18 @@ ImporterApp.prototype.InitLinkFunctionalityWithHTML = function() {
   translateCameraForward.onclick = () => {
     self.viewer.MoveCameraForward(magnitude);
   };
+
+  const cameraOptionsZoomIn =
+    document.getElementById('cameraOptionsZoomIn');
+  cameraOptionsZoomIn .onclick = () => {
+    self.viewer.CameraZoom(0.8);
+  };
+
+  const cameraOptionsZoomOut =
+    document.getElementById('cameraOptionsZoomOut');
+  cameraOptionsZoomOut.onclick = () => {
+    self.viewer.CameraZoom(1.25);
+  };
 };
 
 

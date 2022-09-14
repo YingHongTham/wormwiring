@@ -201,6 +201,28 @@ not the full cell skeleton/volume data;
 in particular, an internet connection is still required
 to load the cell.
 </p>
+
+<h4>Camera Options</h4>
+<p>
+The direction buttons move the camera in the given direction,
+while maintainig a constant relative target
+(that is, the camera target moves too).
+You can also use the mouse to achieve up/down/left/right movement
+of camera, by right-click and dragging.
+</p>
+<p>
+The Show/Hide Camera Target toggles the visibility of a sphere
+that is always located at the camera target position.
+Rotation (by using mouse, left-click and drag)
+is always performed around this point,
+and the y-direction is always maintained to appear up
+in our view.
+</p>
+<p>
+Note that zoom in/out (with mouse scroll wheel or with buttons)
+only moves camera closer/further from target,
+the target does not move.
+</p>
 `;
 
 

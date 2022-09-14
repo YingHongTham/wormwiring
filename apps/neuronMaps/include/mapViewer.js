@@ -417,6 +417,8 @@ MapViewer.prototype.InitStuffInScene = function() {
         self.RotateTextFaceCamera(m);
       }
     }
+    self.cameraTargetSphere.position.copy(
+      self.controls.target);
   };
 
 };
@@ -2510,7 +2512,7 @@ MapViewer.prototype.GetCameraPosition = function() {
 };
 
 //===============
-// move camera target and position
+// move camera target and position / zoom
 // used in keyboard events
 // left/right/etc. are from the perspective of the camera,
 // not absolute x,y,z
@@ -2590,6 +2592,21 @@ MapViewer.prototype.MoveCameraForward = function(magnitude) {
 };
 MapViewer.prototype.MoveCameraBackward = function(magnitude) {
   this.MoveCameraForward(-magnitude);
+};
+
+MapViewer.prototype.CameraZoom = function(factor) {
+  const camPos = this.GetCameraPosition();
+  const camTar = this.GetCameraTarget();
+
+  const camDir = new THREE.Vector3();
+  camDir.copy(camTar);
+  camDir.sub(camPos);
+
+  camPos.copy(camTar);
+  camDir.multiplyScalar(-factor);
+  camPos.add(camDir);
+
+  this.SetCameraPosition(camPos);
 };
 
 //====================
